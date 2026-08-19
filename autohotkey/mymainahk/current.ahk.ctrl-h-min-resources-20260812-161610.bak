@@ -10,7 +10,13 @@ SetControlDelay(-1)
 SetKeyDelay(-1, -1)
 SetMouseDelay(-1)
 SendMode("Input")
-Thread("Interrupt", 0)
+; Thread("Interrupt", 0) let ONE long-running hotkey thread (bulk window moves,
+; fullscreen recovery, Paragon waits) block every other shortcut and stall the
+; #SingleInstance-exit message, so reloads left zombie instances that
+; double-fired hotkeys and held Ctrl+H/Alt+H hostage. A short interrupt delay
+; keeps every shortcut responsive while freeze/resume stays atomic via
+; Critical("On") inside FreezeForegroundApp/RestoreFrozenApps.
+Thread("Interrupt", 50)
 try DllCall("SetPriorityClass", "Ptr", DllCall("GetCurrentProcess", "Ptr"), "UInt", 0x80) ; HIGH_PRIORITY_CLASS
 A_TrayMenu.Delete()
 A_TrayMenu.Add("Reload", (*) => Reload())
@@ -26,6 +32,7 @@ global PROCESS_RESUME_HOTKEY_ID := 0x4A02
 global processControlHotkeysRegistered := false
 global lastPauseHotkeyMessageTime := 0
 global lastResumeHotkeyMessageTime := 0
+global processHotkeyRegistrationFailures := 0
 OnMessage(0x0312, ProcessControlHotkeyMessage) ; WM_HOTKEY
 OnExit(UnregisterProcessControlHotkeys)
 RegisterProcessControlHotkeys()
@@ -150,7 +157,7 @@ EnsureWhisperKeyRunning()
 
 RegisterProcessControlHotkeys() {
     global PROCESS_PAUSE_HOTKEY_ID, PROCESS_RESUME_HOTKEY_ID
-        , processControlHotkeysRegistered
+        , processControlHotkeysRegistered, processHotkeyRegistrationFailures
     if (processControlHotkeysRegistered) {
         return true
     }
@@ -163,6 +170,7 @@ RegisterProcessControlHotkeys() {
     altError := A_LastError
     if (ctrlOk && altOk) {
         processControlHotkeysRegistered := true
+        processHotkeyRegistrationFailures := 0
         LogFreezeAction("Registered Ctrl+H and Alt+H with MOD_NOREPEAT")
         return true
     }
@@ -175,9 +183,41 @@ RegisterProcessControlHotkeys() {
     if (altOk) {
         DllCall("UnregisterHotKey", "Ptr", A_ScriptHwnd, "Int", PROCESS_RESUME_HOTKEY_ID)
     }
-    LogFreezeAction("Hotkey registration retry CtrlError=" ctrlError " AltError=" altError)
+    ; Failure almost always means a previous instance of this script still owns
+    ; the hotkeys and is not exiting. Log once, then after a few seconds force-
+    ; remove the duplicate so Ctrl+H/Alt+H and every other hotkey work again.
+    processHotkeyRegistrationFailures += 1
+    if (processHotkeyRegistrationFailures = 1) {
+        LogFreezeAction("Hotkey registration retry CtrlError=" ctrlError " AltError=" altError)
+    }
+    if (processHotkeyRegistrationFailures >= 12) {
+        LogFreezeAction("Force-removing duplicate instances holding Ctrl+H/Alt+H")
+        RemoveDuplicateInstances()
+        processHotkeyRegistrationFailures := 0
+    }
     SetTimer(RegisterProcessControlHotkeys, -250)
     return false
+}
+
+; Terminate every other running instance of this script. AHK script windows are
+; hidden top-level windows titled "<script name> - AutoHotkey vX.Y.Z", so the
+; title prefix identifies sibling instances without touching other AHK scripts
+; (e.g. the UX launcher) or unrelated programs.
+RemoveDuplicateInstances() {
+    scriptPrefix := A_ScriptName " - AutoHotkey"
+    for hwnd in WinGetList() {
+        try title := WinGetTitle("ahk_id " hwnd)
+        catch
+            continue
+        if !InStr(title, scriptPrefix)
+            continue
+        try pid := WinGetPID("ahk_id " hwnd)
+        catch
+            continue
+        if (pid && pid != DllCall("GetCurrentProcessId", "UInt")) {
+            Run('taskkill.exe /F /PID ' pid, , "Hide")
+        }
+    }
 }
 
 UnregisterProcessControlHotkeys(*) {
@@ -1979,15 +2019,19 @@ CheckSpaceLongPress() {
 ; Uses the connected physical-monitor pair and ignores persistent virtual displays
 ^1::
 {
+    LogFreezeAction("DBG Ctrl+1 ENTER")
     try {
         hwnd := WinGetID("A")
+        LogFreezeAction("DBG Ctrl+1 got hwnd=" hwnd)
     } catch as err {
+        LogFreezeAction("DBG Ctrl+1 WinGetID ERROR: " err.Message)
         ToolTip("Error: Could not get active window")
         SetTimer(() => ToolTip(), -2000)
         return
     }
 
     if (!hwnd) {
+        LogFreezeAction("DBG Ctrl+1 no active window")
         ToolTip("No active window to move")
         SetTimer(() => ToolTip(), -1500)
         return
@@ -1996,13 +2040,16 @@ CheckSpaceLongPress() {
     ; Determine current monitor
     try {
         currentMonitor := GetWindowMonitor(hwnd)
+        LogFreezeAction("DBG Ctrl+1 monitor=" currentMonitor)
     } catch as err {
+        LogFreezeAction("DBG Ctrl+1 GetWindowMonitor ERROR: " err.Message)
         ToolTip("Error detecting current monitor: " err.Message)
         SetTimer(() => ToolTip(), -2000)
         return
     }
 
     targetMonitor := GetOtherPhysicalMonitor(currentMonitor)
+    LogFreezeAction("DBG Ctrl+1 hwnd=" hwnd " current=" currentMonitor " target=" targetMonitor " pair=" GetPhysicalMonitorPair()["count"])
     if !targetMonitor {
         ToolTip("Only 1 connected physical monitor detected")
         SetTimer(() => ToolTip(), -1800)
@@ -2050,6 +2097,7 @@ CheckSpaceLongPress() {
     pair := GetPhysicalMonitorPair()
     primaryMon := pair["primary"]
     secondaryMon := pair["secondary"]
+    LogFreezeAction("DBG Ctrl+SC029 pair=" pair["count"] " primary=" primaryMon " secondary=" secondaryMon)
     if !primaryMon || !secondaryMon {
         ToolTip("Only 1 connected physical monitor detected")
         SetTimer(() => ToolTip(), -1800)

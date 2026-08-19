@@ -2019,15 +2019,19 @@ CheckSpaceLongPress() {
 ; Uses the connected physical-monitor pair and ignores persistent virtual displays
 ^1::
 {
+    LogFreezeAction("DBG Ctrl+1 ENTER")
     try {
         hwnd := WinGetID("A")
+        LogFreezeAction("DBG Ctrl+1 got hwnd=" hwnd)
     } catch as err {
+        LogFreezeAction("DBG Ctrl+1 WinGetID ERROR: " err.Message)
         ToolTip("Error: Could not get active window")
         SetTimer(() => ToolTip(), -2000)
         return
     }
 
     if (!hwnd) {
+        LogFreezeAction("DBG Ctrl+1 no active window")
         ToolTip("No active window to move")
         SetTimer(() => ToolTip(), -1500)
         return
@@ -2036,7 +2040,9 @@ CheckSpaceLongPress() {
     ; Determine current monitor
     try {
         currentMonitor := GetWindowMonitor(hwnd)
+        LogFreezeAction("DBG Ctrl+1 monitor=" currentMonitor)
     } catch as err {
+        LogFreezeAction("DBG Ctrl+1 GetWindowMonitor ERROR: " err.Message)
         ToolTip("Error detecting current monitor: " err.Message)
         SetTimer(() => ToolTip(), -2000)
         return
