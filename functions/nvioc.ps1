@@ -487,6 +487,139 @@ function nvioc {
         } catch { }
     }
 
+    # =====================================================================
+    # NVIDIA RATE-LIMIT PROXY (with API key rotation)
+    # A zero-dependency Node.js proxy on localhost:3456 that:
+    #   1. Intercepts 429/503/529 and retries BEFORE OpenCode sees them
+    #   2. ROTATES between multiple API keys to maximize rate limit headroom
+    #   3. Per-key cooldown: a 429'd key is skipped for 60s
+    #   4. Auto-reloads keys file every 60s (add keys without restart)
+    #
+    # Keys live in nvidia-api-keys.txt (one nvapi- key per line).
+    # Add more free keys from https://org.ngc.nvidia.com/setup/api-keys
+    # =====================================================================
+    $proxyScript = Join-Path $env:USERPROFILE '.config\opencode\nvidia-proxy.cjs'
+    $proxyKeysFile = Join-Path $env:USERPROFILE '.config\opencode\nvidia-api-keys.txt'
+    $proxyPort = 3456
+    $proxyBaseUrl = "http://127.0.0.1:$proxyPort/v1"
+
+    function Sync-NvidiaApiKeys {
+        # Collect all known NVIDIA API keys from various sources and
+        # write them to the proxy keys file. Called before proxy start.
+        $knownKeys = @{}
+        # Source 1: existing keys file
+        if (Test-Path -LiteralPath $proxyKeysFile -PathType Leaf) {
+            foreach ($line in (Get-Content -LiteralPath $proxyKeysFile)) {
+                $t = $line.Trim()
+                if ($t -and -not $t.StartsWith('#') -and $t -match 'nvapi-') {
+                    $knownKeys[$t] = 'keys-file'
+                }
+            }
+        }
+        # Source 2: env var
+        if ($env:NVIDIA_API_KEY -and $env:NVIDIA_API_KEY -match 'nvapi-') {
+            $knownKeys[$env:NVIDIA_API_KEY.Trim()] = 'env'
+        }
+        # Source 3: legacy key file
+        $legacyKeyFile = 'F:\backup\windowsapps\credentials\nvidia\api.txt'
+        if (Test-Path -LiteralPath $legacyKeyFile -PathType Leaf) {
+            $fk = (Get-Content -LiteralPath $legacyKeyFile -Raw).Trim()
+            if ($fk -match 'nvapi-') { $knownKeys[$fk] = 'file' }
+        }
+        # Source 4: opencode auth.json
+        $authFile = Join-Path $env:USERPROFILE '.local\share\opencode\auth.json'
+        if (Test-Path -LiteralPath $authFile -PathType Leaf) {
+            try {
+                $aj = Get-Content -LiteralPath $authFile -Raw | ConvertFrom-Json
+                if ($aj.nvidia -and $aj.nvidia.key -and $aj.nvidia.key -match 'nvapi-') {
+                    $knownKeys[$aj.nvidia.key.Trim()] = 'auth.json'
+                }
+            } catch { }
+        }
+        # Source 5: opencode.json provider configs
+        $ocCfgs = @(
+            (Join-Path $env:USERPROFILE '.config\opencode\opencode.json'),
+            (Join-Path $env:APPDATA 'opencode\opencode.json')
+        )
+        foreach ($ocCfg in $ocCfgs) {
+            if (-not (Test-Path -LiteralPath $ocCfg -PathType Leaf)) { continue }
+            try {
+                $j = Get-Content -LiteralPath $ocCfg -Raw | ConvertFrom-Json
+                $providers = @()
+                if ($j.provider.'nvidia-nim') { $providers += $j.provider.'nvidia-nim' }
+                if ($j.provider.nvidia) { $providers += $j.provider.nvidia }
+                foreach ($p in $providers) {
+                    if ($p.options -and $p.options.apiKey -and $p.options.apiKey -match 'nvapi-') {
+                        $knownKeys[$p.options.apiKey.Trim()] = 'opencode.json'
+                    }
+                }
+            } catch { }
+        }
+        # Write unique keys to file
+        if ($knownKeys.Count -eq 0) {
+            Write-Host "OC_PROGRESS stage=keys-sync-warning no-keys-found"
+            return
+        }
+        $dir = Split-Path -Parent $proxyKeysFile
+        if (-not (Test-Path -LiteralPath $dir -PathType Container)) {
+            New-Item -ItemType Directory -Force -Path $dir | Out-Null
+        }
+        $kl = @("# NVIDIA NIM API Keys (auto-synced by nvioc)")
+        $kl += "# Add more at https://org.ngc.nvidia.com/setup/api-keys"
+        $kl += "# One nvapi- key per line. Proxy rotates between all."
+        $kl += "#"
+        foreach ($k in $knownKeys.Keys) { $kl += $k }
+        $kl -join "`n" | Set-Content -LiteralPath $proxyKeysFile -Encoding UTF8
+        Write-Host "OC_PROGRESS stage=keys-synced count=$($knownKeys.Count) path=$proxyKeysFile"
+    }
+
+    function Get-NvidiaProxyHealth {
+        try {
+            $resp = Invoke-WebRequest -Uri "http://127.0.0.1:$proxyPort/health" `
+                -Method Get -TimeoutSec 2 -UseBasicParsing -ErrorAction Stop
+            if ($resp.StatusCode -eq 200) { return ($resp.Content | ConvertFrom-Json) }
+        } catch { }
+        return $null
+    }
+
+    function Ensure-NvidiaProxy {
+        # Returns $true if the proxy is reachable, $false if it could not be started.
+        $health = Get-NvidiaProxyHealth
+        if ($health) {
+            Write-Host "OC_PROGRESS stage=proxy-already-running port=$proxyPort keys=$($health.keys)"
+            # Hot-reload the keys file
+            try { $null = Invoke-WebRequest -Uri "http://127.0.0.1:$proxyPort/_reload" -Method Get -TimeoutSec 2 -UseBasicParsing -ErrorAction SilentlyContinue } catch { }
+            return $true
+        }
+        if (-not (Test-Path -LiteralPath $proxyScript -PathType Leaf)) {
+            Write-Host "OC_PROGRESS stage=proxy-missing path=$proxyScript"
+            return $false
+        }
+        Sync-NvidiaApiKeys
+        try {
+            $nodeExe = $null
+            foreach ($c in (Get-Command node.exe -CommandType Application -ErrorAction SilentlyContinue)) {
+                if ($c.Source -notmatch 'WindowsApps') { $nodeExe = $c.Source; break }
+            }
+            if (-not $nodeExe) { $nodeExe = 'node' }
+            Start-Process -FilePath $nodeExe -ArgumentList "`"$proxyScript`" --port $proxyPort --keys `"$proxyKeysFile`"" -WindowStyle Hidden -ErrorAction Stop
+            $deadline = (Get-Date).AddSeconds(8)
+            while ((Get-Date) -lt $deadline) {
+                Start-Sleep -Milliseconds 500
+                $h = Get-NvidiaProxyHealth
+                if ($h) {
+                    Write-Host "OC_PROGRESS stage=proxy-started port=$proxyPort keys=$($h.keys)"
+                    return $true
+                }
+            }
+            Write-Host "OC_PROGRESS stage=proxy-timeout port=$proxyPort"
+            return $false
+        } catch {
+            Write-Host "OC_PROGRESS stage=proxy-start-error msg=$($_.Exception.Message)"
+            return $false
+        }
+    }
+
     $finalModelArg = $modelArg
     $finalLabel = $modelLabels[$finalModelArg]
     if (-not $finalLabel) { $finalLabel = $finalModelArg }
@@ -700,21 +833,81 @@ function nvioc {
     # using @ai-sdk/openai-compatible with key "nvidia-nim" (not "nvidia")
     # to create a SEPARATE provider that doesn't merge with the built-in
     # nvidia provider from models.dev catalog.
+    #
+    # baseURL routes through the local rate-limit proxy (localhost:3456)
+    # so NVIDIA 429/503/529 responses are retried with exponential
+    # backoff BEFORE OpenCode ever sees them.  If the proxy is not
+    # running, this falls back transparently to the direct NVIDIA URL.
+    #
+    # Each model declares:
+    #   modalities  — tells OC what input/output types are supported
+    #   attachment  — false = OC will NEVER try to send images to this model
+    #   tool_call   — true  = model supports function/tool calling
+    #   temperature — default sampling temperature
+    #   limit       — context + output token limits
     # ═══════════════════════════════════════════════════════════════════
+
+    # Start the proxy if it is not already running. If it fails to start,
+    # fall back to the direct NVIDIA URL so OC still works (just without
+    # the 429-retry shield).
+    $proxyRunning = Ensure-NvidiaProxy
+    if ($proxyRunning) {
+        $effectiveBase = $proxyBaseUrl
+        Write-Host "OC_PROGRESS stage=proxy-active url=$effectiveBase"
+    } else {
+        $effectiveBase = 'https://integrate.api.nvidia.com/v1'
+        Write-Host "OC_PROGRESS stage=proxy-unavailable url=$effectiveBase (429s will reach OpenCode)"
+    }
+
     $nvidiaProviderConfig = @{
         npm     = '@ai-sdk/openai-compatible'
         name    = 'NVIDIA NGC'
         env     = @('NVIDIA_API_KEY')
         options = @{
-            baseURL = 'https://integrate.api.nvidia.com/v1'
+            baseURL = $effectiveBase
             apiKey  = $nvidiaApiKey
         }
         models  = @{
-            'nvidia/nemotron-3-ultra-550b-a55b'  = @{ name = 'Nemotron 3 Ultra (550B flagship, best general)' }
-            'z-ai/glm-5.2'                       = @{ name = 'GLM-5.2 (753B MoE, best coding)' }
-            'nvidia/nemotron-3-super-120b-a12b'  = @{ name = 'Nemotron 3 Super (120B, strong general)' }
-            'deepseek-ai/deepseek-v4-flash-0731' = @{ name = 'DeepSeek V4 Flash (284B MoE, fast coding)' }
-            'thinkingmachines/inkling'            = @{ name = 'Inkling (256-expert MoE, 1M ctx, multimodal)' }
+            'nvidia/nemotron-3-ultra-550b-a55b' = @{
+                name         = 'Nemotron 3 Ultra (550B flagship, best general)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = 0.6
+                limit        = @{ context = 131072; output = 16384 }
+            }
+            'z-ai/glm-5.2' = @{
+                name         = 'GLM-5.2 (753B MoE, best coding)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = 0.6
+                limit        = @{ context = 1048576; output = 32768 }
+            }
+            'nvidia/nemotron-3-super-120b-a12b' = @{
+                name         = 'Nemotron 3 Super (120B, strong general)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = 0.6
+                limit        = @{ context = 131072; output = 16384 }
+            }
+            'deepseek-ai/deepseek-v4-flash-0731' = @{
+                name         = 'DeepSeek V4 Flash (284B MoE, fast coding)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = 0.6
+                limit        = @{ context = 1048576; output = 32768 }
+            }
+            'thinkingmachines/inkling' = @{
+                name         = 'Inkling (256-expert MoE, 1M ctx, multimodal)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = 0.6
+                limit        = @{ context = 1048576; output = 32768 }
+            }
         }
     }
 
