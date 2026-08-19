@@ -1,0 +1,99 @@
+﻿{
+    "createdAt":  "2026-04-28T04:15:43.8030692+03:00",
+    "reason":  "Audit",
+    "script":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\Invoke-allstart.ps1",
+    "config":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\allstart.config.psd1",
+    "isAdmin":  true,
+    "registryRun":  [
+                        {
+                            "hive":  "HKCU",
+                            "path":  "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "FullScreenSnip",
+                            "value":  "\"F:\\study\\Platforms\\windows\\snipping\\SnipToClipBoard\\FullScreenSnip.exe\""
+                        },
+                        {
+                            "hive":  "HKCU",
+                            "path":  "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "current.ahk",
+                            "value":  "\"F:\\study\\Platforms\\windows\\autohotkey\\mymainahk\\current.ahk\""
+                        },
+                        {
+                            "hive":  "HKLM",
+                            "path":  "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "SecurityHealth",
+                            "value":  ""
+                        },
+                        {
+                            "hive":  "HKLM",
+                            "path":  "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "RtkAudUService",
+                            "value":  "\"C:\\Windows\\System32\\DriverStore\\FileRepository\\realtekservice.inf_amd64_9873da36e3c839c5\\RtkAudUService64.exe\" -background"
+                        }
+                    ],
+    "startupFolders":  [
+                           {
+                               "scope":  "User",
+                               "path":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+                               "name":  "current.ahk.lnk",
+                               "fullName":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\current.ahk.lnk",
+                               "attributes":  "Archive",
+                               "length":  1147,
+                               "copiedTo":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041539-audit\\startup-user\\current.ahk.lnk"
+                           },
+                           {
+                               "scope":  "User",
+                               "path":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+                               "name":  "desktop.ini",
+                               "fullName":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\desktop.ini",
+                               "attributes":  "Hidden, System, Archive",
+                               "length":  174,
+                               "copiedTo":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041539-audit\\startup-user\\desktop.ini"
+                           },
+                           {
+                               "scope":  "Common",
+                               "path":  "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+                               "name":  "desktop.ini",
+                               "fullName":  "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\desktop.ini",
+                               "attributes":  "Hidden, System, Archive",
+                               "length":  174,
+                               "copiedTo":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041539-audit\\startup-common\\desktop.ini"
+                           }
+                       ],
+    "scheduledTasks":  [
+                           {
+                               "taskName":  "Autorun_current_ahk",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041539-audit\\tasks\\Autorun_current_ahk.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ClawdBotTray",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041539-audit\\tasks\\ClawdBotTray.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OpenClaw Gateway",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041539-audit\\tasks\\OpenClaw_Gateway.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OpenSpeedy_Tray",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041539-audit\\tasks\\OpenSpeedy_Tray.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OpenWhisper_Tray",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041539-audit\\tasks\\OpenWhisper_Tray.xml",
+                               "exists":  true
+                           }
+                       ]
+}

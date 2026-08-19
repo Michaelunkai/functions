@@ -1,0 +1,4 @@
+﻿
+{"timestamp":"2026-07-27T23:05:31.9589281+03:00","level":"INFO","mode":"Startup","hostname":"USER","message":"allstart2 mode started: Startup"}
+{"timestamp":"2026-07-27T23:05:31.9757460+03:00","level":"INFO","mode":"Startup","hostname":"USER","message":"Admin: True; DryRun: False; PowerShell: 5.1.26100.8115"}
+{"timestamp":"2026-07-27T23:05:32.0337656+03:00","level":"ERROR","mode":"Startup","hostname":"USER","message":"allstart2 failed: Required hidden tray startup launcher is missing: C:\\Users\\micha\\.claude\\scripts\\murmure-silent.vbs"}

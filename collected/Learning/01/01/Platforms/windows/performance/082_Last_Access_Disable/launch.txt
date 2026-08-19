@@ -1,0 +1,1 @@
+﻿fsutil behavior set disablelastaccess 1; Write-Host "Last access timestamp disabled"

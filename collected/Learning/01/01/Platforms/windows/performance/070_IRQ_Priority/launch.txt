@@ -1,0 +1,1 @@
+﻿Write-Host "IRQ priority requires MSI Utility tool - setting software IRQ optimization"; Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\PriorityControl" -Name "IRQ8Priority" -Value 1 -Force; Write-Host "IRQ priority optimized"

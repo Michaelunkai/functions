@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2005-11-08T17:18:32</Date>
+    <SecurityDescriptor>O:BAG:BAD:P(A;;FA;;;BA)(A;;FA;;;SY)</SecurityDescriptor>
+    <Source>$(@%systemroot%\system32\msra.exe,-687)</Source>
+    <Author>$(@%systemroot%\system32\msra.exe,-686)</Author>
+    <Description>$(@%systemroot%\system32\msra.exe,-688)</Description>
+    <URI>\Microsoft\Windows\RemoteAssistance\RemoteAssistanceTask</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="Creator">
+      <UserId>S-1-5-18</UserId>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>true</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <Hidden>true</Hidden>
+    <MultipleInstancesPolicy>Queue</MultipleInstancesPolicy>
+    <IdleSettings>
+      <Duration>PT10M</Duration>
+      <WaitTimeout>PT1H</WaitTimeout>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <EventTrigger id="5a33e62f-7fb9-41d8-bc94-4ac450677743">
+      <Delay>PT15S</Delay>
+      <Subscription>&lt;QueryList&gt;&lt;Query Id="0" Path="System"&gt;&lt;Select Path="System"&gt;*[System[Provider[@Name='Microsoft-Windows-GroupPolicy'] and EventID=1502]]&lt;/Select&gt;&lt;/Query&gt;&lt;/QueryList&gt;</Subscription>
+    </EventTrigger>
+    <RegistrationTrigger />
+  </Triggers>
+  <Actions Context="Creator">
+    <Exec id="49b247cd-24d4-4ada-ad69-2d975a02b748">
+      <Command>%windir%\system32\RAServer.exe</Command>
+      <Arguments>/offerraupdate</Arguments>
+      <WorkingDirectory>%windir%</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>

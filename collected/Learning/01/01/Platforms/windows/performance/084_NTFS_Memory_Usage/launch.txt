@@ -1,0 +1,1 @@
+﻿fsutil behavior set memoryusage 2; Write-Host "NTFS memory usage optimized"

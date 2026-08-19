@@ -1,0 +1,1 @@
+﻿netsh int tcp set global chimney=disabled; Write-Host "TCP Chimney Offload disabled"

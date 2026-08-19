@@ -1,0 +1,15 @@
+﻿{
+    "function":  "getdotnet",
+    "command":  "getdotnet",
+    "source_profile":  "C:\\Users\\micha\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1",
+    "source_start_line":  6143,
+    "source_end_line":  6191,
+    "source_line_count":  49,
+    "top_rank":  58,
+    "top_rank_line_count":  49,
+    "top_rank_start_line":  6143,
+    "top_rank_end_line":  6191,
+    "extracted_at":  "2026-04-28T03:12:29.9782113+03:00",
+    "repo":  "https://github.com/Michaelunkai/ps-profile-getdotnet",
+    "script":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\repair\\system-tools\\Getdotnet\\Invoke-getdotnet.ps1"
+}

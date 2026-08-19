@@ -1,0 +1,1 @@
+﻿iwr "https://github.com/builtbybel/privatezilla/releases/download/0.60.0/privatezilla.zip" -OutFile "$env:TEMP\privatezilla.zip"; Expand-Archive "$env:TEMP\privatezilla.zip" "$env:TEMP\privatezilla" -Force; & (Get-ChildItem "$env:TEMP\privatezilla" -Filter "*.exe" -Recurse | Select-Object -First 1).FullName

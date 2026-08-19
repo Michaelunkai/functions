@@ -1,0 +1,236 @@
+# Extracted from C:\users\micha\Documents\WindowsPowerShell\Microsoft.PowerShell_profile.ps1.
+# The live profile keeps a thin launcher and dot-sources this script.
+$__extractedFunctionName = 'ccc4'
+$__extractedScriptPath = $PSCommandPath
+$__extractedArgs = @($args)
+if ($__extractedArgs -contains '-SelfTest') {
+    [pscustomobject]@{
+        Script = $__extractedScriptPath
+        Exists = (Test-Path -LiteralPath $__extractedScriptPath)
+        Function = $__extractedFunctionName
+        Mode = 'SelfTest'
+    }
+    return
+}
+
+function ccc4 {
+    $ErrorActionPreference='SilentlyContinue'; $ProgressPreference='SilentlyContinue'
+    $t=Get-Date; $freed=0
+    function SZ($p){if(Test-Path $p -EA 0){(Get-ChildItem $p -Recurse -Force -EA 0|Measure-Object Length -Sum -EA 0).Sum}else{0}}
+    function FR($label,$paths){$b=0;foreach($p in $paths){if(Test-Path $p -EA 0){$s=SZ $p;if($s -gt 0){Write-Host "    $p ($([math]::Round($s/1MB))MB)" -ForegroundColor DarkGray};$b+=$s;Get-ChildItem $p -Force -EA 0|Remove-Item -Recurse -Force -EA 0}};$script:freed+=$b;if($b -gt 0){Write-Host "  -> $label freed: $([math]::Round($b/1MB))MB" -ForegroundColor $(if($b -gt 50MB){'Green'}elseif($b -gt 1MB){'Yellow'}else{'Gray'})}}
+    Write-Host '=== CCC4: DEEP CLEANUP (npm/py/dotnet/browsers/installer/appx) ===' -ForegroundColor Magenta
+    Write-Host "Started: $(Get-Date -Format 'HH:mm:ss')" -ForegroundColor White
+
+    # [1/10] PYTHON
+    Write-Host '[1/10] Python cleanup...' -ForegroundColor Cyan
+    $b=$freed
+    $pyBase='C:\Users\micha\AppData\Local\Programs\Python'
+    if(Test-Path $pyBase){Get-ChildItem $pyBase -Directory -EA 0|Where-Object{!(Test-Path (Join-Path $_.FullName 'python.exe'))-or(SZ $_.FullName) -lt 5MB}|ForEach-Object{$s=SZ $_.FullName;$script:freed+=$s;Write-Host "    Dead install: $($_.Name) ($([math]::Round($s/1MB))MB)" -ForegroundColor DarkGray;Remove-Item $_.FullName -Recurse -Force -EA 0};Get-ChildItem $pyBase -Recurse -Directory -Filter '__pycache__' -Force -EA 0|Remove-Item -Recurse -Force -EA 0}
+    pip cache purge 2>$null|Out-Null
+    FR 'PipCache' @('C:\Users\micha\AppData\Local\pip\cache')
+    Write-Host "  Python total: $([math]::Round(($freed-$b)/1MB))MB" -ForegroundColor Green
+
+    # [2/10] NPM + NUGET
+    Write-Host '[2/10] npm/NuGet cleanup...' -ForegroundColor Cyan
+    $b=$freed
+    npm.cmd cache clean --force 2>$null|Out-Null
+    FR 'NpmCache' @('C:\Users\micha\AppData\Local\npm-cache','C:\Users\micha\AppData\Roaming\npm-cache')
+    if(Test-Path 'C:\Program Files\dotnet\sdk\NuGetFallbackFolder' -EA 0){$s=SZ 'C:\Program Files\dotnet\sdk\NuGetFallbackFolder';$script:freed+=$s;Write-Host "    NuGetFallbackFolder ($([math]::Round($s/1MB))MB)" -ForegroundColor DarkGray;Remove-Item 'C:\Program Files\dotnet\sdk\NuGetFallbackFolder' -Recurse -Force -EA 0}
+    Write-Host "  npm/NuGet total: $([math]::Round(($freed-$b)/1MB))MB" -ForegroundColor Green
+
+    # [3/10] WINGET CACHE
+    Write-Host '[3/10] WinGet cache...' -ForegroundColor Cyan
+    $b=$freed
+    winget cache clean --force 2>$null|Out-Null
+    FR 'WinGetPkgs' @('C:\Users\micha\AppData\Local\Microsoft\WinGet\Packages')
+    Write-Host "  WinGet total: $([math]::Round(($freed-$b)/1MB))MB" -ForegroundColor Green
+
+    # [4/10] OLD .NET SDKs + RUNTIMES (keep latest patch per major.minor, keep all 10.x+)
+    Write-Host '[4/10] Old .NET SDKs & runtimes...' -ForegroundColor Cyan
+    $b=$freed
+    $sdkBase='C:\Program Files\dotnet\sdk'
+    # Remove EOL SDKs: 2.x 3.x 5.x 6.x 7.x entirely + old patches of 8.x 9.x
+    if(Test-Path $sdkBase){
+        $sdks=Get-ChildItem $sdkBase -Directory -EA 0|Where-Object{$_.Name -match '^\d+\.\d+\.\d+'}
+        $grp=@{}
+        foreach($s in $sdks){$m=$s.Name -replace '^(\d+\.\d+)\..*','$1';if(!$grp[$m]){$grp[$m]=@()};$grp[$m]+=$s}
+        foreach($k in $grp.Keys){
+            $maj=[int]($k -replace '\..*','')
+            if($maj -in 2,3,5,6,7){
+                # EOL - remove all
+                foreach($s in $grp[$k]){$sz=SZ $s.FullName;$script:freed+=$sz;Write-Host "    EOL SDK: $($s.Name) ($([math]::Round($sz/1MB))MB)" -ForegroundColor DarkGray;Remove-Item $s.FullName -Recurse -Force -EA 0}
+            } elseif($maj -in 8,9) {
+                # Supported - keep only latest patch
+                $sorted=@($grp[$k]|Sort-Object{try{[version]$_.Name}catch{[version]'0.0.0'}})
+                if($sorted.Count -gt 1){
+                    $old=$sorted[0..($sorted.Count-2)]
+                    foreach($s in $old){$sz=SZ $s.FullName;$script:freed+=$sz;Write-Host "    Old SDK: $($s.Name) ($([math]::Round($sz/1MB))MB)" -ForegroundColor DarkGray;Remove-Item $s.FullName -Recurse -Force -EA 0}
+                }
+            }
+            # 10.x 11.x - keep all (active use)
+        }
+    }
+    # Remove old runtimes same logic
+    $sharedBase='C:\Program Files\dotnet\shared'
+    if(Test-Path $sharedBase){
+        Get-ChildItem $sharedBase -Directory -EA 0|ForEach-Object{
+            $family=$_.FullName
+            $rts=Get-ChildItem $family -Directory -EA 0|Where-Object{$_.Name -match '^\d+\.\d+'}
+            $grp=@{}
+            foreach($r in $rts){$m=$r.Name -replace '^(\d+\.\d+)\..*','$1';if(!$grp[$m]){$grp[$m]=@()};$grp[$m]+=$r}
+            foreach($k in $grp.Keys){
+                $maj=[int]($k -replace '\..*','')
+                if($maj -in 2,3,5,6,7){
+                    foreach($r in $grp[$k]){$sz=SZ $r.FullName;$script:freed+=$sz;Write-Host "    EOL runtime: $($_.Name)\$($r.Name) ($([math]::Round($sz/1MB))MB)" -ForegroundColor DarkGray;Remove-Item $r.FullName -Recurse -Force -EA 0}
+                } elseif($maj -in 8,9) {
+                    $sorted=@($grp[$k]|Sort-Object{try{[version]($_.Name -replace '-.*','')}catch{[version]'0.0.0'}})
+                    if($sorted.Count -gt 1){
+                        $old=$sorted[0..($sorted.Count-2)]
+                        foreach($r in $old){$sz=SZ $r.FullName;$script:freed+=$sz;Write-Host "    Old runtime: $($_.Name)\$($r.Name) ($([math]::Round($sz/1MB))MB)" -ForegroundColor DarkGray;Remove-Item $r.FullName -Recurse -Force -EA 0}
+                    }
+                }
+            }
+        }
+    }
+    # Remove empty AspNetCore.All family if all versions removed
+    $aspAll=Join-Path $sharedBase 'Microsoft.AspNetCore.All'
+    if((Test-Path $aspAll) -and (@(Get-ChildItem $aspAll -Directory -EA 0)).Count -eq 0){Remove-Item $aspAll -Recurse -Force -EA 0}
+    Write-Host "  .NET total: $([math]::Round(($freed-$b)/1MB))MB" -ForegroundColor Green
+
+    # [5/10] BROWSER CACHES (Chrome all profiles, Edge, Firefox, Brave) - NEVER touches logins/passwords/cookies
+    Write-Host '[5/10] Browser caches (all browsers, all profiles)...' -ForegroundColor Cyan
+    $b=$freed
+    $cacheDirs=@('Cache','Cache_Data','Code Cache','Service Worker','GPUCache','GrShaderCache','DawnGraphiteCache','DawnWebGPUCache','ScriptCache','blob_storage','JumpListIconsRecentClosed','JumpListIconsMostVisited','Session Storage','ShaderCache','GCM Store','AutofillStrikeDatabase','optimization_guide_prediction_model_downloads')
+    # Chrome
+    $chromeUD='C:\Users\micha\AppData\Local\Google\Chrome\User Data'
+    if(Test-Path $chromeUD){
+        Get-ChildItem $chromeUD -Directory -Force -EA 0|Where-Object{$_.Name -match '^(Default|Profile)'}|ForEach-Object{
+            foreach($cd in $cacheDirs){$cp=Join-Path $_.FullName $cd;if(Test-Path $cp -EA 0){$s=SZ $cp;$script:freed+=$s;if($s -gt 1MB){Write-Host "    Chrome\$($_.Name)\$cd ($([math]::Round($s/1MB))MB)" -ForegroundColor DarkGray};Get-ChildItem $cp -Force -EA 0|Remove-Item -Recurse -Force -EA 0}}
+        }
+        # Global Chrome caches
+        foreach($gd in @('ShaderCache','GrShaderCache','GraphiteDawnCache','BrowserMetrics','Crashpad','CrashpadMetrics-active.pma','Safe Browsing','Crowd Deny','MEIPreload','pnacl','WidevineCdm')){
+            $gp=Join-Path $chromeUD $gd;if(Test-Path $gp -EA 0){$s=SZ $gp;$script:freed+=$s;if($s -gt 1MB){Write-Host "    Chrome\$gd ($([math]::Round($s/1MB))MB)" -ForegroundColor DarkGray};Get-ChildItem $gp -Force -EA 0|Remove-Item -Recurse -Force -EA 0}
+        }
+        # optimization_guide_model_store
+        $ogms=Join-Path $chromeUD 'optimization_guide_model_store'
+        if(Test-Path $ogms -EA 0){$s=SZ $ogms;$script:freed+=$s;Get-ChildItem $ogms -Force -EA 0|Remove-Item -Recurse -Force -EA 0}
+    }
+    # Edge
+    $edgeUD='C:\Users\micha\AppData\Local\Microsoft\Edge\User Data'
+    if(Test-Path $edgeUD){
+        Get-ChildItem $edgeUD -Directory -Force -EA 0|Where-Object{$_.Name -match '^(Default|Profile)'}|ForEach-Object{
+            foreach($cd in $cacheDirs){$cp=Join-Path $_.FullName $cd;if(Test-Path $cp -EA 0){$s=SZ $cp;$script:freed+=$s;if($s -gt 1MB){Write-Host "    Edge\$($_.Name)\$cd ($([math]::Round($s/1MB))MB)" -ForegroundColor DarkGray};Get-ChildItem $cp -Force -EA 0|Remove-Item -Recurse -Force -EA 0}}
+        }
+        foreach($gd in @('ShaderCache','GrShaderCache','BrowserMetrics','Crashpad','Safe Browsing')){
+            $gp=Join-Path $edgeUD $gd;if(Test-Path $gp -EA 0){$s=SZ $gp;$script:freed+=$s;Get-ChildItem $gp -Force -EA 0|Remove-Item -Recurse -Force -EA 0}
+        }
+    }
+    # Firefox
+    $ffLocal='C:\Users\micha\AppData\Local\Mozilla\Firefox\Profiles'
+    if(Test-Path $ffLocal){Get-ChildItem $ffLocal -Directory -Force -EA 0|ForEach-Object{foreach($cd in @('cache2','startupCache','thumbnails','safebrowsing')){$cp=Join-Path $_.FullName $cd;if(Test-Path $cp -EA 0){$s=SZ $cp;$script:freed+=$s;Get-ChildItem $cp -Force -EA 0|Remove-Item -Recurse -Force -EA 0}}}}
+    # Brave
+    $braveUD='C:\Users\micha\AppData\Local\BraveSoftware\Brave-Browser\User Data'
+    if(Test-Path $braveUD){Get-ChildItem $braveUD -Directory -Force -EA 0|Where-Object{$_.Name -match '^(Default|Profile)'}|ForEach-Object{foreach($cd in $cacheDirs){$cp=Join-Path $_.FullName $cd;if(Test-Path $cp -EA 0){$s=SZ $cp;$script:freed+=$s;Get-ChildItem $cp -Force -EA 0|Remove-Item -Recurse -Force -EA 0}}}}
+    # Opera
+    $operaUD="C:\Users\micha\AppData\Roaming\Opera Software\Opera Stable"
+    if(Test-Path $operaUD){foreach($cd in $cacheDirs){$cp=Join-Path $operaUD $cd;if(Test-Path $cp -EA 0){$s=SZ $cp;$script:freed+=$s;Get-ChildItem $cp -Force -EA 0|Remove-Item -Recurse -Force -EA 0}}}
+    # Vivaldi
+    $vivaldiUD='C:\Users\micha\AppData\Local\Vivaldi\User Data'
+    if(Test-Path $vivaldiUD){Get-ChildItem $vivaldiUD -Directory -Force -EA 0|Where-Object{$_.Name -match '^(Default|Profile)'}|ForEach-Object{foreach($cd in $cacheDirs){$cp=Join-Path $_.FullName $cd;if(Test-Path $cp -EA 0){$s=SZ $cp;$script:freed+=$s;Get-ChildItem $cp -Force -EA 0|Remove-Item -Recurse -Force -EA 0}}}}
+    Write-Host "  Browsers total: $([math]::Round(($freed-$b)/1MB))MB" -ForegroundColor Green
+
+    # [6/10] TEMP FOLDER
+    Write-Host '[6/10] TEMP folder (>1 day old)...' -ForegroundColor Cyan
+    $b=$freed
+    $cutoff=(Get-Date).AddDays(-1)
+    @($env:TEMP,'C:\Windows\Temp')|ForEach-Object{
+        if(Test-Path $_ -EA 0){
+            Get-ChildItem $_ -Force -EA 0|Where-Object{$_.LastWriteTime -lt $cutoff}|ForEach-Object{
+                $s=if($_.PSIsContainer){SZ $_.FullName}else{$_.Length}
+                $script:freed+=$s
+                Remove-Item $_.FullName -Recurse -Force -EA 0
+            }
+        }
+    }
+    Write-Host "  TEMP total: $([math]::Round(($freed-$b)/1MB))MB" -ForegroundColor Green
+
+    # [7/10] WINDOWS INSTALLER ORPHANS
+    Write-Host '[7/10] Windows Installer orphans...' -ForegroundColor Cyan
+    $b=$freed
+    # Remove .tmp .log .txt files
+    Get-ChildItem 'C:\Windows\Installer' -File -EA 0|Where-Object{$_.Extension -in '.tmp','.log','.txt'}|ForEach-Object{$script:freed+=$_.Length;Remove-Item $_.FullName -Force -EA 0}
+    # Remove old .msp >180 days >5MB
+    Get-ChildItem 'C:\Windows\Installer' -File -EA 0|Where-Object{$_.Extension -eq '.msp' -and $_.LastWriteTime -lt (Get-Date).AddDays(-180) -and $_.Length -gt 5MB}|ForEach-Object{$script:freed+=$_.Length;Write-Host "    Old MSP: $($_.Name) ($([math]::Round($_.Length/1MB))MB)" -ForegroundColor DarkGray;Remove-Item $_.FullName -Force -EA 0}
+    # PatchCache
+    if(Test-Path 'C:\Windows\Installer\$PatchCache$' -EA 0){$s=SZ 'C:\Windows\Installer\$PatchCache$';if($s -gt 1MB){$script:freed+=$s;Get-ChildItem 'C:\Windows\Installer\$PatchCache$' -Recurse -Force -EA 0|Remove-Item -Recurse -Force -EA 0;Write-Host "    PatchCache ($([math]::Round($s/1MB))MB)" -ForegroundColor DarkGray}}
+    # Orphaned .msi files (not referenced in registry)
+    $regPkgs=@{}
+    Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Installer\UserData\S-1-5-18\Products\*\InstallProperties' -EA 0|Where-Object{$_.LocalPackage}|ForEach-Object{$regPkgs[$_.LocalPackage]=$true}
+    Get-ChildItem 'C:\Windows\Installer' -File -Filter '*.msi' -EA 0|Where-Object{!$regPkgs[$_.FullName]}|ForEach-Object{
+        $script:freed+=$_.Length
+        Write-Host "    Orphan MSI: $($_.Name) ($([math]::Round($_.Length/1MB))MB)" -ForegroundColor DarkGray
+        Remove-Item $_.FullName -Force -EA 0
+    }
+    # Tiny orphan GUID dirs >90 days old
+    Get-ChildItem 'C:\Windows\Installer' -Directory -EA 0|Where-Object{$_.Name -match '^\{' -and $_.LastWriteTime -lt (Get-Date).AddDays(-90)}|ForEach-Object{$s=SZ $_.FullName;if($s -gt 0 -and $s -lt 5MB){$script:freed+=$s;Remove-Item $_.FullName -Recurse -Force -EA 0}}
+    Write-Host "  Installer total: $([math]::Round(($freed-$b)/1MB))MB" -ForegroundColor Green
+
+    # [8/10] SUPERSEDED WINDOWSAPPS
+    Write-Host '[8/10] Superseded WindowsApps...' -ForegroundColor Cyan
+    $b=$freed
+    # Remove staged packages
+    Get-AppxPackage -AllUsers -EA 0|Where-Object{$_.PackageUserInformation.InstallState -eq 'Staged'}|ForEach-Object{Write-Host "    Staged: $($_.Name) $($_.Version)" -ForegroundColor DarkGray;Remove-AppxPackage -Package $_.PackageFullName -AllUsers -EA 0}
+    # Find old versions in WindowsApps dir and remove via AppX
+    $appDir='C:\Program Files\WindowsApps'
+    $apps=Get-ChildItem $appDir -Directory -Force -EA 0|Where-Object{$_.Name -match '^(.+?)_(\d[\d\.]+?)_'}|ForEach-Object{
+        $m=[regex]::Match($_.Name,'^(.+?)_(\d[\d\.]+?)_')
+        [PSCustomObject]@{Base=$m.Groups[1].Value;Ver=$m.Groups[2].Value;Full=$_.FullName;Name=$_.Name}
+    }
+    $apps|Group-Object Base|Where-Object{$_.Count -gt 1}|ForEach-Object{
+        $sorted=@($_.Group|Sort-Object{try{[version]($_.Ver -replace '[^\d\.]','')}catch{[version]'0.0'}})
+        if($sorted.Count -gt 1){
+            $old=$sorted[0..($sorted.Count-2)]
+            foreach($o in $old){
+                $pkg=Get-AppxPackage -AllUsers -EA 0|Where-Object{$_.PackageFullName -like "*$($o.Name)*"}
+                if($pkg){
+                    $isInstalled=$false
+                    $pkg.PackageUserInformation|ForEach-Object{if($_.InstallState -eq 'Installed'){$isInstalled=$true}}
+                    if(!$isInstalled){
+                        $s=SZ $o.Full;$script:freed+=$s
+                        Write-Host "    Old AppX: $($o.Base) $($o.Ver) ($([math]::Round($s/1MB))MB)" -ForegroundColor DarkGray
+                        Remove-AppxPackage -Package $pkg.PackageFullName -AllUsers -EA 0
+                    }
+                }
+            }
+        }
+    }
+    Write-Host "  WindowsApps total: $([math]::Round(($freed-$b)/1MB))MB" -ForegroundColor Green
+
+    # [9/10] RUSTUP + MISC DEV CACHES
+    Write-Host '[9/10] Rustup + dev caches...' -ForegroundColor Cyan
+    $b=$freed
+    # Rustup: clean old toolchain artifacts, download cache, tmp
+    FR 'RustupTmp' @('C:\Users\micha\.rustup\tmp','C:\Users\micha\.rustup\downloads')
+    # VS Build Tools cache (NOT the install itself)
+    FR 'VSCache' @("$env:LOCALAPPDATA\Microsoft\VisualStudio\Packages\_Instances","$env:LOCALAPPDATA\Microsoft\VisualStudio\17.0\Extensions\DotNetSdkFeedUrl","$env:TEMP\NuGetScratch","$env:TEMP\VBCSCompiler","$env:TEMP\.NETCoreApp","$env:TEMP\dotnet-diagnostic","$env:TEMP\Razor")
+    Write-Host "  Dev caches total: $([math]::Round(($freed-$b)/1MB))MB" -ForegroundColor Green
+
+    # [10/10] DISM COMPONENT CLEANUP
+    Write-Host '[10/10] DISM component cleanup (background)...' -ForegroundColor Cyan
+    $jDism=Start-Job{dism /online /cleanup-image /startcomponentcleanup /resetbase 2>&1|Select-Object -Last 1}
+    $done=Wait-Job $jDism -Timeout 90 -EA 0
+    if($done){$out=Receive-Job $jDism -EA 0;Write-Host "    DISM: $($out|Select-Object -Last 1)" -ForegroundColor DarkGray}
+    else{Stop-Job $jDism -EA 0;Write-Host "    DISM: timeout (continues in background)" -ForegroundColor Yellow}
+    Remove-Job $jDism -Force -EA 0
+
+    # SUMMARY
+    $elapsed=(Get-Date)-$t; $vol=Get-Volume -DriveLetter C -EA 0
+    Write-Host '==========================================================' -ForegroundColor Green
+    Write-Host '=== CCC4 DEEP CLEANUP COMPLETE ===' -ForegroundColor Green
+    Write-Host '==========================================================' -ForegroundColor Green
+    Write-Host "Finished: $(Get-Date -Format 'HH:mm:ss') | Elapsed: $([math]::Floor($elapsed.TotalMinutes))m $($elapsed.Seconds)s" -ForegroundColor White
+    Write-Host "Tracked freed: $([math]::Round($freed/1GB,2)) GB" -ForegroundColor Yellow
+    if($vol){$freeGB=$vol.SizeRemaining/1GB;$totalGB=$vol.Size/1GB;$pct=($vol.SizeRemaining/$vol.Size)*100;Write-Host "C: Free: $([math]::Round($freeGB,2)) GB / $([math]::Round($totalGB,2)) GB ($([math]::Round($pct,1))% free)" -ForegroundColor $(if($pct -gt 20){'Green'}elseif($pct -gt 10){'Yellow'}else{'Red'})}
+}
+
+& $__extractedFunctionName @__extractedArgs

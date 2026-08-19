@@ -1,0 +1,1 @@
+﻿iwr "https://dl5.oo-software.com/files/ooshutup10/OOSU10.exe" -OutFile "$env:TEMP\OOSU10.exe"; & "$env:TEMP\OOSU10.exe"

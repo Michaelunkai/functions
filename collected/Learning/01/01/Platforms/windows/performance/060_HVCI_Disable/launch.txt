@@ -1,0 +1,1 @@
+﻿Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\DeviceGuard\Scenarios\HypervisorEnforcedCodeIntegrity" -Name "Enabled" -Value 0 -Force; Write-Host "HVCI disabled - reboot required"

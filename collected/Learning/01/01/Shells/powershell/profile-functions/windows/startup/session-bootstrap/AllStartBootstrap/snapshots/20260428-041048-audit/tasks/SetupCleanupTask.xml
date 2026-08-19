@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <SecurityDescriptor>D:(A;;GA;;;BA)(A;;GA;;;SY)</SecurityDescriptor>
+    <Description>$(@%systemRoot%\System32\oobe\SetupCleanupTask.Dll,-102)</Description>
+    <URI>\Microsoft\Windows\Setup\SetupCleanupTask</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="System">
+      <UserId>S-1-5-18</UserId>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>true</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>true</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+    <MaintenanceSettings>
+      <Period>P2D</Period>
+      <Deadline>P3D</Deadline>
+    </MaintenanceSettings>
+  </Settings>
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>2004-01-02T06:00:00</StartBoundary>
+      <Repetition>
+        <Interval>P5D</Interval>
+      </Repetition>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="System">
+    <ComHandler>
+      <ClassId>{7C83C056-1D0D-4C8E-A6B0-89E79C213559}</ClassId>
+    </ComHandler>
+  </Actions>
+</Task>

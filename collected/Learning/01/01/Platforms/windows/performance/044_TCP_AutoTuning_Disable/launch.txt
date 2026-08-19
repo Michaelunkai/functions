@@ -1,0 +1,1 @@
+﻿netsh int tcp set global autotuninglevel=disabled; Write-Host "TCP Auto-Tuning disabled"

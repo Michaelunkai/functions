@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Version>1.0</Version>
+    <SecurityDescriptor>D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGX;;;SU)</SecurityDescriptor>
+    <URI>\Microsoft\Windows\InstallService\SmartRetry</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <MultipleInstancesPolicy>Queue</MultipleInstancesPolicy>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <RunOnlyIfIdle>true</RunOnlyIfIdle>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <DisallowStartOnRemoteAppSession>true</DisallowStartOnRemoteAppSession>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <BootTrigger id="PostBoot">
+      <Delay>PT6M</Delay>
+    </BootTrigger>
+    <TimeTrigger id="ScheduledRetry">
+      <StartBoundary>2026-04-16T22:58:54+03:00</StartBoundary>
+    </TimeTrigger>
+    <WnfStateChangeTrigger id="7538BDA33E06830D">
+      <StateName>7538BDA33E06830D</StateName>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger id="7518BCA33E06830D">
+      <Enabled>false</Enabled>
+      <StateName>7518BCA33E06830D</StateName>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger id="7510BCA33E0B8441">
+      <Enabled>false</Enabled>
+      <StateName>7510BCA33E0B8441</StateName>
+      <Data>03</Data>
+    </WnfStateChangeTrigger>
+    <TimeTrigger id="NetworkDebounce">
+      <StartBoundary>2014-01-01T03:00:00+03:00</StartBoundary>
+      <Enabled>false</Enabled>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <ComHandler>
+      <ClassId>{F3A219C3-2698-4CBF-9C07-037EDB8E72E6}</ClassId>
+    </ComHandler>
+  </Actions>
+</Task>

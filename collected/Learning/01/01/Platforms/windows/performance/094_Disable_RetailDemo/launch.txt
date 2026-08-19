@@ -1,0 +1,1 @@
+﻿Stop-Service -Name "RetailDemo" -Force -ErrorAction SilentlyContinue; Set-Service -Name "RetailDemo" -StartupType Disabled; Write-Host "Retail Demo Service disabled"

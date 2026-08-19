@@ -1,0 +1,9 @@
+{
+    "StartedAt":  "2026-06-30T02:43:39.3913846+03:00",
+    "UpdatedAt":  "2026-06-30T02:51:02.2015535+03:00",
+    "LaunchDeadline":  "2026-06-30T03:13:39.3913846+03:00",
+    "Activity":  "Windows Repair Upgrade Automation",
+    "Status":  "setup 94.13% est | phase Dynamic Update extraction | phase age 70s | log age 26s | cpu 0.8s | waiting for fresh setup signal 26s | 2026-06-30 02:50:28, Info                         Expanding express MumX: Windows11.0-KB5094126-x64.mumx.esd",
+    "PercentComplete":  94,
+    "LaunchProofPath":  "F:\\study\\Platforms\\windows\\system-administration\\scripts\\powershell\\repair\\upgrade\\inplace\\win11\\auto\\postboot\\setup-launch-proof.json"
+}

@@ -1,0 +1,1 @@
+﻿iwr "https://github.com/crazy-max/WindowsSpyBlocker/releases/download/4.39.0/WindowsSpyBlocker.exe" -OutFile "$env:TEMP\WindowsSpyBlocker.exe"; & "$env:TEMP\WindowsSpyBlocker.exe"

@@ -1,0 +1,15 @@
+﻿{
+    "function":  "rmfe2",
+    "command":  "rmfe2",
+    "source_profile":  "C:\\Users\\micha\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1",
+    "source_start_line":  10205,
+    "source_end_line":  10247,
+    "source_line_count":  43,
+    "top_rank":  76,
+    "top_rank_line_count":  43,
+    "top_rank_start_line":  10205,
+    "top_rank_end_line":  10247,
+    "extracted_at":  "2026-04-28T03:12:30.3683388+03:00",
+    "repo":  "https://github.com/Michaelunkai/ps-profile-rmfe2",
+    "script":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\cleanup\\maintenance-tools\\Rmfe2\\Invoke-rmfe2.ps1"
+}

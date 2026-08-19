@@ -1,0 +1,1 @@
+﻿Get-Service -Name "Xbox*" | Stop-Service -Force -ErrorAction SilentlyContinue; Get-Service -Name "Xbox*" | Set-Service -StartupType Disabled -ErrorAction SilentlyContinue; Write-Host "Xbox services disabled"

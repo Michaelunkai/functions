@@ -1,0 +1,22 @@
+# PowerShell / Windows transient files
+*.log
+!artifacts/logs/last_run.log
+*.tmp
+*.bak
+*.zip
+*.7z
+
+# Generated repair working state and private backups
+gsm_latest_repair/
+settings_backup_*/
+artifacts/private*/
+
+# Common caches/build outputs
+.venv/
+venv/
+__pycache__/
+.pytest_cache/
+dist/
+build/
+node_modules/
+.DS_Store

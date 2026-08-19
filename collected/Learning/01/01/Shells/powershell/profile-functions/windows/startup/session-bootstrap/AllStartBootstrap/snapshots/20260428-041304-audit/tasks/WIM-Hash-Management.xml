@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <SecurityDescriptor>O:BAG:BAD:P(A;;FA;;;BA)(A;;FA;;;SY)</SecurityDescriptor>
+    <Source>$(@%SystemRoot%\system32\WofTasks.dll,-601)</Source>
+    <Author>$(@%SystemRoot%\system32\WofTasks.dll,-600)</Author>
+    <Description>$(@%SystemRoot%\system32\WofTasks.dll,-602)</Description>
+    <URI>\Microsoft\Windows\WOF\WIM-Hash-Management</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>true</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>true</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <MultipleInstancesPolicy>Queue</MultipleInstancesPolicy>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <WnfStateChangeTrigger>
+      <StateName>7518BCA32B188341</StateName>
+      <Data>01</Data>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger>
+      <StateName>7528BCA32B188341</StateName>
+      <Data>03</Data>
+    </WnfStateChangeTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <ComHandler>
+      <ClassId>{B7BFFB5A-EFA8-4D8C-BBDE-C8D5FAAF54A1}</ClassId>
+      <Data><![CDATA[WimHashManagement]]></Data>
+    </ComHandler>
+  </Actions>
+</Task>

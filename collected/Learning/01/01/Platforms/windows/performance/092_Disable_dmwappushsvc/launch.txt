@@ -1,0 +1,1 @@
+﻿Stop-Service -Name "dmwappushservice" -Force -ErrorAction SilentlyContinue; Set-Service -Name "dmwappushservice" -StartupType Disabled; Write-Host "WAP Push Service disabled"

@@ -1,0 +1,15 @@
+# Runtime output
+downloads/
+reports/
+scratch/
+state/
+
+# PowerShell editor noise
+*.tmp
+*.bak
+*.orig
+
+# OS / tooling noise
+.DS_Store
+Thumbs.db
+

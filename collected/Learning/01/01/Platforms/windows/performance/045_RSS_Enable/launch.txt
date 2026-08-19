@@ -1,0 +1,1 @@
+﻿netsh int tcp set global rss=enabled; Write-Host "Receive Side Scaling enabled"

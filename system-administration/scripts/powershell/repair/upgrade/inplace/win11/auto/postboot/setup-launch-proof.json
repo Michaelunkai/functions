@@ -1,0 +1,11 @@
+{
+    "StartedAt":  "2026-06-30T03:18:22.7054732+03:00",
+    "LaunchDeadline":  "2026-06-30T03:48:18.9253677+03:00",
+    "ExpectedWindowsReturnWithinMinutes":  60,
+    "SetupPath":  "F:\\study\\Platforms\\windows\\system-administration\\scripts\\powershell\\repair\\upgrade\\inplace\\win11\\auto\\runtime\\WinSetup\\setup.exe",
+    "ProcessId":  15352,
+    "Arguments":  "/Auto Upgrade /EULA Accept /DynamicUpdate Enable /MigrateDrivers All /ShowOOBE None /Telemetry Disable /Compat IgnoreWarning /BitLocker AlwaysSuspend",
+    "PostBootRoot":  "F:\\study\\Platforms\\windows\\system-administration\\scripts\\powershell\\repair\\upgrade\\inplace\\win11\\auto\\postboot",
+    "PostBootCommand":  "c; rrm windows.old",
+    "Status":  "setup.exe-started"
+}

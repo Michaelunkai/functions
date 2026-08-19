@@ -1,0 +1,1 @@
+﻿Start-Process "https://www.w10privacy.de/english-home/"; Write-Host "Download W10Privacy from website"

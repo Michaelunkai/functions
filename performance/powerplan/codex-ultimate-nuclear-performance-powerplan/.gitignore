@@ -1,0 +1,7 @@
+*.bak
+*.tmp
+*.log
+*.user
+*.ps1xml
+*.zip
+.codex-powerplan-state/

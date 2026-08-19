@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2014-01-01T00:00:00</Date>
+    <SecurityDescriptor>D:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;GRGX;;;SU)(A;;FA;;;S-1-5-80-65843127-2189646064-2697706863-2125155322-3141006483)(A;;FR;;;S-1-5-87-1452649159-2109950929-2856838567-3638795029-1283063528)</SecurityDescriptor>
+    <Source>$(@%SystemRoot%\system32\ClipUp.exe,-102)</Source>
+    <Author>$(@%SystemRoot%\system32\ClipUp.exe,-100)</Author>
+    <Description>$(@%SystemRoot%\system32\ClipUp.exe,-101)</Description>
+    <URI>\Microsoft\Windows\Clip\License Validation</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <AllowHardTerminate>false</AllowHardTerminate>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Hidden>true</Hidden>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <BootTrigger>
+      <Enabled>false</Enabled>
+    </BootTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <Exec>
+      <Command>%SystemRoot%\system32\ClipUp.exe</Command>
+      <Arguments>-p -s -o</Arguments>
+    </Exec>
+  </Actions>
+</Task>

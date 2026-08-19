@@ -1,0 +1,1 @@
+﻿fsutil behavior set disablecompression 1; Write-Host "NTFS compression disabled"

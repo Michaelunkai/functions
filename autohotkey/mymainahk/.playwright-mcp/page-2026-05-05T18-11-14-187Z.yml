@@ -1,0 +1,207 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - region "Toast message":
+      - heading "0 notifications total" [level=2] [ref=e3]
+      - alert
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - button "Skip to search" [ref=e7] [cursor=pointer]:
+        - generic [ref=e8]: Skip to search
+      - button "Skip to main content" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: Skip to main content
+      - button "Keyboard shortcuts" [ref=e11] [cursor=pointer]:
+        - generic [ref=e12]: Keyboard shortcuts
+      - button "Close jump menu" [ref=e13] [cursor=pointer]:
+        - img [ref=e14]
+        - generic [ref=e16]: Close jump menu
+    - banner "Global Navigation" [ref=e17]:
+      - generic [ref=e18]:
+        - link "LinkedIn" [ref=e19] [cursor=pointer]:
+          - /url: https://www.linkedin.com/feed/?nis=true
+          - img "LinkedIn" [ref=e22]:
+            - img [ref=e23]
+        - generic [ref=e27]:
+          - combobox "Search" [ref=e28]
+          - generic:
+            - img
+        - navigation "Primary Navigation" [ref=e29]:
+          - list [ref=e30]:
+            - listitem [ref=e31]:
+              - link "new feed updates notifications Home" [ref=e32] [cursor=pointer]:
+                - /url: https://www.linkedin.com/feed/?nis=true&
+                - generic [ref=e33]:
+                  - generic [ref=e36]: new feed updates notifications
+                  - img [ref=e40]
+                - generic "Home" [ref=e42]
+            - listitem [ref=e43]:
+              - link "2 new network updates notifications My Network" [ref=e44] [cursor=pointer]:
+                - /url: https://www.linkedin.com/mynetwork/?
+                - generic [ref=e45]:
+                  - generic [ref=e46]:
+                    - generic [ref=e47]: "2"
+                    - generic [ref=e48]: 2 new network updates notifications
+                  - img [ref=e52]
+                - generic "My Network" [ref=e54]
+            - listitem [ref=e55]:
+              - link "Jobs" [ref=e56] [cursor=pointer]:
+                - /url: https://www.linkedin.com/jobs/?
+                - img [ref=e60]
+                - generic "Jobs" [ref=e62]
+            - listitem [ref=e63]:
+              - link "5 new messages notifications Messaging" [ref=e64] [cursor=pointer]:
+                - /url: https://www.linkedin.com/messaging/?
+                - generic [ref=e65]:
+                  - generic [ref=e66]:
+                    - generic [ref=e67]: "5"
+                    - generic [ref=e68]: 5 new messages notifications
+                  - img [ref=e72]
+                - generic "Messaging" [ref=e74]
+            - listitem [ref=e75]:
+              - link "20 new notifications Notifications" [ref=e76] [cursor=pointer]:
+                - /url: https://www.linkedin.com/notifications/?
+                - generic [ref=e77]:
+                  - generic [ref=e78]:
+                    - generic [ref=e79]: "20"
+                    - generic [ref=e80]: 20 new notifications
+                  - img [ref=e84]
+                - generic "Notifications" [ref=e86]
+            - listitem [ref=e87]:
+              - button "Michael Fedorovsky Me" [ref=e89] [cursor=pointer]:
+                - img "Michael Fedorovsky" [ref=e90]
+                - generic [ref=e91]:
+                  - text: Me
+                  - img [ref=e92]
+            - listitem [ref=e94]:
+              - button "For Business" [ref=e96] [cursor=pointer]:
+                - img [ref=e100]
+                - generic "For Business" [ref=e102]:
+                  - text: For Business
+                  - img [ref=e103]
+            - listitem [ref=e105]:
+              - link "Try Premium for ₪0" [ref=e107] [cursor=pointer]:
+                - /url: javascript:void(0)
+                - generic [ref=e108]:
+                  - img [ref=e109]
+                  - generic [ref=e111]: Try Premium for ₪0
+    - generic [ref=e112]:
+      - generic [ref=e115]:
+        - main [ref=e116]:
+          - generic [ref=e119]:
+            - generic [ref=e123]:
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - link "comblack logo" [ref=e126] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/company/comblack/life
+                    - img "comblack logo" [ref=e129]
+                  - link "comblack" [ref=e131] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/company/comblack/life
+                - generic [ref=e132]:
+                  - button "Share" [ref=e135] [cursor=pointer]:
+                    - img [ref=e136]
+                    - generic [ref=e138]: Share
+                  - button "Show more options" [ref=e140] [cursor=pointer]:
+                    - img [ref=e141]
+                    - generic [ref=e143]: Show more options
+              - generic [ref=e145]:
+                - heading "Senior DevOps Engineer" [level=1] [ref=e146]
+                - button "View verified hiring modal" [ref=e148] [cursor=pointer]:
+                  - img [ref=e151]
+              - generic [ref=e155]:
+                - generic [ref=e156]: Center District, Israel
+                - generic [ref=e157]: ·
+                - generic [ref=e159]: 2 days ago
+                - generic [ref=e160]: ·
+                - strong [ref=e162]: 14 applicants
+                - paragraph [ref=e163]:
+                  - generic [ref=e164]: Promoted by hirer
+                  - generic [ref=e165]: ·
+                  - generic [ref=e166]: No response insights available yet
+              - generic [ref=e167]:
+                - button "Matches your job preferences, workplace type is Hybrid." [ref=e168] [cursor=pointer]:
+                  - strong [ref=e171]:
+                    - img [ref=e173]
+                    - text: Hybrid
+                  - generic [ref=e175]: Matches your job preferences, workplace type is Hybrid.
+                - button "Matches your job preferences, job type is Full-time." [ref=e176] [cursor=pointer]:
+                  - strong [ref=e179]:
+                    - img [ref=e181]
+                    - text: Full-time
+                  - generic [ref=e183]: Matches your job preferences, job type is Full-time.
+              - generic [ref=e185]:
+                - button "Easy Apply to Senior DevOps Engineer at comblack" [ref=e188] [cursor=pointer]:
+                  - img [ref=e189]
+                  - generic [ref=e191]: Easy Apply
+                - button "Save Senior DevOps Engineer at comblack" [ref=e192] [cursor=pointer]:
+                  - generic [ref=e193]: Save
+                  - generic [ref=e194]: Save Senior DevOps Engineer at comblack
+            - generic [ref=e204]:
+              - article [ref=e205]:
+                - heading "About the job" [level=2] [ref=e208]
+              - button "Click to see more description" [ref=e210] [cursor=pointer]:
+                - img [ref=e211]
+                - generic [ref=e213]: See more
+            - generic [ref=e215]:
+              - generic [ref=e216]:
+                - heading "Set alert for similar jobs" [level=2] [ref=e217]
+                - generic [ref=e219]: DevOps Engineer, Center District, Israel
+              - generic [ref=e221] [cursor=pointer]:
+                - generic [ref=e222]: "Off"
+                - generic [ref=e223]: Set alert
+                - switch "Set alert"
+            - alert [ref=e226]: Loading job details
+        - complementary [ref=e239]
+      - contentinfo [ref=e242]:
+        - generic [ref=e244]:
+          - generic [ref=e245]:
+            - navigation [ref=e246]:
+              - list
+            - generic [ref=e248]:
+              - list [ref=e249]:
+                - listitem [ref=e250]:
+                  - img [ref=e251]
+                  - generic [ref=e253]:
+                    - link "Questions? Visit our Help Center." [ref=e254] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/help/linkedin?trk=d_flagship3_job_details
+                      - text: Questions?
+                    - paragraph [ref=e255]: Visit our Help Center.
+                - listitem [ref=e256]:
+                  - img [ref=e257]
+                  - generic [ref=e259]:
+                    - link "Manage your account and privacy Go to your Settings." [ref=e260] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/psettings/
+                      - text: Manage your account and privacy
+                    - paragraph [ref=e261]: Go to your Settings.
+                - listitem [ref=e262]:
+                  - img [ref=e263]
+                  - generic [ref=e265]:
+                    - link "Recommendation transparency Learn more about Recommended Content." [ref=e266] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/help/linkedin/answer/a1339724
+                      - text: Recommendation transparency
+                    - paragraph [ref=e267]: Learn more about Recommended Content.
+              - generic [ref=e268]:
+                - generic [ref=e269]: Select Language
+                - combobox "Select Language" [ref=e270]
+          - paragraph [ref=e271]: LinkedIn Corporation © 2026
+    - generic:
+      - generic:
+        - complementary:
+          - generic [ref=e273]:
+            - generic [ref=e275] [cursor=pointer]:
+              - img "Michael Fedorovsky" [ref=e277]
+              - button "You are on the messaging overlay. Press enter to open the list of conversations." [ref=e278]:
+                - generic [ref=e279]:
+                  - generic [ref=e280]: Messaging
+                  - generic [ref=e281]: You are on the messaging overlay. Press enter to open the list of conversations.
+              - mark [ref=e282]:
+                - generic [ref=e283]: "5"
+            - generic [ref=e284]:
+              - button "Open messenger dropdown menu" [ref=e286] [cursor=pointer]:
+                - img "Open messenger dropdown menu" [ref=e287]
+              - button "Compose message" [ref=e290] [cursor=pointer]:
+                - img [ref=e291]
+                - generic [ref=e293]: Compose message
+              - button "You are on the messaging overlay. Press enter to open the list of conversations." [ref=e294] [cursor=pointer]:
+                - img [ref=e295]
+                - generic [ref=e297]: You are on the messaging overlay. Press enter to open the list of conversations.
+        - complementary "AI-powered assistant to get help with your career, jobs etc"
+  - region [ref=e298]

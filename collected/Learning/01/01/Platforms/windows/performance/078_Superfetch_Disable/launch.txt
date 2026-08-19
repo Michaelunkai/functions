@@ -1,0 +1,1 @@
+﻿Stop-Service -Name "SysMain" -Force -ErrorAction SilentlyContinue; Set-Service -Name "SysMain" -StartupType Disabled; Write-Host "Superfetch/SysMain disabled"

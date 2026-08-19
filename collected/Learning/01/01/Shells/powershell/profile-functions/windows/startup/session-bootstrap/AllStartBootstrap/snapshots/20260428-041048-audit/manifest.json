@@ -1,0 +1,1674 @@
+﻿{
+    "createdAt":  "2026-04-28T04:12:45.2181889+03:00",
+    "reason":  "Audit",
+    "script":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\Invoke-allstart.ps1",
+    "config":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\allstart.config.psd1",
+    "isAdmin":  true,
+    "registryRun":  [
+                        {
+                            "hive":  "HKCU",
+                            "path":  "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "FullScreenSnip",
+                            "value":  "\"F:\\study\\Platforms\\windows\\snipping\\SnipToClipBoard\\FullScreenSnip.exe\""
+                        },
+                        {
+                            "hive":  "HKCU",
+                            "path":  "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "current.ahk",
+                            "value":  "\"F:\\study\\Platforms\\windows\\autohotkey\\mymainahk\\current.ahk\""
+                        },
+                        {
+                            "hive":  "HKLM",
+                            "path":  "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "SecurityHealth",
+                            "value":  ""
+                        },
+                        {
+                            "hive":  "HKLM",
+                            "path":  "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "RtkAudUService",
+                            "value":  "\"C:\\Windows\\System32\\DriverStore\\FileRepository\\realtekservice.inf_amd64_9873da36e3c839c5\\RtkAudUService64.exe\" -background"
+                        }
+                    ],
+    "startupFolders":  [
+                           {
+                               "scope":  "User",
+                               "path":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+                               "name":  "current.ahk.lnk",
+                               "fullName":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\current.ahk.lnk",
+                               "attributes":  "Archive",
+                               "length":  1147,
+                               "copiedTo":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\startup-user\\current.ahk.lnk"
+                           },
+                           {
+                               "scope":  "User",
+                               "path":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+                               "name":  "desktop.ini",
+                               "fullName":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\desktop.ini",
+                               "attributes":  "Hidden, System, Archive",
+                               "length":  174,
+                               "copiedTo":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\startup-user\\desktop.ini"
+                           },
+                           {
+                               "scope":  "Common",
+                               "path":  "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+                               "name":  "desktop.ini",
+                               "fullName":  "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\desktop.ini",
+                               "attributes":  "Hidden, System, Archive",
+                               "length":  174,
+                               "copiedTo":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\startup-common\\desktop.ini"
+                           }
+                       ],
+    "scheduledTasks":  [
+                           {
+                               "taskName":  ".NET Framework NGEN v4.0.30319",
+                               "taskPath":  "\\Microsoft\\Windows\\.NET Framework\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\.NET_Framework_NGEN_v4.0.30319.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  ".NET Framework NGEN v4.0.30319 64",
+                               "taskPath":  "\\Microsoft\\Windows\\.NET Framework\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\.NET_Framework_NGEN_v4.0.30319_64.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  ".NET Framework NGEN v4.0.30319 64 Critical",
+                               "taskPath":  "\\Microsoft\\Windows\\.NET Framework\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\.NET_Framework_NGEN_v4.0.30319_64_Critical.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  ".NET Framework NGEN v4.0.30319 Critical",
+                               "taskPath":  "\\Microsoft\\Windows\\.NET Framework\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\.NET_Framework_NGEN_v4.0.30319_Critical.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "AD RMS Rights Policy Template Management (Automated)",
+                               "taskPath":  "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\AD_RMS_Rights_Policy_Template_Management_(Automated).xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "AD RMS Rights Policy Template Management (Manual)",
+                               "taskPath":  "\\Microsoft\\Windows\\Active Directory Rights Management Services Client\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\AD_RMS_Rights_Policy_Template_Management_(Manual).xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "AikCertEnrollTask",
+                               "taskPath":  "\\Microsoft\\Windows\\CertificateServicesClient\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\AikCertEnrollTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "AIMemoryBoost",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\AIMemoryBoost.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "appuriverifierinstall",
+                               "taskPath":  "\\Microsoft\\Windows\\ApplicationData\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\appuriverifierinstall.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ASC_PerformanceMonitor",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ASC_PerformanceMonitor.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Automatic-Device-Join",
+                               "taskPath":  "\\Microsoft\\Windows\\Workplace Join\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Automatic-Device-Join.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "AutomaticOfflineMemoryDiagnostic",
+                               "taskPath":  "\\Microsoft\\Windows\\MemoryDiagnostic\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\AutomaticOfflineMemoryDiagnostic.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Autorun_current_ahk",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Autorun_current_ahk.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Background Synchronization",
+                               "taskPath":  "\\Microsoft\\Windows\\Offline Files\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Background_Synchronization.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Backup",
+                               "taskPath":  "\\Microsoft\\Windows\\AppListBackup\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Backup.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "BackupClaudeCode",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\BackupClaudeCode.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "BackupNonMaintenance",
+                               "taskPath":  "\\Microsoft\\Windows\\AppListBackup\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\BackupNonMaintenance.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "BfeOnServiceStartTypeChange",
+                               "taskPath":  "\\Microsoft\\Windows\\Windows Filtering Platform\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\BfeOnServiceStartTypeChange.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "BitLocker Encrypt All Drives",
+                               "taskPath":  "\\Microsoft\\Windows\\BitLocker\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\BitLocker_Encrypt_All_Drives.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "BitLocker MDM policy Refresh",
+                               "taskPath":  "\\Microsoft\\Windows\\BitLocker\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\BitLocker_MDM_policy_Refresh.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "BootstrapUsageDataReporting",
+                               "taskPath":  "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\BootstrapUsageDataReporting.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "CacheTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Wininet\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\CacheTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Calibration Loader",
+                               "taskPath":  "\\Microsoft\\Windows\\WindowsColorSystem\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Calibration_Loader.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "CDSSync",
+                               "taskPath":  "\\Microsoft\\Windows\\WlanSvc\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\CDSSync.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Cellular",
+                               "taskPath":  "\\Microsoft\\Windows\\Management\\Provisioning\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Cellular.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ChromeProfiles",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ChromeProfiles.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ClaudeChannel",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ClaudeChannel.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ClaudeChannelHealth",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ClaudeChannelHealth.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ClaudeUsageRefresh",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ClaudeUsageRefresh.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ClawdBotTray",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ClawdBotTray.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "CodexAadbAutoConnect",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\CodexAadbAutoConnect.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Consolidator",
+                               "taskPath":  "\\Microsoft\\Windows\\Customer Experience Improvement Program\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Consolidator.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "CreateExplorerShellUnelevatedTask",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\CreateExplorerShellUnelevatedTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "CryptoPolicyTask",
+                               "taskPath":  "\\Microsoft\\Windows\\CertificateServicesClient\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\CryptoPolicyTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Data Integrity Check And Scan",
+                               "taskPath":  "\\Microsoft\\Windows\\Data Integrity Scan\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Data_Integrity_Check_And_Scan.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Data Integrity Scan for Crash Recovery",
+                               "taskPath":  "\\Microsoft\\Windows\\Data Integrity Scan\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Data_Integrity_Scan_for_Crash_Recovery.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "DetectHardwareChange",
+                               "taskPath":  "\\Microsoft\\Windows\\Management\\Autopilot\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\DetectHardwareChange.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Device",
+                               "taskPath":  "\\Microsoft\\Windows\\Device Information\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Device.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Device Install Group Policy",
+                               "taskPath":  "\\Microsoft\\Windows\\Plug and Play\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Device_Install_Group_Policy.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Device Install Reboot Required",
+                               "taskPath":  "\\Microsoft\\Windows\\Plug and Play\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Device_Install_Reboot_Required.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Device User",
+                               "taskPath":  "\\Microsoft\\Windows\\Device Information\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Device_User.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Device-Sync",
+                               "taskPath":  "\\Microsoft\\Windows\\Workplace Join\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Device-Sync.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "DirectXDatabaseUpdater",
+                               "taskPath":  "\\Microsoft\\Windows\\DirectX\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\DirectXDatabaseUpdater.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "DmClientOnScenarioDownload",
+                               "taskPath":  "\\Microsoft\\Windows\\Feedback\\Siuf\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\DmClientOnScenarioDownload.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Driver Recovery on Reboot",
+                               "taskPath":  "\\Microsoft\\Windows\\Device Setup\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Driver_Recovery_on_Reboot.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "dusmtask",
+                               "taskPath":  "\\Microsoft\\Windows\\DUSM\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\dusmtask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "DXGIAdapterCache",
+                               "taskPath":  "\\Microsoft\\Windows\\DirectX\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\DXGIAdapterCache.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "EDP App Launch Task",
+                               "taskPath":  "\\Microsoft\\Windows\\EDP\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\EDP_App_Launch_Task.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "EDP Auth Task",
+                               "taskPath":  "\\Microsoft\\Windows\\EDP\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\EDP_Auth_Task.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "EDP Inaccessible Credentials Task",
+                               "taskPath":  "\\Microsoft\\Windows\\EDP\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\EDP_Inaccessible_Credentials_Task.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "EDP Policy Manager",
+                               "taskPath":  "\\Microsoft\\Windows\\AppID\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\EDP_Policy_Manager.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "EduPrintProv",
+                               "taskPath":  "\\Microsoft\\Windows\\Printing\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\EduPrintProv.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "EnableLicenseAcquisition",
+                               "taskPath":  "\\Microsoft\\Windows\\Subscription\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\EnableLicenseAcquisition.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ExploitGuard MDM policy Refresh",
+                               "taskPath":  "\\Microsoft\\Windows\\ExploitGuard\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ExploitGuard_MDM_policy_Refresh.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "FamilySafetyRefreshTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Shell\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\FamilySafetyRefreshTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Firefox Background Update S-1-5-21-4273236717-3318517009-3029446451-1001 308046B0AF4A39CB",
+                               "taskPath":  "\\Mozilla\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Firefox_Background_Update_S-1-5-21-4273236717-3318517009-3029446451-1001_308046B0AF4A39CB.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Firefox Default Browser Agent 308046B0AF4A39CB",
+                               "taskPath":  "\\Mozilla\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Firefox_Default_Browser_Agent_308046B0AF4A39CB.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "FitLauncher Path Bridge",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\FitLauncher_Path_Bridge.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "FixDismSource",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\FixDismSource.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ForceSynchronizeTime",
+                               "taskPath":  "\\Microsoft\\Windows\\Time Synchronization\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ForceSynchronizeTime.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "GCC",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\GCC.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "GoogleUpdaterTaskSystem148.0.7730.0{3E341EAD-9871-49C3-B363-01273178C2E6}",
+                               "taskPath":  "\\GoogleSystem\\GoogleUpdater\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\GoogleUpdaterTaskSystem148.0.7730.0{3E341EAD-9871-49C3-B363-01273178C2E6}.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "GovernedFeatureUsageProcessing",
+                               "taskPath":  "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\GovernedFeatureUsageProcessing.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "HandleCommand",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\HandleCommand.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "HandleWnsCommand",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\HandleWnsCommand.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "HiveUploadTask",
+                               "taskPath":  "\\Microsoft\\Windows\\User Profile Service\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\HiveUploadTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "InitialConfiguration",
+                               "taskPath":  "\\Microsoft\\Windows\\WindowsAI\\Recall\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\InitialConfiguration.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Initialization",
+                               "taskPath":  "\\Microsoft\\Windows\\ReFsDedupSvc\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Initialization.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "InputPriorityFixer",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\InputPriorityFixer.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "InputSettingsRestoreDataAvailable",
+                               "taskPath":  "\\Microsoft\\Windows\\input\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\InputSettingsRestoreDataAvailable.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Installation",
+                               "taskPath":  "\\Microsoft\\Windows\\LanguageComponentsInstaller\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Installation.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "IntegrityCheck",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\IntegrityCheck.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "KeyPreGenTask",
+                               "taskPath":  "\\Microsoft\\Windows\\CertificateServicesClient\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\KeyPreGenTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Kim_Morning",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Kim_Morning.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Kim2_Afternoon",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Kim2_Afternoon.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "License Validation",
+                               "taskPath":  "\\Microsoft\\Windows\\Clip\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\License_Validation.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "LicenseAcquisition",
+                               "taskPath":  "\\Microsoft\\Windows\\Subscription\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\LicenseAcquisition.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "LicenseImdsIntegration",
+                               "taskPath":  "\\Microsoft\\Windows\\Clip\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\LicenseImdsIntegration.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "LocalUserSyncDataAvailable",
+                               "taskPath":  "\\Microsoft\\Windows\\input\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\LocalUserSyncDataAvailable.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "LocateCommandUserSession",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\LocateCommandUserSession.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "LoginCheck",
+                               "taskPath":  "\\Microsoft\\Windows\\PushToInstall\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\LoginCheck.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Logon",
+                               "taskPath":  "\\Microsoft\\Windows\\Management\\Provisioning\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Logon.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Logon Synchronization",
+                               "taskPath":  "\\Microsoft\\Windows\\Offline Files\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Logon_Synchronization.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MapsUpdateTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Maps\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MapsUpdateTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MasterStartupLauncher",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MasterStartupLauncher.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MdmDiagnosticsCleanup",
+                               "taskPath":  "\\Microsoft\\Windows\\Management\\Provisioning\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MdmDiagnosticsCleanup.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MDMMaintenenceTask",
+                               "taskPath":  "\\Microsoft\\Windows\\EnterpriseMgmt\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MDMMaintenenceTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Microsoft Compatibility Appraiser Exp",
+                               "taskPath":  "\\Microsoft\\Windows\\Application Experience\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Microsoft_Compatibility_Appraiser_Exp.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MicrosoftEdgeUpdateTaskMachineCore{A5C83DA7-FB44-4A79-A2F4-E6DE0C5921F2}",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MicrosoftEdgeUpdateTaskMachineCore{A5C83DA7-FB44-4A79-A2F4-E6DE0C5921F2}.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MicrosoftEdgeUpdateTaskMachineUA{8CBAAD01-0206-497C-A395-E834EEF9A326}",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MicrosoftEdgeUpdateTaskMachineUA{8CBAAD01-0206-497C-A395-E834EEF9A326}.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Microsoft-Windows-DiskDiagnosticResolver",
+                               "taskPath":  "\\Microsoft\\Windows\\DiskDiagnostic\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Microsoft-Windows-DiskDiagnosticResolver.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MobilityManager",
+                               "taskPath":  "\\Microsoft\\Windows\\Ras\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MobilityManager.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ModifyLinkUpdate",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ModifyLinkUpdate.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Monitoring",
+                               "taskPath":  "\\Microsoft\\Windows\\Hotpatch\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Monitoring.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MonthlyDriveCleanup",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MonthlyDriveCleanup.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MoProfileManagement",
+                               "taskPath":  "\\Microsoft\\Windows\\WlanSvc\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MoProfileManagement.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MouseSyncDataAvailable",
+                               "taskPath":  "\\Microsoft\\Windows\\input\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MouseSyncDataAvailable.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MRT_ERROR_HB",
+                               "taskPath":  "\\Microsoft\\Windows\\RemovalTools\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MRT_ERROR_HB.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MsCtfMonitor",
+                               "taskPath":  "\\Microsoft\\Windows\\TextServicesFramework\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MsCtfMonitor.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "MSIAfterburner",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\MSIAfterburner.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "NcsiIdentifyUserProxies",
+                               "taskPath":  "\\Microsoft\\Windows\\Network Connectivity Status Indicator\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\NcsiIdentifyUserProxies.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "NotificationTask",
+                               "taskPath":  "\\Microsoft\\Windows\\WwanSvc\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\NotificationTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "NuclearWatch_Logon",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\NuclearWatch_Logon.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "NVID-Apply-MaxGpuPower",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\NVID-Apply-MaxGpuPower.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\NVIDIA_App_SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ObsidianDailyNote",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ObsidianDailyNote.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ObsidianHotMemory",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ObsidianHotMemory.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ObsidianRebuildIndex",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ObsidianRebuildIndex.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ObsidianVaultIndex",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ObsidianVaultIndex.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OobeDiscovery",
+                               "taskPath":  "\\Microsoft\\Windows\\WwanSvc\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\OobeDiscovery.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OOBEFodSetup",
+                               "taskPath":  "\\Microsoft\\Windows\\Servicing\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\OOBEFodSetup.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OpenClaw Gateway",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\OpenClaw_Gateway.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OpenSpeedy_Tray",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\OpenSpeedy_Tray.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OpenWhisper_Tray",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\OpenWhisper_Tray.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PcaPatchDbTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Application Experience\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PcaPatchDbTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PCMaxPerf",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PCMaxPerf.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PCR Prediction Framework Firmware Update Task",
+                               "taskPath":  "\\Microsoft\\Windows\\PCRPF\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PCR_Prediction_Framework_Firmware_Update_Task.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PenSyncDataAvailable",
+                               "taskPath":  "\\Microsoft\\Windows\\input\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PenSyncDataAvailable.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PerformRemediation",
+                               "taskPath":  "\\Microsoft\\Windows\\WaaSMedic\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PerformRemediation.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PITRTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Setup\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PITRTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Pluton-Ksp-Provisioning",
+                               "taskPath":  "\\Microsoft\\Windows\\Pluton\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Pluton-Ksp-Provisioning.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PolicyConfiguration",
+                               "taskPath":  "\\Microsoft\\Windows\\WindowsAI\\Recall\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PolicyConfiguration.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "POPUP_KILLER_OnBoot",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\POPUP_KILLER_OnBoot.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PowerGridForecastTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Sustainability\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PowerGridForecastTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Pre-staged app cleanup",
+                               "taskPath":  "\\Microsoft\\Windows\\AppxDeploymentClient\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Pre-staged_app_cleanup.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PrinterCleanupTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Printing\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PrinterCleanupTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "PrintJobCleanupTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Printing\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\PrintJobCleanupTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ProcessMemoryDiagnosticEvents",
+                               "taskPath":  "\\Microsoft\\Windows\\MemoryDiagnostic\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ProcessMemoryDiagnosticEvents.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Property Definition Sync",
+                               "taskPath":  "\\Microsoft\\Windows\\File Classification Infrastructure\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Property_Definition_Sync.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Proxy",
+                               "taskPath":  "\\Microsoft\\Windows\\Autochk\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Proxy.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "QueueReporting",
+                               "taskPath":  "\\Microsoft\\Windows\\Windows Error Reporting\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\QueueReporting.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RecommendedTroubleshootingScanner",
+                               "taskPath":  "\\Microsoft\\Windows\\Diagnosis\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RecommendedTroubleshootingScanner.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ReconcileConfigs",
+                               "taskPath":  "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ReconcileConfigs.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ReconcileFeatures",
+                               "taskPath":  "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ReconcileFeatures.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ReconcileLanguageResources",
+                               "taskPath":  "\\Microsoft\\Windows\\LanguageComponentsInstaller\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ReconcileLanguageResources.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RecoverabilityToastTask",
+                               "taskPath":  "\\Microsoft\\Windows\\AccountHealth\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RecoverabilityToastTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Recovery-Check",
+                               "taskPath":  "\\Microsoft\\Windows\\Workplace Join\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Recovery-Check.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Refresh Group Policy Cache",
+                               "taskPath":  "\\Microsoft\\Windows\\WindowsUpdate\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Refresh_Group_Policy_Cache.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RegisterDeviceAccountChange",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RegisterDeviceAccountChange.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RegisterDeviceLocationRightsChange",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RegisterDeviceLocationRightsChange.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RegisterDevicePeriodic24",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RegisterDevicePeriodic24.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RegisterDevicePolicyChange",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RegisterDevicePolicyChange.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RegisterDeviceProtectionStateChanged",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RegisterDeviceProtectionStateChanged.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RegisterDeviceWnsFallback",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RegisterDeviceWnsFallback.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RegisterUserDevice",
+                               "taskPath":  "\\Microsoft\\Windows\\DeviceDirectoryClient\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RegisterUserDevice.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Registration",
+                               "taskPath":  "\\Microsoft\\Windows\\PushToInstall\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Registration.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RemediateHardwareChange",
+                               "taskPath":  "\\Microsoft\\Windows\\Management\\Autopilot\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RemediateHardwareChange.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RemoteAssistanceTask",
+                               "taskPath":  "\\Microsoft\\Windows\\RemoteAssistance\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RemoteAssistanceTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RemoteMouseSyncDataAvailable",
+                               "taskPath":  "\\Microsoft\\Windows\\input\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RemoteMouseSyncDataAvailable.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RemotePenSyncDataAvailable",
+                               "taskPath":  "\\Microsoft\\Windows\\input\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RemotePenSyncDataAvailable.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RemoteTouchpadSyncDataAvailable",
+                               "taskPath":  "\\Microsoft\\Windows\\input\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RemoteTouchpadSyncDataAvailable.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Report policies",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Report_policies.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RequestTrace",
+                               "taskPath":  "\\Microsoft\\Windows\\PerformanceTrace\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RequestTrace.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Restore",
+                               "taskPath":  "\\Microsoft\\Windows\\CloudRestore\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Restore.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RestoreDevice",
+                               "taskPath":  "\\Microsoft\\Windows\\InstallService\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RestoreDevice.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Retry",
+                               "taskPath":  "\\Microsoft\\Windows\\Management\\Provisioning\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Retry.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RLPDashboard",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RLPDashboard.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RLP-Sync-Agent",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RLP-Sync-Agent.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "RunOnReboot",
+                               "taskPath":  "\\Microsoft\\Windows\\Management\\Provisioning\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\RunOnReboot.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ScanForUpdates",
+                               "taskPath":  "\\Microsoft\\Windows\\InstallService\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ScanForUpdates.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Schedule Scan",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Schedule_Scan.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Schedule Scan Static Task",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Schedule_Scan_Static_Task.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Schedule Wake To Work",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Schedule_Wake_To_Work.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Schedule Work",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Schedule_Work.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Scheduled Start",
+                               "taskPath":  "\\Microsoft\\Windows\\WindowsUpdate\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Scheduled_Start.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SdbinstMergeDbTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Application Experience\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SdbinstMergeDbTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Secure-Boot-Update",
+                               "taskPath":  "\\Microsoft\\Windows\\PI\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Secure-Boot-Update.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SetupCleanupTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Setup\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SetupCleanupTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SetupRecoveryDataTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Setup\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SetupRecoveryDataTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SmartRetry",
+                               "taskPath":  "\\Microsoft\\Windows\\InstallService\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SmartRetry.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SoftLandingCreativeManagementTask",
+                               "taskPath":  "\\SoftLanding\\S-1-5-21-4273236717-3318517009-3029446451-1001\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SoftLandingCreativeManagementTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SpaceAgentTask",
+                               "taskPath":  "\\Microsoft\\Windows\\SpacePort\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SpaceAgentTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SpaceManagerTask",
+                               "taskPath":  "\\Microsoft\\Windows\\SpacePort\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SpaceManagerTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SpeechModelDownloadTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Speech\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SpeechModelDownloadTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Start Oobe Expedite Work",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Start_Oobe_Expedite_Work.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "StartOobeAppsScan_LicenseAccepted",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\StartOobeAppsScan_LicenseAccepted.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "StartOobeAppsScanAfterUpdate",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\StartOobeAppsScanAfterUpdate.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Storage Tiers Management Initialization",
+                               "taskPath":  "\\Microsoft\\Windows\\Storage Tiers Management\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Storage_Tiers_Management_Initialization.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Storage Tiers Optimization",
+                               "taskPath":  "\\Microsoft\\Windows\\Storage Tiers Management\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Storage_Tiers_Optimization.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "StorageCardEncryption Task",
+                               "taskPath":  "\\Microsoft\\Windows\\EDP\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\StorageCardEncryption_Task.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SvcRestartTask",
+                               "taskPath":  "\\Microsoft\\Windows\\SoftwareProtectionPlatform\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SvcRestartTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SvcRestartTaskLogon",
+                               "taskPath":  "\\Microsoft\\Windows\\SoftwareProtectionPlatform\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SvcRestartTaskLogon.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SvcRestartTaskNetwork",
+                               "taskPath":  "\\Microsoft\\Windows\\SoftwareProtectionPlatform\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SvcRestartTaskNetwork.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Synchronize Language Settings",
+                               "taskPath":  "\\Microsoft\\Windows\\International\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Synchronize_Language_Settings.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SynchronizeTime",
+                               "taskPath":  "\\Microsoft\\Windows\\Time Synchronization\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SynchronizeTime.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "syncpensettings",
+                               "taskPath":  "\\Microsoft\\Windows\\input\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\syncpensettings.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SyspartRepair",
+                               "taskPath":  "\\Microsoft\\Windows\\Chkdsk\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SyspartRepair.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SystemSoundsService",
+                               "taskPath":  "\\Microsoft\\Windows\\Multimedia\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SystemSoundsService.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "SystemTask",
+                               "taskPath":  "\\Microsoft\\Windows\\CertificateServicesClient\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\SystemTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "TgChannel",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\TgChannel.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "TgTray",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\TgTray.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ThemeAssetTask_SyncFODState",
+                               "taskPath":  "\\Microsoft\\Windows\\Shell\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\ThemeAssetTask_SyncFODState.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "TouchpadSyncDataAvailable",
+                               "taskPath":  "\\Microsoft\\Windows\\input\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\TouchpadSyncDataAvailable.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Tpm-HASCertRetr",
+                               "taskPath":  "\\Microsoft\\Windows\\TPM\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Tpm-HASCertRetr.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Tpm-Maintenance",
+                               "taskPath":  "\\Microsoft\\Windows\\TPM\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Tpm-Maintenance.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Tpm-PreAttestationHealthCheck",
+                               "taskPath":  "\\Microsoft\\Windows\\TPM\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Tpm-PreAttestationHealthCheck.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "TVIPDiscover",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\TVIPDiscover.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "TVStartupCheck",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\TVStartupCheck.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Tweaking.com - Windows Repair Tray Icon",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Tweaking.com_-_Windows_Repair_Tray_Icon.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UCPD velocity",
+                               "taskPath":  "\\Microsoft\\Windows\\AppxDeploymentClient\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UCPD_velocity.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UIEOrchestrator",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UIEOrchestrator.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UnexpectedCodepath",
+                               "taskPath":  "\\Microsoft\\Windows\\Diagnosis\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UnexpectedCodepath.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UnifiedConsentSyncTask",
+                               "taskPath":  "\\Microsoft\\Windows\\ConsentUX\\UnifiedConsent\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UnifiedConsentSyncTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UninstallSMB1ClientTask",
+                               "taskPath":  "\\Microsoft\\Windows\\SMB\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UninstallSMB1ClientTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UninstallSMB1ServerTask",
+                               "taskPath":  "\\Microsoft\\Windows\\SMB\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UninstallSMB1ServerTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UpdateLibrary",
+                               "taskPath":  "\\Microsoft\\Windows\\Windows Media Sharing\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UpdateLibrary.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UpdateUserPictureTask",
+                               "taskPath":  "\\Microsoft\\Windows\\Shell\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UpdateUserPictureTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UpdateUserPictureTaskContained",
+                               "taskPath":  "\\Microsoft\\Windows\\Shell\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UpdateUserPictureTaskContained.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UsageAndQualityInsights-MaintenanceTask",
+                               "taskPath":  "\\Microsoft\\Windows\\UsageAndQualityInsights\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UsageAndQualityInsights-MaintenanceTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UsageDataFlushing",
+                               "taskPath":  "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UsageDataFlushing.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UsageDataReceiver",
+                               "taskPath":  "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UsageDataReceiver.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UsageDataReporting",
+                               "taskPath":  "\\Microsoft\\Windows\\Flighting\\FeatureConfig\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UsageDataReporting.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Usb-Notifications",
+                               "taskPath":  "\\Microsoft\\Windows\\USB\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Usb-Notifications.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UserTask",
+                               "taskPath":  "\\Microsoft\\Windows\\CertificateServicesClient\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UserTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UserTask-Roam",
+                               "taskPath":  "\\Microsoft\\Windows\\CertificateServicesClient\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UserTask-Roam.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "USO_UxBroker",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\USO_UxBroker.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "UUS Failover Task",
+                               "taskPath":  "\\Microsoft\\Windows\\UpdateOrchestrator\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\UUS_Failover_Task.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "VerifiedPublisherCertStoreCheck",
+                               "taskPath":  "\\Microsoft\\Windows\\AppID\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\VerifiedPublisherCertStoreCheck.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "WakeUpAndScanForUpdates",
+                               "taskPath":  "\\Microsoft\\Windows\\InstallService\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\WakeUpAndScanForUpdates.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "WandGameAutoSync",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\WandGameAutoSync.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "WeeklyPCOptimizer",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\WeeklyPCOptimizer.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "WhesvcToast",
+                               "taskPath":  "\\Microsoft\\Windows\\PerformanceTrace\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\WhesvcToast.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "WiFiTask",
+                               "taskPath":  "\\Microsoft\\Windows\\NlaSvc\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\WiFiTask.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "WIM-Hash-Management",
+                               "taskPath":  "\\Microsoft\\Windows\\WOF\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\WIM-Hash-Management.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "WindowsActionDialog",
+                               "taskPath":  "\\Microsoft\\Windows\\Location\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\WindowsActionDialog.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "WinFocusMonitor",
+                               "taskPath":  "\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\WinFocusMonitor.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "WinPerfMax",
+                               "taskPath":  "\\PerfMax\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\WinPerfMax.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Work Folders Logon Synchronization",
+                               "taskPath":  "\\Microsoft\\Windows\\Work Folders\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Work_Folders_Logon_Synchronization.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "Work Folders Maintenance Work",
+                               "taskPath":  "\\Microsoft\\Windows\\Work Folders\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\Work_Folders_Maintenance_Work.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "XblGameSaveTask",
+                               "taskPath":  "\\Microsoft\\XblGameSave\\",
+                               "state":  "Disabled",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260428-041048-audit\\tasks\\XblGameSaveTask.xml",
+                               "exists":  true
+                           }
+                       ]
+}

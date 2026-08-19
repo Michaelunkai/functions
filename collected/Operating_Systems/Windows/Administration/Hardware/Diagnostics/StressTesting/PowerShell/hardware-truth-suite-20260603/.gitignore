@@ -1,0 +1,33 @@
+# Ignore generated runtime outputs
+reports/
+*.log
+*.tmp
+*.temp
+
+# Python/cache outputs
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# PowerShell/editor local noise
+*.ps1xml
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Secrets and local env
+.env
+.env.*
+*.key
+*.pem
+*token*
+*secret*
+
+# Build/output caches
+dist/
+build/
+out/
+coverage/

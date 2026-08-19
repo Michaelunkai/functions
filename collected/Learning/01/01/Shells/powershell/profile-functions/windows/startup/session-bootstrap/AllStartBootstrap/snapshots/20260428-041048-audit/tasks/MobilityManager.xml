@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <SecurityDescriptor>D:P(A;;FA;;;BA)(A;;FA;;;SY)(A;;FR;;;LS)</SecurityDescriptor>
+    <Author>$(@%SystemRoot%\system32\rasmbmgr.dll,-201)</Author>
+    <Description>$(@%SystemRoot%\system32\rasmbmgr.dll,-202)</Description>
+    <URI>\Microsoft\Windows\Ras\MobilityManager</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalService">
+      <UserId>S-1-5-19</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <MultipleInstancesPolicy>Parallel</MultipleInstancesPolicy>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <EventTrigger>
+      <Subscription>&lt;QueryList&gt;
+
+
+
+
+
+
+
+              &lt;Query
+
+
+
+
+
+
+
+                  Id="0"
+
+
+
+
+
+
+
+                  Path="Application"
+
+
+
+
+
+
+
+                  &gt;
+
+
+
+
+
+
+
+                &lt;Select Path="Application"&gt;*[System[Provider[@Name='RasClient'] and (Level=4 or Level=0) and (EventID=20281)]]&lt;/Select&gt;
+
+
+
+
+
+
+
+              &lt;/Query&gt;
+
+
+
+
+
+
+
+            &lt;/QueryList&gt;</Subscription>
+    </EventTrigger>
+  </Triggers>
+  <Actions Context="LocalService">
+    <ComHandler>
+      <ClassId>{C463A0FC-794F-4FDF-9201-01938CEACAFA}</ClassId>
+    </ComHandler>
+  </Actions>
+</Task>

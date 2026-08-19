@@ -1,0 +1,1 @@
+﻿powercfg -setacvalueindex SCHEME_CURRENT SUB_PROCESSOR PERFBOOSTMODE 2; powercfg -setactive SCHEME_CURRENT; Write-Host "Processor performance boost enabled"

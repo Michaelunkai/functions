@@ -1,0 +1,1 @@
+﻿Stop-Service -Name "MapsBroker" -Force -ErrorAction SilentlyContinue; Set-Service -Name "MapsBroker" -StartupType Disabled; Write-Host "Downloaded Maps Manager disabled"

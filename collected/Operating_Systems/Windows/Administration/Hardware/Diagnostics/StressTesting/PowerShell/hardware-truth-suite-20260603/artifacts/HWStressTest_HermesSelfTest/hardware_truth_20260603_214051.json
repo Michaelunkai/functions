@@ -1,0 +1,54 @@
+﻿{
+    "schema_version":  "2.0",
+    "started_at":  "2026-06-03T21:40:50.3635734+03:00",
+    "mode":  "SelfTest",
+    "duration_minutes":  10,
+    "root":  "C:\\HWStressTest_HermesSelfTest",
+    "clear_understanding":  true,
+    "ClearUnderstanding":  "current_software_visible_evidence_collected_with_explicit_physical_limitations",
+    "overall":  {
+                    "severity":  "info",
+                    "score":  92,
+                    "summary":  "0 critical, 0 warning, 4 known limitations"
+                },
+    "inventory":  {
+
+                  },
+    "checks":  [
+                   {
+                       "category":  "selftest",
+                       "name":  "SelfTest synthetic check",
+                       "severity":  "info",
+                       "confidence":  "high",
+                       "evidence":  "Script loaded, report model initialized, no stress launched",
+                       "likely_cause":  "N/A",
+                       "next_step":  "Run Inventory or FullStress for real diagnostics."
+                   }
+               ],
+    "stress":  [
+
+               ],
+    "needs_fixing_or_improving":  [
+
+                                  ],
+    "limitations":  [
+                        "Software cannot directly inspect PSU internals such as ripple, capacitor health, transient response, every rail condition, or wall outlet quality.",
+                        "Cable health is inferred from link speed, disconnect/errors, display/storage events, and user-observable symptoms; a physical cable tester or replacement test is definitive.",
+                        "Some SMART/NVMe, voltage, fan, and temperature sensors are vendor-gated and may be unavailable to Windows without HWiNFO/LibreHardwareMonitor.",
+                        "No script can honestly prove there is no possible hardware error left; it can only report current evidence and unknowns."
+                    ],
+    "report_paths":  {
+                         "json":  "C:\\HWStressTest_HermesSelfTest\\hardware_truth_20260603_214051.json",
+                         "markdown":  "C:\\HWStressTest_HermesSelfTest\\hardware_truth_20260603_214051.md"
+                     },
+    "timeline":  [
+                     {
+                         "at":  "2026-06-03T21:40:51.2091248+03:00",
+                         "phase":  "Scoring and writing reports",
+                         "percent":  93
+                     }
+                 ],
+    "deadline_utc":  "2026-06-03T18:55:50.3734136Z",
+    "OneLiner":  "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"F:\\Downloads\\A\\a.ps1\" -Mode FullStress -DurationMinutes 10 -TimeoutSeconds 900 -RootDir \"C:\\HWStressTest_HermesSelfTest\" -NoGui",
+    "completed_at":  "2026-06-03T21:40:51.2432005+03:00"
+}

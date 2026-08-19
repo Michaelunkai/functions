@@ -1,0 +1,1 @@
+Get-CimInstance Win32_Process -Filter "ProcessId=23472" | Select-Object ProcessId,CommandLine,ExecutablePath,CurrentDirectory | Format-List

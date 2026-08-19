@@ -1,0 +1,1 @@
+﻿iwr "https://github.com/builtbybel/spydish/releases/download/1.1/Spydish.zip" -OutFile "$env:TEMP\Spydish.zip"; Expand-Archive "$env:TEMP\Spydish.zip" "$env:TEMP\Spydish" -Force; & (Get-ChildItem "$env:TEMP\Spydish" -Filter "*.exe" -Recurse | Select-Object -First 1).FullName

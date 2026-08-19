@@ -1,0 +1,1 @@
+﻿Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" -Name "IoPageLockLimit" -Value 983040 -Force; Write-Host "I/O page lock limit optimized"

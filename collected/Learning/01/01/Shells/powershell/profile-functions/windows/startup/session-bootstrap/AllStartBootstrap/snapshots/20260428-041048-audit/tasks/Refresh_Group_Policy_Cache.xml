@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Version>1.0</Version>
+    <SecurityDescriptor>D:P(A;;FA;;;SY)(A;;FRFX;;;LS)(A;;FRFX;;;BA)</SecurityDescriptor>
+    <Source>$(@%systemRoot%\system32\updatepolicy.dll,-1000)</Source>
+    <Author>$(@%systemRoot%\system32\updatepolicy.dll,-1000)</Author>
+    <Description>$(@%systemRoot%\system32\updatepolicy.dll,-1001)</Description>
+    <URI>\Microsoft\Windows\WindowsUpdate\Refresh Group Policy Cache</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <WnfStateChangeTrigger>
+      <StateName>7508BCA32A1E890D</StateName>
+    </WnfStateChangeTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <ComHandler>
+      <ClassId>{07369A67-07A6-4608-ABEA-379491CB7C46}</ClassId>
+    </ComHandler>
+  </Actions>
+</Task>

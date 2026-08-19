@@ -1,0 +1,15 @@
+﻿{
+    "function":  "4fix",
+    "command":  "4fix",
+    "source_profile":  "C:\\Users\\micha\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1",
+    "source_start_line":  11532,
+    "source_end_line":  11621,
+    "source_line_count":  90,
+    "top_rank":  17,
+    "top_rank_line_count":  90,
+    "top_rank_start_line":  11532,
+    "top_rank_end_line":  11621,
+    "extracted_at":  "2026-04-28T03:12:28.1792482+03:00",
+    "repo":  "https://github.com/Michaelunkai/ps-profile-4fix",
+    "script":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\repair\\system-tools\\4Fix\\Invoke-4fix.ps1"
+}

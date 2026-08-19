@@ -1,0 +1,21 @@
+# Local/editor noise
+.DS_Store
+Thumbs.db
+*.tmp
+*.bak
+*.swp
+*.log
+
+# PowerShell/editor generated files
+*.ps1xml
+*.psd1.bak
+*.psm1.bak
+
+# Do not commit local run outputs copied from C:\Temp
+reboot_safety_gate/
+latest.json
+latest.txt
+run_*.log
+
+# GitHub CLI accidental Windows redirection file from WSL
+NUL

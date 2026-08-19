@@ -1,0 +1,20 @@
+# Logs
+*.log
+*_log.txt
+*_log_*.txt
+reset_log*.txt
+boot_repair_log.txt
+fixall_log_*.txt
+silent_quickfix_*.txt
+
+# Reports
+reset_report*.txt
+system_info_*.txt
+
+# Old backups
+*.old.*
+SoftwareDistribution.old.*
+
+# Windows temp
+*.tmp
+~*

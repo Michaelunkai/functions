@@ -1,0 +1,403 @@
+﻿$__extractedFunctionName = 'rmfunc'
+$__extractedCommandName = 'rmfunc'
+$__extractedScriptPath = $PSCommandPath
+$__extractedArgs = @($args)
+if ($__extractedArgs -contains '-SelfTest') {
+    [pscustomobject]@{
+        Function = $__extractedFunctionName
+        Command = $__extractedCommandName
+        Script = $__extractedScriptPath
+        Exists = [bool](Test-Path -LiteralPath $__extractedScriptPath)
+        Mode = 'SelfTest'
+    } | ConvertTo-Json -Compress
+    return
+}
+
+function Normalize-RmfuncFunctionName {
+    param([string]$Name)
+
+    if ([string]::IsNullOrWhiteSpace($Name)) { return $null }
+    $Name.Trim() -replace '^(?i:global:)', ''
+}
+
+function New-RmfuncFunctionNameSet {
+    param([string[]]$Functions)
+
+    $set = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($functionName in $Functions) {
+        $normalized = Normalize-RmfuncFunctionName -Name $functionName
+        if (-not [string]::IsNullOrWhiteSpace($normalized)) {
+            $set.Add($normalized) | Out-Null
+        }
+    }
+    ,$set
+}
+
+function Get-RmfuncProfileSourcePaths {
+    param([string[]]$ProfilePath)
+
+    $providedProfilePaths = @($ProfilePath)
+    if ($providedProfilePaths.Count -gt 0) {
+        $paths = $providedProfilePaths
+    } else {
+        $documentsRoot = Join-Path $env:USERPROFILE 'Documents'
+        $windowsPowerShellRoot = Join-Path $documentsRoot 'WindowsPowerShell'
+        $powerShellRoot = Join-Path $documentsRoot 'PowerShell'
+        $paths = @(
+            $PROFILE,
+            $script:ProfileRuntimeSnapshotPath,
+            $script:FullProfileLibraryPath,
+            (Join-Path $windowsPowerShellRoot 'Microsoft.PowerShell_profile.ps1'),
+            (Join-Path $windowsPowerShellRoot 'Microsoft.PowerShell_profile.runtime.ps1'),
+            (Join-Path $windowsPowerShellRoot 'Microsoft.PowerShell_profile.full.ps1'),
+            (Join-Path $powerShellRoot 'Microsoft.PowerShell_profile.ps1'),
+            (Join-Path $powerShellRoot 'Microsoft.PowerShell_profile.runtime.ps1'),
+            (Join-Path $powerShellRoot 'Microsoft.PowerShell_profile.full.ps1'),
+            'F:\study\Windows\PowerShell\Profile\ps5-profile-portable\Microsoft.PowerShell_profile.runtime.ps1',
+            'F:\study\Windows\PowerShell\Profile\ps5-profile-portable\Microsoft.PowerShell_profile.full.ps1',
+            'F:\study\Windows\PowerShell\Profile\ps5-profile-portable\Microsoft.PowerShell_profile.full.definitions.ps1',
+            'F:\study\Windows\PowerShell\Profile\ps5-profile-portable\Microsoft.PowerShell_profile.ps1'
+        )
+    }
+
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($path in $paths) {
+        if ([string]::IsNullOrWhiteSpace($path)) { continue }
+        if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { continue }
+        $resolved = (Resolve-Path -LiteralPath $path).ProviderPath
+        if ($seen.Add($resolved)) { $resolved }
+    }
+}
+
+function Get-RmfuncTextEncoding {
+    param([string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $hasUtf8Bom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+    New-Object System.Text.UTF8Encoding($hasUtf8Bom)
+}
+
+function Get-RmfuncAddfuncRegistryPath {
+    'F:\study\Learning\01\01\Shells\powershell\profile-functions\shells\powershell\profile-helpers\Addfunc\addfunc-registry.json'
+}
+
+function Read-RmfuncAddfuncRegistry {
+    $path = Get-RmfuncAddfuncRegistryPath
+    if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { return @() }
+    $parsed = Get-Content -LiteralPath $path -Raw | ConvertFrom-Json
+    if ($parsed -is [System.Array]) {
+        foreach ($item in $parsed) { $item }
+        return
+    }
+    if ($parsed) { $parsed }
+}
+
+function Write-RmfuncAddfuncRegistry {
+    param([object[]]$Items)
+
+    $path = Get-RmfuncAddfuncRegistryPath
+    @($Items) |
+        Sort-Object Name |
+        ConvertTo-Json -Depth 8 |
+        Set-Content -LiteralPath $path -Encoding UTF8
+}
+
+function Backup-AndRemoveRmfuncFile {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Stamp,
+        [Parameter(Mandatory)][string]$Reason
+    )
+
+    if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) { return $false }
+    $backupPath = "$Path.bak-rmfunc-$Stamp"
+    Move-Item -LiteralPath $Path -Destination $backupPath -Force
+    Write-Host "Removed ${Reason}: $Path"
+    Write-Host "Backup: $backupPath"
+    $true
+}
+
+function Remove-RmfuncAddfuncDurableEntries {
+    param(
+        [Parameter(Mandatory)][System.Collections.Generic.HashSet[string]]$TargetNames,
+        [Parameter(Mandatory)][string]$Stamp
+    )
+
+    $registryPath = Get-RmfuncAddfuncRegistryPath
+    if (-not (Test-Path -LiteralPath $registryPath -PathType Leaf)) { return 0 }
+
+    $items = @(Read-RmfuncAddfuncRegistry)
+    $kept = New-Object System.Collections.Generic.List[object]
+    $removed = 0
+    foreach ($item in $items) {
+        $name = Normalize-RmfuncFunctionName -Name ([string]$item.Name)
+        if ($TargetNames.Contains($name)) {
+            if ($item.SourcePath) {
+                Backup-AndRemoveRmfuncFile -Path ([string]$item.SourcePath) -Stamp $Stamp -Reason 'addfunc source backup' | Out-Null
+            }
+            Write-Host "Removed addfunc registry entry: $name from $registryPath"
+            $removed++
+            continue
+        }
+        $kept.Add($item) | Out-Null
+    }
+
+    if ($removed -gt 0) {
+        $backupPath = "$registryPath.bak-rmfunc-$Stamp"
+        Copy-Item -LiteralPath $registryPath -Destination $backupPath -Force
+        Write-RmfuncAddfuncRegistry -Items $kept.ToArray()
+        Write-Host "Backup: $backupPath"
+    }
+
+    $removed
+}
+
+function Remove-RmfuncLegacyWrapperLines {
+    param(
+        [Parameter(Mandatory)][System.Collections.Generic.HashSet[string]]$TargetNames,
+        [Parameter(Mandatory)][string]$Stamp
+    )
+
+    $wrapperPath = 'F:\study\Windows\PowerShell\Profile\ps5-profile-portable\legacy-safe-functions\profile-wrappers.ps1'
+    if (-not (Test-Path -LiteralPath $wrapperPath -PathType Leaf)) { return 0 }
+
+    $source = Get-Content -LiteralPath $wrapperPath -Raw
+    $newline = "`r`n"
+    if ($source.Contains("`n") -and -not $source.Contains("`r`n")) { $newline = "`n" }
+
+    $removed = 0
+    $kept = foreach ($line in [regex]::Split($source, "`r`n|`n")) {
+        $matched = $false
+        foreach ($targetName in $TargetNames) {
+            $escapedName = [regex]::Escape($targetName)
+            if ($line -match "^\s*function\s+global:$escapedName\b" -or $line -match "^\s*function\s+$escapedName\b") {
+                $matched = $true
+                break
+            }
+        }
+        if ($matched) {
+            $removed++
+        } else {
+            $line
+        }
+    }
+
+    if ($removed -gt 0) {
+        $backupPath = "$wrapperPath.bak-rmfunc-$Stamp"
+        Copy-Item -LiteralPath $wrapperPath -Destination $backupPath -Force
+        $text = ([string]::Join($newline, @($kept | Where-Object { $_ -ne $null }))).TrimEnd() + $newline
+        Set-Content -LiteralPath $wrapperPath -Value $text -Encoding UTF8
+        Write-Host "Removed $removed legacy wrapper index entr$(if ($removed -eq 1) { 'y' } else { 'ies' }) from $wrapperPath"
+        Write-Host "Backup: $backupPath"
+    }
+
+    $removed
+}
+
+function Remove-RmfuncLegacySafeScripts {
+    param(
+        [Parameter(Mandatory)][System.Collections.Generic.HashSet[string]]$TargetNames,
+        [Parameter(Mandatory)][string]$Stamp
+    )
+
+    $roots = @(
+        'C:\Users\micha\Documents\WindowsPowerShell\legacy-safe-functions',
+        'F:\study\Windows\PowerShell\Profile\ps5-profile-portable\legacy-safe-functions'
+    )
+
+    $removed = 0
+    foreach ($targetName in $TargetNames) {
+        $safeFileName = ($targetName -replace '[^A-Za-z0-9_.-]', '_') + '.ps1'
+        foreach ($root in $roots) {
+            $scriptPath = Join-Path $root $safeFileName
+            if (Backup-AndRemoveRmfuncFile -Path $scriptPath -Stamp $Stamp -Reason 'legacy-safe function script') {
+                $removed++
+            }
+        }
+    }
+    $removed
+}
+
+function Remove-RmfuncFunctionDefinitionsFromText {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Source,
+
+        [Parameter(Mandatory = $true)]
+        [System.Collections.Generic.HashSet[string]]$TargetNames
+    )
+
+    $tokens = $null
+    $errors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseInput($Source, [ref]$tokens, [ref]$errors)
+
+    if ($errors -and $errors.Count -gt 0) {
+        throw "Profile source has syntax errors already. Aborting: $($errors[0].Message)"
+    }
+
+    $funcAsts = $ast.FindAll({
+        param($node)
+        if ($node -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+            $normalizedNodeName = Normalize-RmfuncFunctionName -Name $node.Name
+            return $TargetNames.Contains($normalizedNodeName)
+        }
+        $false
+    }, $true)
+
+    $removed = New-Object 'System.Collections.Generic.List[string]'
+    foreach ($func in ($funcAsts | Sort-Object { $_.Extent.StartOffset } -Descending)) {
+        $start = $func.Extent.StartOffset
+        $length = $func.Extent.EndOffset - $start
+        $Source = $Source.Remove($start, $length)
+        $removed.Add($func.Name) | Out-Null
+    }
+
+    [pscustomobject]@{
+        Source = $Source
+        Removed = @($removed)
+    }
+}
+
+function Remove-RmfuncLazyProxyEntriesFromText {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Source,
+
+        [Parameter(Mandatory = $true)]
+        [System.Collections.Generic.HashSet[string]]$TargetNames
+    )
+
+    $newline = "`n"
+    if ($Source.Contains("`r`n")) { $newline = "`r`n" }
+    $hasFinalNewline = $Source.EndsWith("`n")
+    $lines = [regex]::Split($Source, "`r`n|`n")
+    if ($lines.Count -gt 0 -and $lines[$lines.Count - 1] -eq '') {
+        if ($lines.Count -eq 1) {
+            $lines = @()
+        } else {
+            $lines = $lines[0..($lines.Count - 2)]
+        }
+    }
+
+    $kept = New-Object 'System.Collections.Generic.List[string]'
+    $removed = New-Object 'System.Collections.Generic.List[string]'
+    $insideFullProfileFunctionNames = $false
+
+    foreach ($line in $lines) {
+        if ($line -match '^\s*\$script:FullProfileFunctionNames\s*=\s*@\(') {
+            $insideFullProfileFunctionNames = $true
+        }
+
+        $skip = $false
+        if ($insideFullProfileFunctionNames -and $line -match "^\s*'([^']+)'\s*,?\s*$") {
+            $entryName = Normalize-RmfuncFunctionName -Name $matches[1]
+            if ($TargetNames.Contains($entryName)) {
+                $removed.Add($matches[1]) | Out-Null
+                $skip = $true
+            }
+        }
+
+        if (-not $skip) {
+            $kept.Add($line) | Out-Null
+        }
+
+        if ($insideFullProfileFunctionNames -and $line -match '^\s*\)\s*$') {
+            $insideFullProfileFunctionNames = $false
+        }
+    }
+
+    $newSource = [string]::Join($newline, $kept.ToArray())
+    if ($hasFinalNewline) { $newSource += $newline }
+
+    [pscustomobject]@{
+        Source = $newSource
+        Removed = @($removed)
+    }
+}
+
+function rmfunc {
+    [CmdletBinding(SupportsShouldProcess = $true)]
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [string[]]$Functions,
+
+        [string[]]$ProfilePath
+    )
+
+    $targetNames = New-RmfuncFunctionNameSet -Functions $Functions
+    if ($targetNames.Count -eq 0) {
+        Write-Error 'No function names were provided.'
+        return
+    }
+
+    $profilePaths = @(Get-RmfuncProfileSourcePaths -ProfilePath $ProfilePath)
+    if ($profilePaths.Count -eq 0) {
+        Write-Error 'No profile sources were found.'
+        return
+    }
+
+    $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+    $totalDefinitionRemovals = 0
+    $totalProxyRemovals = 0
+    $totalSessionRemovals = 0
+    $totalRegistryRemovals = 0
+    $totalLegacyWrapperRemovals = 0
+    $totalLegacyScriptRemovals = 0
+
+    foreach ($profilePath in $profilePaths) {
+        $source = [System.IO.File]::ReadAllText($profilePath)
+        $encoding = Get-RmfuncTextEncoding -Path $profilePath
+        $originalSource = $source
+
+        $definitionResult = Remove-RmfuncFunctionDefinitionsFromText -Source $source -TargetNames $targetNames
+        $source = $definitionResult.Source
+        $proxyResult = Remove-RmfuncLazyProxyEntriesFromText -Source $source -TargetNames $targetNames
+        $source = $proxyResult.Source
+
+        if ($source -eq $originalSource) { continue }
+
+        if ($PSCmdlet.ShouldProcess($profilePath, "remove profile function(s): $($targetNames -join ', ')")) {
+            $backupPath = "$profilePath.bak-rmfunc-$stamp"
+            Copy-Item -LiteralPath $profilePath -Destination $backupPath -Force
+            [System.IO.File]::WriteAllText($profilePath, $source, $encoding)
+
+            foreach ($removedFunction in $definitionResult.Removed) {
+                Write-Host "Removed function definition: $removedFunction from $profilePath"
+                $totalDefinitionRemovals++
+            }
+            foreach ($removedProxy in $proxyResult.Removed) {
+                Write-Host "Removed lazy proxy entry: $removedProxy from $profilePath"
+                $totalProxyRemovals++
+            }
+            Write-Host "Backup: $backupPath"
+        }
+    }
+
+    if ($PSCmdlet.ShouldProcess((Get-RmfuncAddfuncRegistryPath), "remove addfunc durable entries: $($targetNames -join ', ')")) {
+        $totalRegistryRemovals = Remove-RmfuncAddfuncDurableEntries -TargetNames $targetNames -Stamp $stamp
+    }
+    if ($PSCmdlet.ShouldProcess('legacy-safe wrapper layer', "remove wrapper entries/scripts: $($targetNames -join ', ')")) {
+        $totalLegacyWrapperRemovals = Remove-RmfuncLegacyWrapperLines -TargetNames $targetNames -Stamp $stamp
+        $totalLegacyScriptRemovals = Remove-RmfuncLegacySafeScripts -TargetNames $targetNames -Stamp $stamp
+    }
+
+    foreach ($targetName in $targetNames) {
+        $functionPath = "Function:\$targetName"
+        if (Test-Path -LiteralPath $functionPath) {
+            if ($PSCmdlet.ShouldProcess($functionPath, 'remove loaded function from current session')) {
+                Remove-Item -LiteralPath $functionPath -Force -ErrorAction SilentlyContinue
+                Write-Host "Removed loaded function from current session: $targetName"
+                $totalSessionRemovals++
+            }
+        }
+    }
+
+    if (($totalDefinitionRemovals + $totalProxyRemovals + $totalSessionRemovals + $totalRegistryRemovals + $totalLegacyWrapperRemovals + $totalLegacyScriptRemovals) -eq 0) {
+        Write-Warning "No matching functions found."
+        return
+    }
+
+    Write-Host "rmfunc completed. Removed $totalDefinitionRemovals definition(s), $totalProxyRemovals lazy proxy entry/entries, $totalRegistryRemovals addfunc registry entry/entries, $totalLegacyWrapperRemovals legacy wrapper entry/entries, $totalLegacyScriptRemovals legacy script(s), and $totalSessionRemovals loaded function(s)."
+}
+
+& $__extractedCommandName @__extractedArgs

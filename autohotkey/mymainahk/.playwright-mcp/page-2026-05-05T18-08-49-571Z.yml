@@ -1,0 +1,162 @@
+- generic [ref=e2]:
+  - heading "0 notifications" [level=2] [ref=e3]
+  - generic [ref=e4]:
+    - generic:
+      - button [ref=e5] [cursor=pointer]:
+        - generic [ref=e7]: Skip to main content
+      - button [ref=e8] [cursor=pointer]
+    - generic [ref=e11]:
+      - banner [ref=e13]:
+        - generic [ref=e16]:
+          - button [ref=e17] [cursor=pointer]
+          - generic [ref=e20]:
+            - navigation [ref=e23]:
+              - list [ref=e24]:
+                - listitem [ref=e25]:
+                  - button "Home, 1 new notification" [ref=e26] [cursor=pointer]:
+                    - img [ref=e28]
+                    - generic [ref=e31]: Home
+                - listitem [ref=e32]:
+                  - link "My Network, 2 new notifications" [ref=e33] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/mynetwork
+                    - img [ref=e35]
+                    - generic [ref=e38]: My Network
+                - listitem [ref=e39]:
+                  - link "Jobs, 0 new notifications" [ref=e40] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/jobs/
+                    - img [ref=e42]
+                    - generic [ref=e45]: Jobs
+                - listitem [ref=e46]:
+                  - link "Messaging, 5 new notifications" [ref=e47] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/messaging/
+                    - img [ref=e49]
+                    - generic [ref=e52]: Messaging
+                - listitem [ref=e53]:
+                  - link "Notifications, 20 new notifications" [ref=e54] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/notifications/
+                    - img [ref=e56]
+                    - generic [ref=e59]: Notifications
+                - listitem [ref=e60]:
+                  - button "Me" [ref=e61] [cursor=pointer]:
+                    - figure [ref=e63]
+                    - generic [ref=e65]: Me
+            - generic [ref=e68]:
+              - navigation [ref=e69]:
+                - list [ref=e70]:
+                  - listitem [ref=e71]:
+                    - button "For Business" [ref=e72] [cursor=pointer]:
+                      - img [ref=e74]
+                      - generic [ref=e77]: For Business
+              - link [ref=e80] [cursor=pointer]:
+                - /url: https://www.linkedin.com/
+      - main [ref=e83]:
+        - generic [ref=e84]:
+          - toolbar
+          - main [ref=e85]:
+            - generic [ref=e87]:
+              - generic [ref=e92]:
+                - paragraph [ref=e93]: Looking for talent?
+                - link "Post a job" [ref=e94] [cursor=pointer]:
+                  - /url: https://www.linkedin.com/talent/job-posting-redirect/?trk=flagship3_job_detail
+                  - generic [ref=e96]: Post a job
+              - generic [ref=e101]:
+                - generic [ref=e102]:
+                  - navigation [ref=e103]:
+                    - link "About" [ref=e104] [cursor=pointer]:
+                      - /url: https://about.linkedin.com/
+                      - paragraph [ref=e105]: About
+                    - link "Accessibility" [ref=e106] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/accessibility/
+                      - paragraph [ref=e107]: Accessibility
+                    - link "Talent Solutions" [ref=e108] [cursor=pointer]:
+                      - /url: https://business.linkedin.com/talent-solutions?trk=flagship_nav&veh=li-footer-lts-control&src=li-footer
+                      - paragraph [ref=e109]: Talent Solutions
+                    - link "Community Guidelines" [ref=e110] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/legal/professional-community-policies/
+                      - paragraph [ref=e111]: Community Guidelines
+                    - link "Careers" [ref=e112] [cursor=pointer]:
+                      - /url: https://careers.linkedin.com/
+                      - paragraph [ref=e113]: Careers
+                    - link "Marketing Solutions" [ref=e114] [cursor=pointer]:
+                      - /url: https://business.linkedin.com/advertise?trk=n_nav_lms_f&src=li-footer
+                      - paragraph [ref=e115]: Marketing Solutions
+                    - button "Privacy & Terms" [ref=e116] [cursor=pointer]:
+                      - paragraph [ref=e118]: Privacy & Terms
+                    - link "Ad Choices" [ref=e120] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/help/linkedin/answer/62931/
+                      - paragraph [ref=e121]: Ad Choices
+                    - link "Advertising" [ref=e122] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/ad/start/?trk=n_nav_ads_rr
+                      - paragraph [ref=e123]: Advertising
+                    - link "Sales Solutions" [ref=e124] [cursor=pointer]:
+                      - /url: https://business.linkedin.com/sales-solutions?trk=flagship_nav&veh=li-footer-lss-control&src=li-footer
+                      - paragraph [ref=e125]: Sales Solutions
+                    - link "Mobile" [ref=e126] [cursor=pointer]:
+                      - /url: https://mobile.linkedin.com/
+                      - paragraph [ref=e127]: Mobile
+                    - link "Small Business" [ref=e128] [cursor=pointer]:
+                      - /url: https://business.linkedin.com/grow?src=li-footer
+                      - paragraph [ref=e129]: Small Business
+                    - link "Safety Center" [ref=e130] [cursor=pointer]:
+                      - /url: https://safety.linkedin.com/
+                      - paragraph [ref=e131]: Safety Center
+                  - paragraph [ref=e133]: LinkedIn Corporation © 2026
+                - generic [ref=e134]:
+                  - list [ref=e135]:
+                    - listitem [ref=e136]:
+                      - generic [ref=e139]:
+                        - link "Questions?" [ref=e140] [cursor=pointer]:
+                          - /url: https://www.linkedin.com/help/linkedin/
+                          - paragraph [ref=e141]: Questions?
+                        - paragraph [ref=e142]: Visit our Help Center.
+                    - listitem [ref=e143]:
+                      - generic [ref=e146]:
+                        - link "Manage your account and privacy" [ref=e147] [cursor=pointer]:
+                          - /url: https://www.linkedin.com/mypreferences/d/
+                          - paragraph [ref=e148]: Manage your account and privacy
+                        - paragraph [ref=e149]: Go to your Settings.
+                    - listitem [ref=e150]:
+                      - generic [ref=e153]:
+                        - link "Recommendation transparency" [ref=e154] [cursor=pointer]:
+                          - /url: https://www.linkedin.com/help/linkedin/answer/a1339724/
+                          - paragraph [ref=e155]: Recommendation transparency
+                        - paragraph [ref=e156]: Learn more about Recommended Content.
+                  - generic [ref=e158]:
+                    - paragraph [ref=e160]: Select language
+                    - combobox "Select language" [ref=e162] [cursor=pointer]:
+                      - option "العربية (Arabic)"
+                      - option "বাংলা (Bangla)"
+                      - option "Čeština (Czech)"
+                      - option "Dansk (Danish)"
+                      - option "Deutsch (German)"
+                      - option "Ελληνικά (Greek)"
+                      - option "English (English)" [selected]
+                      - option "Español (Spanish)"
+                      - option "فارسی (Persian)"
+                      - option "Suomi (Finnish)"
+                      - option "Français (French)"
+                      - option "हिंदी (Hindi)"
+                      - option "Magyar (Hungarian)"
+                      - option "Bahasa Indonesia (Indonesian)"
+                      - option "Italiano (Italian)"
+                      - option "עברית (Hebrew)"
+                      - option "日本語 (Japanese)"
+                      - option "한국어 (Korean)"
+                      - option "मराठी (Marathi)"
+                      - option "Bahasa Malaysia (Malay)"
+                      - option "Nederlands (Dutch)"
+                      - option "Norsk (Norwegian)"
+                      - option "ਪੰਜਾਬੀ (Punjabi)"
+                      - option "Polski (Polish)"
+                      - option "Português (Portuguese)"
+                      - option "Română (Romanian)"
+                      - option "Русский (Russian)"
+                      - option "Svenska (Swedish)"
+                      - option "తెలుగు (Telugu)"
+                      - option "ภาษาไทย (Thai)"
+                      - option "Tagalog (Tagalog)"
+                      - option "Türkçe (Turkish)"
+                      - option "Українська (Ukrainian)"
+                      - option "Tiếng Việt (Vietnamese)"
+                      - option "简体中文 (Chinese (Simplified))"
+                      - option "正體中文 (Chinese (Traditional))"

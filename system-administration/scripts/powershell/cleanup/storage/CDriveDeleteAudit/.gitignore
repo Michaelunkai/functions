@@ -1,0 +1,16 @@
+# Runtime audit output
+reports/
+output/
+CDriveDeleteAudit/
+
+# PowerShell transient files
+*.ps1xml
+*.tmp
+*.log
+
+# Windows/editor noise
+Thumbs.db
+Desktop.ini
+.vs/
+.vscode/
+

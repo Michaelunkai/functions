@@ -1,0 +1,6 @@
+F:\study\Platforms\windows\snipping\SnipToClipBoard\bin\Release\FullScreenSnip.exe.config
+F:\study\Platforms\windows\snipping\SnipToClipBoard\bin\Release\FullScreenSnip.exe
+F:\study\Platforms\windows\snipping\SnipToClipBoard\obj\Release\net48\FullScreenSnip.csproj.AssemblyReference.cache
+F:\study\Platforms\windows\snipping\SnipToClipBoard\obj\Release\net48\FullScreenSnip.GeneratedMSBuildEditorConfig.editorconfig
+F:\study\Platforms\windows\snipping\SnipToClipBoard\obj\Release\net48\FullScreenSnip.csproj.CoreCompileInputs.cache
+F:\study\Platforms\windows\snipping\SnipToClipBoard\obj\Release\net48\FullScreenSnip.exe

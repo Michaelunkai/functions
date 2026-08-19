@@ -1,0 +1,23 @@
+Feature	Autologon (Sysinternals)	LogonExpert
+Setup Ease	✅ Simple GUI or CLI: run autologon.exe, enter credentials, hit Enable	✅ Straightforward installer with intuitive interface; one-time setup
+Credential Storage	Encrypted in LSA; can be retrieved by admin tools 
+answers.microsoft.com
++15
+learn.microsoft.com
++15
+logonexpert.com
++15
+AES‑256 encrypted; interacts directly with WinLogon
+Account Support	Local, Microsoft, and domain accounts—though may fail under domain policies	Full support: local, domain/AD, Microsoft, Entra ID, PIN
+Reliability	Works in most cases; domain machines may block it	Built for managed setups; bypasses screens, legal notices, Ctrl+Alt+Del
+Advanced Features	Basic enable/disable, shift-to-disable on boot	Scheduling, delays, auto-locks, multiple sessions, remote control, command‑line
+Security Controls	Shift-key bypass only	AES‑256, user rights control, transparent desktop lock, optional lock-on-login
+Use Cases	Ideal for solo home PCs or small workgroups	Suits kiosks, corporate, multi-user, or server environments
+Price	Free	Free trial; $35.95 full license
+
+🏁 Bottom Line
+Autologon is free, fast, and easy—great for personal or casual use—but can run into domain or policy blocks and can be reversed by admins.
+
+LogonExpert is a more polished, enterprise-ready solution: it handles everything automatically, offers stronger encryption, deeper integration (e.g., bypassing Ctrl+Alt+Del), multi-user support, scheduling, remote management—all at a modest cost.
+
+

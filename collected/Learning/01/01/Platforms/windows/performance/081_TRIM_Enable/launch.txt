@@ -1,0 +1,1 @@
+﻿fsutil behavior set DisableDeleteNotify 0; Write-Host "TRIM enabled for SSDs"

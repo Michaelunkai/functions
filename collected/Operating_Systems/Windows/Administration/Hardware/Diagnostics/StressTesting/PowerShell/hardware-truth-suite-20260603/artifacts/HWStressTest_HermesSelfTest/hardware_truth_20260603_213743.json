@@ -1,0 +1,38 @@
+﻿{
+    "limitations":  [
+                        "Software cannot directly inspect PSU internals such as ripple, capacitor health, transient response, every rail condition, or wall outlet quality.",
+                        "Cable health is inferred from link speed, disconnect/errors, display/storage events, and user-observable symptoms; a physical cable tester or replacement test is definitive.",
+                        "Some SMART/NVMe, voltage, fan, and temperature sensors are vendor-gated and may be unavailable to Windows without HWiNFO/LibreHardwareMonitor.",
+                        "No script can honestly prove there is no possible hardware error left; it can only report current evidence and unknowns."
+                    ],
+    "stress":  [
+
+               ],
+    "report_paths":  {
+                         "json":  "C:\\HWStressTest_HermesSelfTest\\hardware_truth_20260603_213743.json",
+                         "markdown":  "C:\\HWStressTest_HermesSelfTest\\hardware_truth_20260603_213743.md"
+                     },
+    "ClearUnderstanding":  "current_software_visible_evidence_collected_with_explicit_physical_limitations",
+    "duration_minutes":  10,
+    "mode":  "SelfTest",
+    "schema_version":  "2.0",
+    "needs_fixing_or_improving":  [
+
+                                  ],
+    "completed_at":  "2026-06-03T21:37:43.0917518+03:00",
+    "root":  "C:\\HWStressTest_HermesSelfTest",
+    "inventory":  {
+
+                  },
+    "overall":  {
+                    "severity":  "info",
+                    "score":  92,
+                    "summary":  "0 critical, 0 warning, 4 known limitations"
+                },
+    "checks":  [
+
+               ],
+    "started_at":  "2026-06-03T21:37:42.9213777+03:00",
+    "OneLiner":  "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"C:\\HWStressTest_HermesSelfTest\\a.ps1\" -Mode FullStress -DurationMinutes 10",
+    "clear_understanding":  true
+}

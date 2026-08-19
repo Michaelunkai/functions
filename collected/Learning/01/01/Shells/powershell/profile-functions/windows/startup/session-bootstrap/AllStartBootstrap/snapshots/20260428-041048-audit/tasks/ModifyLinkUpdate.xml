@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2015-08-24T18:27:49.0496979</Date>
+    <Author>Advanced Micro Devices</Author>
+    <Description>ModifyLinkUpdate</Description>
+    <URI>\ModifyLinkUpdate</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="Author">
+      <GroupId>S-1-5-32-544</GroupId>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <Hidden>true</Hidden>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <Priority>3</Priority>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+  </Settings>
+  <Triggers>
+    <SessionStateChangeTrigger>
+      <StateChange>SessionUnlock</StateChange>
+    </SessionStateChangeTrigger>
+    <LogonTrigger />
+  </Triggers>
+  <Actions Context="Author">
+    <Exec>
+      <Command>C:\Program Files\AMD\CIM\Bin64\InstallManagerApp.exe</Command>
+      <Arguments>-UpdateCurrentUser</Arguments>
+    </Exec>
+  </Actions>
+</Task>

@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <SecurityDescriptor>D:P(A;;FA;;;SY)(A;CI;0x80010000;;;WD)(A;;FA;;;S-1-5-21-4273236717-3318517009-3029446451-1001)</SecurityDescriptor>
+    <URI>\SoftLanding\S-1-5-21-4273236717-3318517009-3029446451-1001\SoftLandingCreativeManagementTask</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="Author">
+      <UserId>S-1-5-21-4273236717-3318517009-3029446451-1001</UserId>
+      <LogonType>InteractiveToken</LogonType>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <ExecutionTimeLimit>PT5M</ExecutionTimeLimit>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <RestartOnFailure>
+      <Count>5</Count>
+      <Interval>PT4H</Interval>
+    </RestartOnFailure>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <WnfStateChangeTrigger>
+      <StateName>7550B9A33E06830D</StateName>
+    </WnfStateChangeTrigger>
+    <TimeTrigger>
+      <StartBoundary>2026-04-01T04:33:00+03:00</StartBoundary>
+    </TimeTrigger>
+    <TimeTrigger>
+      <StartBoundary>2026-04-01T16:56:06+03:00</StartBoundary>
+      <Repetition>
+        <Interval>P1D</Interval>
+      </Repetition>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="Author">
+    <ComHandler>
+      <ClassId>{F576B2F9-7850-4226-ADB0-E5993FED4F02}</ClassId>
+    </ComHandler>
+  </Actions>
+</Task>

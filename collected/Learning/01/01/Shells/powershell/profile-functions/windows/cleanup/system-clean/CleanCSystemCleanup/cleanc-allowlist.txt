@@ -1,0 +1,15 @@
+# cleanc root allowlist
+# One exact root-item name or rooted path per line.
+# Blank lines and lines starting with # or ; are ignored.
+# The default file is intentionally conservative: trim it on purpose before using cleanc -Run.
+
+boot
+bootmgr
+Games
+Program Files
+Program Files (x86)
+ProgramData
+System Volume Information
+Users
+Windows
+wsl2

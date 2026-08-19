@@ -1,0 +1,1 @@
+﻿Stop-Service -Name "DiagTrack" -Force -ErrorAction SilentlyContinue; Set-Service -Name "DiagTrack" -StartupType Disabled; Write-Host "Diagnostic Tracking Service disabled"

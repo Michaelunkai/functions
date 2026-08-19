@@ -1,0 +1,39 @@
+# OS/editor noise
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# PowerShell/runtime generated output
+*.log
+*.tmp
+*.temp
+*.etl
+*.dmp
+
+# Python/tooling caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.cache/
+.venv/
+venv/
+
+# Node/build output if helpers are added later
+node_modules/
+dist/
+build/
+out/
+
+# Secrets/configs that should not be public
+.env
+.env.*
+*.key
+*.pem
+*.pfx
+*.p12
+*token*
+*secret*
+
+# Keep intentional archived mission artifacts
+!artifacts/gcc_install_loop_fix_oneliner.txt

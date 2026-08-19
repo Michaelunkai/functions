@@ -1,0 +1,1 @@
+﻿Get-ScheduledTask -TaskPath "\Microsoft\Windows\Defrag\" | Disable-ScheduledTask -ErrorAction SilentlyContinue; Write-Host "Scheduled defrag disabled"

@@ -1,0 +1,1 @@
+﻿iwr "https://www.wagnardsoft.com/ISLC/ISLC%20v1.0.3.0.zip" -OutFile "$env:TEMP\ISLC.zip"; Expand-Archive "$env:TEMP\ISLC.zip" "$env:TEMP\ISLC" -Force; & (Get-ChildItem "$env:TEMP\ISLC" -Filter "*.exe" -Recurse | Select-Object -First 1).FullName

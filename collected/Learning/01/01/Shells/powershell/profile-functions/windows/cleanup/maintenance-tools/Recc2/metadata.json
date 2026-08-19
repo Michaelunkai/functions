@@ -1,0 +1,15 @@
+﻿{
+    "function":  "recc2",
+    "command":  "recc2",
+    "source_profile":  "C:\\Users\\micha\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1",
+    "source_start_line":  16346,
+    "source_end_line":  16385,
+    "source_line_count":  40,
+    "top_rank":  88,
+    "top_rank_line_count":  40,
+    "top_rank_start_line":  16346,
+    "top_rank_end_line":  16385,
+    "extracted_at":  "2026-04-28T03:12:30.6359319+03:00",
+    "repo":  "https://github.com/Michaelunkai/ps-profile-recc2",
+    "script":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\cleanup\\maintenance-tools\\Recc2\\Invoke-recc2.ps1"
+}

@@ -1,0 +1,1 @@
+﻿iwr "https://github.com/henrypp/memreduct/releases/download/v3.5/memreduct-3.5-bin.zip" -OutFile "$env:TEMP\memreduct.zip"; Expand-Archive "$env:TEMP\memreduct.zip" "$env:TEMP\memreduct" -Force; & "$env:TEMP\memreduct\64\memreduct.exe"

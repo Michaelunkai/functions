@@ -1,0 +1,1 @@
+﻿bcdedit /set tscsyncpolicy enhanced; Write-Host "TSC sync policy set to enhanced - reboot required"

@@ -1,0 +1,153 @@
+# 🧠 **Ultimate Step-by-Step Guide: How to Use OpenSpeedy to Boost Any Game (Like Bramble) to 300–500% Speed on Windows 11**
+
+OpenSpeedy is a powerful, open-source Windows tool that lets you **speed up any offline game** by up to **1000%** (10×) using time-hooking techniques. In this tutorial, you'll learn exactly how to:
+
+* ✔️ Install OpenSpeedy correctly
+* ✔️ Launch it via terminal or script
+* ✔️ Speed up a specific game (like **Bramble: The Mountain King**) by **300–500%**
+* ✔️ Use the UI and keyboard shortcuts
+* ✔️ Automate it with one-click scripts
+
+---
+
+## ✅ PART 1: Install OpenSpeedy via Winget
+
+1. Open **PowerShell** or **Command Prompt** as **Administrator**
+2. Run the following command:
+
+```powershell
+winget install openspeedy
+```
+
+If it says it's already installed, you're good to go.
+
+---
+
+## ✅ PART 2: Launch OpenSpeedy Manually (If `openspeedy` command doesn’t work)
+
+OpenSpeedy isn’t always added to the system path. Instead, launch it using this direct path:
+
+```powershell
+& "C:\Users\misha\AppData\Local\Microsoft\WinGet\Packages\Game1024.OpenSpeedy_Microsoft.Winget.Source_8wekyb3d8bbwe\OpenSpeedy.exe"
+```
+
+To simplify this in future, create a PowerShell alias:
+
+```powershell
+Set-Alias openspeedy "C:\Users\misha\AppData\Local\Microsoft\WinGet\Packages\Game1024.OpenSpeedy_Microsoft.Winget.Source_8wekyb3d8bbwe\OpenSpeedy.exe"
+```
+
+---
+
+## ✅ PART 3: Launch Your Game
+
+Launch your target game (e.g., Bramble: The Mountain King) like this:
+
+```powershell
+Start-Process "F:\games\Bramble_TMK\Bramble_TMK-Win64-Shipping.exe"
+```
+
+Let the game fully load into gameplay mode (not just the launcher/menu screen).
+
+---
+
+## ✅ PART 4: Speed Up the Game in OpenSpeedy’s Interface
+
+Once both OpenSpeedy and your game are running:
+
+1. In **OpenSpeedy**, find your game process:
+
+   ```
+   Bramble_TMK-Win64-Shipping.exe
+   ```
+
+   (✅ You already saw it in the list.)
+
+2. **Click on the row** to select the game.
+
+3. **Set the speed multiplier:**
+
+   * Use the slider or type `3.00` or `5.00` in the right-hand input box.
+   * This sets the game speed to **300%** or **500%**.
+
+4. **Enable acceleration** by checking the box in the last column (titled `是否加速`, meaning "Accelerate?").
+
+   ✅ If it’s **not checked**, the speed effect will NOT apply!
+
+---
+
+## ✅ PART 5: Optional Hotkeys (Real-Time Adjustments)
+
+| Shortcut         | Function        |
+| ---------------- | --------------- |
+| `Ctrl + Alt + =` | Increase speed  |
+| `Ctrl + Alt + -` | Decrease speed  |
+| `Ctrl + Alt + 0` | Reset to normal |
+
+Use these in real time to fine-tune the speed during gameplay.
+
+---
+
+## ✅ PART 6: Optional AutoHotkey v2 Script to Automate It All
+
+Here's an AutoHotkey v2 script to automate:
+
+* Launching OpenSpeedy
+* Launching your game
+* Selecting it
+* Setting 300% speed
+
+```autohotkey
+#Requires AutoHotkey v2.0+
+
+; Run OpenSpeedy
+Run '"C:\Users\misha\AppData\Local\Microsoft\WinGet\Packages\Game1024.OpenSpeedy_Microsoft.Winget.Source_8wekyb3d8bbwe\OpenSpeedy.exe"'
+Sleep 3000
+
+; Run Bramble
+Run "F:\games\Bramble_TMK\Bramble_TMK-Win64-Shipping.exe"
+Sleep 5000
+
+; Activate OpenSpeedy
+WinActivate "OpenSpeedy"
+WinWaitActive "OpenSpeedy", , 5
+
+; Search and select the game
+Send "{Tab 5}"
+Sleep 300
+Send "Bramble_TMK-Win64-Shipping.exe"
+Sleep 500
+Send "{Down}{Enter}"
+Sleep 300
+
+; Set 3.0x speed
+Send "^!0"    ; Reset
+Sleep 100
+Send "3.0"
+Send "{Enter}"
+```
+
+---
+
+## ✅ Final Result
+
+You’ve now successfully:
+
+* Installed and configured OpenSpeedy
+* Launched your game
+* Selected the correct process
+* Set the speed to **300–500%**
+* Activated acceleration
+* Optionally automated the process
+
+---
+
+## ⚠️ Important Notes
+
+* **Use ONLY for offline/single-player games** — this will get you banned in online games.
+* **Speeds above 5×** may break physics or cause game crashes.
+* **Always reset speed (Ctrl+Alt+0)** before exiting the game to avoid issues.
+
+---
+
+If you want a fully **headless CLI-based version**, an AutoHotkey launcher with visual menu, or per-game presets, just ask — I can build that for you too!

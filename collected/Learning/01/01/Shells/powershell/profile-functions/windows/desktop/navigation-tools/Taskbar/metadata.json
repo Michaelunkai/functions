@@ -1,0 +1,15 @@
+﻿{
+    "function":  "taskbar",
+    "command":  "taskbar",
+    "source_profile":  "C:\\Users\\micha\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1",
+    "source_start_line":  6468,
+    "source_end_line":  6510,
+    "source_line_count":  43,
+    "top_rank":  77,
+    "top_rank_line_count":  43,
+    "top_rank_start_line":  6468,
+    "top_rank_end_line":  6510,
+    "extracted_at":  "2026-04-28T03:12:30.3928372+03:00",
+    "repo":  "https://github.com/Michaelunkai/ps-profile-taskbar",
+    "script":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\desktop\\navigation-tools\\Taskbar\\Invoke-taskbar.ps1"
+}

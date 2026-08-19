@@ -1,0 +1,4 @@
+cache/*.msi
+logs/*.log
+logs/diagnostics-*.json
+*.bak-*

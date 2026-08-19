@@ -1,0 +1,114 @@
+[
+  {
+    "path": ".gitignore",
+    "size": 122
+  },
+  {
+    "path": "README.md",
+    "size": 4004
+  },
+  {
+    "path": "artifacts/live-copies/AppDataLocal-HermesControllerMaximizer/Invoke-ControllerMaximizer.ps1",
+    "size": 7273
+  },
+  {
+    "path": "artifacts/live-copies/AppDataLocal-HermesControllerMaximizer/RUN-ONE-LINER.txt",
+    "size": 105
+  },
+  {
+    "path": "artifacts/live-copies/AppDataLocal-HermesControllerMaximizer/logs/controller-max-20260604-173819.log",
+    "size": 11375
+  },
+  {
+    "path": "artifacts/live-copies/AppDataLocal-HermesControllerMaximizer/logs/controller-max-20260604-173902.log",
+    "size": 2051
+  },
+  {
+    "path": "artifacts/live-copies/KCD2-launcher/Kingdom Come Deliverance II.cmd",
+    "size": 6865
+  },
+  {
+    "path": "artifacts/live-copies/KCD2-launcher/Kingdom Come Deliverance II.cmd.bak-20260604-173344",
+    "size": 4641
+  },
+  {
+    "path": "artifacts/logs/controller-max-20260604-173819.log",
+    "size": 11375
+  },
+  {
+    "path": "artifacts/logs/controller-max-20260604-173902.log",
+    "size": 2051
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/create_controller_project.ps1",
+    "size": 7902
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/finalize_controller_liner.ps1",
+    "size": 1150
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/find_kcd2_configs.ps1",
+    "size": 711
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/gamepad_current_game_probe.ps1",
+    "size": 3063
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/kcd2_cmd.ps1",
+    "size": 139
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/kcd2_config_log_check.ps1",
+    "size": 683
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/kcd2_input_evidence.ps1",
+    "size": 1563
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/patch_kcd2_launcher_controller_guard.ps1",
+    "size": 3100
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/probe_xbox_rb.ps1",
+    "size": 2365
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/repair_xbox_rb_safe.ps1",
+    "size": 2397
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/revert_and_patch_controller_project.ps1",
+    "size": 2241
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/test_controller_project.ps1",
+    "size": 777
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/verify_xbox_rb.ps1",
+    "size": 1660
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/xbox_rb_target.ps1",
+    "size": 2334
+  },
+  {
+    "path": "artifacts/mission-temp-scripts/xinput_live_a_rb_15s.ps1",
+    "size": 1748
+  },
+  {
+    "path": "install-to-localappdata.ps1",
+    "size": 624
+  },
+  {
+    "path": "run-controller-maximizer.ps1",
+    "size": 416
+  },
+  {
+    "path": "scripts/Invoke-ControllerMaximizer.ps1",
+    "size": 7273
+  }
+]

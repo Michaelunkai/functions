@@ -1,0 +1,12 @@
+**Your First Automation with Power Automate**
+
+Power Automate lets you automate repetitive tasks on your PC. It's already built into Windows 11, so you can find it in the Start Menu.
+
+**Step 1: Create a Flow**
+Open Power Automate and click "+ New flow". Give your automation a name, like "My First Automation," and click "Create."
+
+**Step 2: Record Your Actions**
+In the flow editor, click the "Recorder" button. A new window will appear. Click "Record" and perform the actions you want to automate, like opening an application or typing text. Power Automate will capture your every move.
+
+**Step 3: Finish and Test**
+Once you're done, click "Finish" on the recorder window. Your actions will now appear as steps in the editor. You can edit or add more steps. Click the "Run" button (the play icon) to watch your automation in action!

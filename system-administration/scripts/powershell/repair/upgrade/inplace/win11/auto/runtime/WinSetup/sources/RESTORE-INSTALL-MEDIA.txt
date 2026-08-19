@@ -1,0 +1,20 @@
+INSTALL MEDIA REMOVED TO SAVE SPACE (2026-08-09)
+===================================================
+The Windows 11 in-place-upgrade media that lived here was removed during a
+space-optimization pass (~6.4 GB freed).
+
+Removed files (re-downloadable):
+  - sources\install.esd   (Windows 11 install image, ~5.8 GB)
+  - sources\boot.wim      (Windows 11 boot image, ~620 MB)
+
+To restore:
+  1. Download the official Windows 11 ISO from Microsoft.
+  2. Mount it (double-click) or extract it.
+  3. Copy the following back into this folder:
+       <ISO>\sources\install.esd  ->  .\WinSetup\sources\install.esd
+       <ISO>\sources\boot.wim     ->  .\WinSetup\sources\boot.wim
+  (If the ISO only contains install.wim, copy install.wim as install.esd
+   instead - the tooling accepts either.)
+
+The scripts and manifests in this folder are untouched and work as before
+once the media is restored.

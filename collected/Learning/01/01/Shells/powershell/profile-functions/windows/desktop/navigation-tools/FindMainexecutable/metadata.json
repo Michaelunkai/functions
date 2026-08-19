@@ -1,0 +1,15 @@
+﻿{
+    "function":  "Find-MainExecutable",
+    "command":  "Find-MainExecutable",
+    "source_profile":  "C:\\Users\\micha\\Documents\\WindowsPowerShell\\Microsoft.PowerShell_profile.ps1",
+    "source_start_line":  5571,
+    "source_end_line":  5621,
+    "source_line_count":  51,
+    "top_rank":  57,
+    "top_rank_line_count":  51,
+    "top_rank_start_line":  5571,
+    "top_rank_end_line":  5621,
+    "extracted_at":  "2026-04-28T03:12:29.0299759+03:00",
+    "repo":  "https://github.com/Michaelunkai/ps-profile-find-mainexecutable",
+    "script":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\desktop\\navigation-tools\\FindMainexecutable\\Invoke-find-mainexecutable.ps1"
+}

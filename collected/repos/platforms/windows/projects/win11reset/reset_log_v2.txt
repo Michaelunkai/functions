@@ -1,0 +1,15 @@
+﻿[23:52:52.732] [SUCCESS] === SMART RESET v2.0 STARTED - Mode: Diagnose ===
+[23:52:52.773] [INFO] PHASE 1: System Information
+[23:52:53.139] [INFO] OS: Microsoft Windows 11 Pro 10.0.26200
+[23:52:53.152] [INFO] PC: Gigabyte Technology Co., Ltd. X870E AORUS PRO
+[23:52:53.169] [INFO] RAM: 93.61 GB
+[23:52:53.180] [INFO] Install Date: 02/05/2026 19:18:39
+[23:52:53.192] [INFO] Last Boot: 02/05/2026 23:02:34
+[23:52:53.201] [INFO] PHASE 2: Disk Health
+[23:52:54.590] [INFO] Disk: Fanxiang FF951 SCSI Disk Device - Status: Healthy
+[23:52:54.646] [SUCCESS] Chkdsk: Properly configured
+[23:52:54.689] [INFO] PHASE 3: Windows Update Status
+[23:52:54.742] [INFO] WU Cache size: 14.12 MB
+[23:52:54.771] [INFO] WU Service: Stopped
+[23:52:54.781] [INFO] PHASE 4: System File Integrity (Quick Check)
+[23:52:54.791] [INFO] Running: sfc /verifyonly (may take a minute)...

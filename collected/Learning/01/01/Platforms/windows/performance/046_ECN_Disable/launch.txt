@@ -1,0 +1,1 @@
+﻿netsh int tcp set global ecncapability=disabled; Write-Host "ECN capability disabled"

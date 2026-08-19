@@ -1,0 +1,1 @@
+﻿iwr "https://github.com/Orbmu2k/nvidiaProfileInspector/releases/download/2.4.0.4/nvidiaProfileInspector.zip" -OutFile "$env:TEMP\NVProfileInspector.zip"; Expand-Archive "$env:TEMP\NVProfileInspector.zip" "$env:TEMP\NVProfileInspector" -Force; & "$env:TEMP\NVProfileInspector\nvidiaProfileInspector.exe"

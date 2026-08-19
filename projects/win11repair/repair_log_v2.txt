@@ -1,0 +1,24 @@
+﻿[18:51:03] [SUCCESS] === FAST REPAIR STARTED  ===
+[18:51:04] [INFO] PHASE 1: System Analysis (~2 sec)
+[18:51:04] [INFO] Free space: 1741.28 GB
+[18:51:04] [INFO] PHASE 2: Stop Services (~1 sec)
+[18:51:06] [INFO] PHASE 3: DISM RestoreHealth (~5-15 min)
+[18:51:06] [INFO] Running: DISM /RestoreHealth
+[18:52:09] [INFO] DISM RestoreHealth exit: 0
+[18:52:09] [INFO] Running: DISM /StartComponentCleanup
+[18:52:30] [INFO] DISM Cleanup exit: 0
+[18:52:30] [INFO] PHASE 4: SFC Scan (~10-15 min, background)
+[18:52:31] [INFO] PHASE 5: Windows Update Reset (~10 sec)
+[18:52:31] [INFO] SoftwareDistribution renamed
+[18:52:31] [INFO] catroot2 renamed
+[18:52:38] [INFO] Essential DLLs registered
+[18:52:39] [INFO] Winsock reset
+[18:52:39] [INFO] PHASE 6: Registry Cleanup (~1 sec)
+[18:52:39] [INFO] Waiting for SFC to complete...
+[18:52:57] [INFO] SFC complete: exit 
+[18:52:57] [INFO] PHASE 7: Restart Services (~1 sec)
+[18:53:03] [INFO] PHASE 8: In-Place Upgrade (launches setup)
+[18:53:05] [INFO] Launching setup: /auto upgrade /dynamicupdate disable /eula accept /migratedrivers all /telemetry disable /compat ignorewarning
+[18:53:05] [SUCCESS] Setup launched! PID: 20452
+[18:53:06] [INFO] Post-repair verification task created
+[18:53:06] [SUCCESS] ===== COMPLETE in 122.4 seconds =====

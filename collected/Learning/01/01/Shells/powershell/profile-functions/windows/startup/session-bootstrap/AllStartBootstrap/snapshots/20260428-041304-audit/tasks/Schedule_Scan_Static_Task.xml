@@ -1,0 +1,55 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Version>1.0</Version>
+    <SecurityDescriptor>D:P(A;;FA;;;SY)(A;;FRFX;;;LS)(A;;FRFX;;;BA)</SecurityDescriptor>
+    <Source>Microsoft Corporation</Source>
+    <Author>Microsoft Corporation</Author>
+    <Description>This task performs a scheduled Windows Update scan.</Description>
+    <URI>\Microsoft\Windows\UpdateOrchestrator\Schedule Scan Static Task</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <WnfStateChangeTrigger>
+      <Delay>PT2H5M</Delay>
+      <StateName>7524BCA33E06830D</StateName>
+      <Data>01</Data>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger>
+      <Delay>PT2H5M</Delay>
+      <StateName>750CBCA3290B9641</StateName>
+      <Data>01</Data>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger>
+      <StateName>7550BCA322028F02</StateName>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger>
+      <StateName>7508BCA32E07C641</StateName>
+    </WnfStateChangeTrigger>
+    <EventTrigger>
+      <Subscription>&lt;QueryList&gt;&lt;Query Id="0" Path="System"&gt;&lt;Select Path="System"&gt;*[System[EventID=8202]]&lt;/Select&gt;&lt;/Query&gt;&lt;/QueryList&gt;</Subscription>
+    </EventTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <Exec>
+      <Command>%systemroot%\system32\usoclient.exe</Command>
+      <Arguments>StartScan</Arguments>
+    </Exec>
+  </Actions>
+</Task>

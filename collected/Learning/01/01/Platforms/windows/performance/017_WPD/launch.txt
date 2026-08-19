@@ -1,0 +1,1 @@
+﻿iwr "https://wpd.app/get/latest.zip" -OutFile "$env:TEMP\wpd.zip"; Expand-Archive "$env:TEMP\wpd.zip" "$env:TEMP\wpd" -Force; & (Get-ChildItem "$env:TEMP\wpd" -Filter "*.exe" -Recurse | Select-Object -First 1).FullName

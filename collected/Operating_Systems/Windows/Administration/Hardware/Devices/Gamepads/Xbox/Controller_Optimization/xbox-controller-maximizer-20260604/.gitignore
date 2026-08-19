@@ -1,0 +1,12 @@
+# Generated/transient files
+*.log
+logs/
+artifacts/logs/*.log
+*.tmp
+__pycache__/
+.venv/
+venv/
+dist/
+build/
+*.user
+*.secret

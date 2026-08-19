@@ -1,0 +1,467 @@
+﻿{
+    "limitations":  [
+                        "Software cannot directly inspect PSU internals such as ripple, capacitor health, transient response, every rail condition, or wall outlet quality.",
+                        "Cable health is inferred from link speed, disconnect/errors, display/storage events, and user-observable symptoms; a physical cable tester or replacement test is definitive.",
+                        "Some SMART/NVMe, voltage, fan, and temperature sensors are vendor-gated and may be unavailable to Windows without HWiNFO/LibreHardwareMonitor.",
+                        "No script can honestly prove there is no possible hardware error left; it can only report current evidence and unknowns."
+                    ],
+    "stress":  [
+
+               ],
+    "report_paths":  {
+                         "json":  "C:\\HWStressTest_HermesInventory\\hardware_truth_20260603_213836.json",
+                         "markdown":  "C:\\HWStressTest_HermesInventory\\hardware_truth_20260603_213836.md"
+                     },
+    "ClearUnderstanding":  "current_software_visible_evidence_collected_with_explicit_physical_limitations",
+    "duration_minutes":  10,
+    "mode":  "Inventory",
+    "schema_version":  "2.0",
+    "needs_fixing_or_improving":  [
+
+                                  ],
+    "completed_at":  "2026-06-03T21:38:36.6622057+03:00",
+    "root":  "C:\\HWStressTest_HermesInventory",
+    "inventory":  {
+                      "computer":  {
+                                       "Manufacturer":  "Gigabyte Technology Co., Ltd.",
+                                       "Model":  "X870E AORUS PRO",
+                                       "TotalPhysicalMemory":  100516204544
+                                   },
+                      "cpu":  {
+                                  "Name":  "AMD Ryzen 7 9800X3D 8-Core Processor           ",
+                                  "NumberOfCores":  8,
+                                  "NumberOfLogicalProcessors":  16,
+                                  "MaxClockSpeed":  4700
+                              },
+                      "memory":  [
+                                     {
+                                         "Manufacturer":  "CORSAIR",
+                                         "PartNumber":  "CMH96GX5M2B6000Z30",
+                                         "Capacity":  51539607552,
+                                         "Speed":  6000,
+                                         "ConfiguredClockSpeed":  6000
+                                     },
+                                     {
+                                         "Manufacturer":  "CORSAIR",
+                                         "PartNumber":  "CMH96GX5M2B6000Z30",
+                                         "Capacity":  51539607552,
+                                         "Speed":  6000,
+                                         "ConfiguredClockSpeed":  6000
+                                     }
+                                 ],
+                      "gpu":  [
+                                  {
+                                      "Name":  "AMD Radeon(TM) Graphics",
+                                      "AdapterRAM":  2147483648,
+                                      "DriverVersion":  "32.0.21043.12001",
+                                      "VideoModeDescription":  "3840 x 2160 x 4294967296 colors"
+                                  },
+                                  {
+                                      "Name":  "NVIDIA GeForce RTX 5080",
+                                      "AdapterRAM":  4293918720,
+                                      "DriverVersion":  "32.0.16.1047",
+                                      "VideoModeDescription":  "3840 x 2160 x 4294967296 colors"
+                                  }
+                              ],
+                      "whea_events":  [
+
+                                      ],
+                      "power_events":  [
+                                           {
+                                               "TimeCreated":  "\/Date(1780500315073)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  172,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "Connectivity state in standby: Disconnected, Reason: NIC compliance"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780500290356)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  577,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The system has prepared for a system initiated reboot from Active."
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780500288355)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  109,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The kernel power manager has initiated a shutdown transition.\r\n\r\nAction: Power Action Reboot \r\nEvent Code: 0x0 \r\nReason: Kernel API"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780500127132)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  172,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "Connectivity state in standby: Disconnected, Reason: NIC compliance"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780500095312)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  577,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The system has prepared for a system initiated reboot from Active."
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780500093281)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  109,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The kernel power manager has initiated a shutdown transition.\r\n\r\nAction: Power Action Reboot \r\nEvent Code: 0x0 \r\nReason: Kernel API"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780499921075)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  172,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "Connectivity state in standby: Disconnected, Reason: NIC compliance"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780499895692)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  577,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The system has prepared for a system initiated reboot from Active."
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780499893645)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  109,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The kernel power manager has initiated a shutdown transition.\r\n\r\nAction: Power Action Reboot \r\nEvent Code: 0x0 \r\nReason: Kernel API"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780499720122)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  172,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "Connectivity state in standby: Disconnected, Reason: NIC compliance"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780499687959)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  577,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The system has prepared for a system initiated reboot from Active."
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780499685799)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  109,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The kernel power manager has initiated a shutdown transition.\r\n\r\nAction: Power Action Reboot \r\nEvent Code: 0x0 \r\nReason: Kernel API"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780498814109)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  172,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "Connectivity state in standby: Disconnected, Reason: NIC compliance"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780498789632)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  577,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The system has prepared for a system initiated reboot from Active."
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780498787598)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  109,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The kernel power manager has initiated a shutdown transition.\r\n\r\nAction: Power Action Reboot \r\nEvent Code: 0x0 \r\nReason: Kernel API"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780498549141)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  172,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "Connectivity state in standby: Disconnected, Reason: NIC compliance"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780495666120)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  172,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "Connectivity state in standby: Disconnected, Reason: NIC compliance"
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780495639246)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  577,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The system has prepared for a system initiated reboot from Active."
+                                           },
+                                           {
+                                               "TimeCreated":  "\/Date(1780495636878)\/",
+                                               "ProviderName":  "Microsoft-Windows-Kernel-Power",
+                                               "Id":  109,
+                                               "LevelDisplayName":  "Information",
+                                               "Message":  "The kernel power manager has initiated a shutdown transition.\r\n\r\nAction: Power Action Reboot \r\nEvent Code: 0x0 \r\nReason: Kernel API"
+                                           }
+                                       ],
+                      "physical_disks":  [
+                                             {
+                                                 "FriendlyName":  "USB 3.0 USB 3.0",
+                                                 "MediaType":  "Unspecified",
+                                                 "HealthStatus":  "Healthy",
+                                                 "OperationalStatus":  "OK",
+                                                 "Size":  31457280000
+                                             },
+                                             {
+                                                 "FriendlyName":  "YC3000-SSD-2048G",
+                                                 "MediaType":  "SSD",
+                                                 "HealthStatus":  "Healthy",
+                                                 "OperationalStatus":  "OK",
+                                                 "Size":  2048408248320
+                                             },
+                                             {
+                                                 "FriendlyName":  "Fanxiang FF951",
+                                                 "MediaType":  "Unspecified",
+                                                 "HealthStatus":  "Healthy",
+                                                 "OperationalStatus":  "OK",
+                                                 "Size":  1024209543168
+                                             },
+                                             {
+                                                 "FriendlyName":  "Samsung SSD 9100 PRO 2TB",
+                                                 "MediaType":  "SSD",
+                                                 "HealthStatus":  "Healthy",
+                                                 "OperationalStatus":  "OK",
+                                                 "Size":  2000398934016
+                                             }
+                                         ],
+                      "volumes":  [
+                                      {
+                                          "DriveLetter":  null,
+                                          "FileSystemLabel":  "",
+                                          "HealthStatus":  "Healthy",
+                                          "SizeRemaining":  0,
+                                          "Size":  0
+                                      },
+                                      {
+                                          "DriveLetter":  "D",
+                                          "FileSystemLabel":  "New Volume",
+                                          "HealthStatus":  "Healthy",
+                                          "SizeRemaining":  747413504,
+                                          "Size":  782233600
+                                      },
+                                      {
+                                          "DriveLetter":  "C",
+                                          "FileSystemLabel":  "",
+                                          "HealthStatus":  "Healthy",
+                                          "SizeRemaining":  1555136860160,
+                                          "Size":  1997889597440
+                                      },
+                                      {
+                                          "DriveLetter":  null,
+                                          "FileSystemLabel":  "",
+                                          "HealthStatus":  "Healthy",
+                                          "SizeRemaining":  0,
+                                          "Size":  0
+                                      },
+                                      {
+                                          "DriveLetter":  "F",
+                                          "FileSystemLabel":  "Ventoy",
+                                          "HealthStatus":  "Warning",
+                                          "SizeRemaining":  462533296128,
+                                          "Size":  1024143654912
+                                      },
+                                      {
+                                          "DriveLetter":  null,
+                                          "FileSystemLabel":  "",
+                                          "HealthStatus":  "Healthy",
+                                          "SizeRemaining":  0,
+                                          "Size":  0
+                                      },
+                                      {
+                                          "DriveLetter":  null,
+                                          "FileSystemLabel":  "",
+                                          "HealthStatus":  "Healthy",
+                                          "SizeRemaining":  60997632,
+                                          "Size":  100663296
+                                      },
+                                      {
+                                          "DriveLetter":  "G",
+                                          "FileSystemLabel":  "BIOS",
+                                          "HealthStatus":  "Healthy",
+                                          "SizeRemaining":  31402049536,
+                                          "Size":  31439454208
+                                      },
+                                      {
+                                          "DriveLetter":  "E",
+                                          "FileSystemLabel":  "Ventoy",
+                                          "HealthStatus":  "Warning",
+                                          "SizeRemaining":  397604421632,
+                                          "Size":  2048311033856
+                                      },
+                                      {
+                                          "DriveLetter":  null,
+                                          "FileSystemLabel":  "",
+                                          "HealthStatus":  "Healthy",
+                                          "SizeRemaining":  0,
+                                          "Size":  0
+                                      }
+                                  ],
+                      "storage_events":  [
+                                             {
+                                                 "TimeCreated":  "\/Date(1780495704339)\/",
+                                                 "ProviderName":  "stornvme",
+                                                 "Id":  129,
+                                                 "LevelDisplayName":  "Warning",
+                                                 "Message":  "Reset to device, \\Device\\RaidPort4, was issued."
+                                             }
+                                         ],
+                      "network_adapters":  [
+                                               {
+                                                   "Name":  "Wi-Fi 3",
+                                                   "InterfaceDescription":  "Qualcomm FastConnect 7800 Wi-Fi 7 High Band Simultaneous (HBS) Network Adapter",
+                                                   "Status":  "Not Present",
+                                                   "LinkSpeed":  "0 bps",
+                                                   "MacAddress":  null,
+                                                   "DriverVersion":  "3.1.0.1647"
+                                               },
+                                               {
+                                                   "Name":  "Ethernet",
+                                                   "InterfaceDescription":  "Realtek PCIe 2.5GbE Family Controller",
+                                                   "Status":  "Up",
+                                                   "LinkSpeed":  "1 Gbps",
+                                                   "MacAddress":  "30-56-0F-40-D2-4C",
+                                                   "DriverVersion":  "1125.28.1224.2025"
+                                               },
+                                               {
+                                                   "Name":  "Wi-Fi",
+                                                   "InterfaceDescription":  "Qualcomm FastConnect 7800 Wi-Fi 7 High Band Simultaneous (HBS) Network Adapter",
+                                                   "Status":  "Disconnected",
+                                                   "LinkSpeed":  "0 bps",
+                                                   "MacAddress":  "4C-23-38-D0-30-A1",
+                                                   "DriverVersion":  "3.1.0.1647"
+                                               },
+                                               {
+                                                   "Name":  "Bluetooth Network Connection",
+                                                   "InterfaceDescription":  "Bluetooth Device (Personal Area Network)",
+                                                   "Status":  "Disconnected",
+                                                   "LinkSpeed":  "3 Mbps",
+                                                   "MacAddress":  "4C-23-38-D0-30-A2",
+                                                   "DriverVersion":  "10.0.26100.5074"
+                                               },
+                                               {
+                                                   "Name":  "Wi-Fi 4",
+                                                   "InterfaceDescription":  "Qualcomm FastConnect 7800 Wi-Fi 7 High Band Simultaneous (HBS) Network Adapter",
+                                                   "Status":  "Disconnected",
+                                                   "LinkSpeed":  "0 bps",
+                                                   "MacAddress":  "6E-23-38-D0-30-A1",
+                                                   "DriverVersion":  "3.1.0.1647"
+                                               }
+                                           ],
+                      "dns":  [
+                                  {
+                                      "InterfaceAlias":  "Ethernet",
+                                      "ServerAddresses":  [
+                                                              "1.1.1.1",
+                                                              "8.8.8.8",
+                                                              "1.0.0.1",
+                                                              "8.8.4.4"
+                                                          ]
+                                  },
+                                  {
+                                      "InterfaceAlias":  "Wi-Fi",
+                                      "ServerAddresses":  [
+                                                              "192.168.1.1"
+                                                          ]
+                                  },
+                                  {
+                                      "InterfaceAlias":  "Wi-Fi 2",
+                                      "ServerAddresses":  [
+
+                                                          ]
+                                  },
+                                  {
+                                      "InterfaceAlias":  "Wi-Fi 4",
+                                      "ServerAddresses":  [
+
+                                                          ]
+                                  },
+                                  {
+                                      "InterfaceAlias":  "Wi-Fi 5",
+                                      "ServerAddresses":  [
+
+                                                          ]
+                                  },
+                                  {
+                                      "InterfaceAlias":  "Bluetooth Network Connection",
+                                      "ServerAddresses":  [
+
+                                                          ]
+                                  },
+                                  {
+                                      "InterfaceAlias":  "Loopback Pseudo-Interface 1",
+                                      "ServerAddresses":  [
+
+                                                          ]
+                                  }
+                              ],
+                      "network_latency":  [
+                                              {
+                                                  "target":  "1.1.1.1",
+                                                  "replies":  [
+                                                                  {
+                                                                      "Address":  "1.1.1.1",
+                                                                      "ResponseTime":  4
+                                                                  },
+                                                                  {
+                                                                      "Address":  "1.1.1.1",
+                                                                      "ResponseTime":  2
+                                                                  },
+                                                                  {
+                                                                      "Address":  "1.1.1.1",
+                                                                      "ResponseTime":  2
+                                                                  },
+                                                                  {
+                                                                      "Address":  "1.1.1.1",
+                                                                      "ResponseTime":  5
+                                                                  }
+                                                              ],
+                                                  "count":  4
+                                              },
+                                              {
+                                                  "target":  "8.8.8.8",
+                                                  "replies":  [
+                                                                  {
+                                                                      "Address":  "8.8.8.8",
+                                                                      "ResponseTime":  6
+                                                                  },
+                                                                  {
+                                                                      "Address":  "8.8.8.8",
+                                                                      "ResponseTime":  15
+                                                                  },
+                                                                  {
+                                                                      "Address":  "8.8.8.8",
+                                                                      "ResponseTime":  3
+                                                                  },
+                                                                  {
+                                                                      "Address":  "8.8.8.8",
+                                                                      "ResponseTime":  3
+                                                                  }
+                                                              ],
+                                                  "count":  4
+                                              }
+                                          ],
+                      "power_plan":  "Power Scheme GUID: 4222a19c-72e8-43bf-bea6-432bd69d3424  (Bitsum Highest Performance)",
+                      "thermal_zones":  null,
+                      "connection_events":  [
+
+                                            ]
+                  },
+    "overall":  {
+                    "severity":  "info",
+                    "score":  92,
+                    "summary":  "0 critical, 0 warning, 4 known limitations"
+                },
+    "checks":  [
+
+               ],
+    "started_at":  "2026-06-03T21:38:23.6569654+03:00",
+    "OneLiner":  "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"F:\\Downloads\\A\\a.ps1\" -Mode FullStress -DurationMinutes 10",
+    "clear_understanding":  true
+}

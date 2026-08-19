@@ -1,0 +1,8 @@
+/downloads/
+/runtime/
+/models/
+/logs/
+/reports/
+/state/
+*.tmp
+*.log

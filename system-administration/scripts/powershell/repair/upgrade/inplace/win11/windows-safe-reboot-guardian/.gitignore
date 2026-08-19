@@ -1,0 +1,30 @@
+# Runtime logs and local reports
+Windows_PreReboot_Fix_Logs/
+*.log
+*.tmp
+*.bak
+*.bak_*
+*.hiv
+*.dmp
+*.etl
+
+# PowerShell local/editor state
+.vscode/
+.idea/
+*.ps1xml.local
+
+# OS noise
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+System Volume Information/
+
+# Accidental credentials
+.env
+.env.*
+*.pfx
+*.p12
+*.key
+*.pem
+id_rsa
+id_ed25519

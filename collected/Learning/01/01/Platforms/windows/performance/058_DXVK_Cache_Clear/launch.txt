@@ -1,0 +1,1 @@
+﻿Remove-Item "$env:LOCALAPPDATA\NVIDIA\DXCache\*" -Force -Recurse -ErrorAction SilentlyContinue; Remove-Item "$env:LOCALAPPDATA\AMD\DXCache\*" -Force -Recurse -ErrorAction SilentlyContinue; Write-Host "DX cache cleared"

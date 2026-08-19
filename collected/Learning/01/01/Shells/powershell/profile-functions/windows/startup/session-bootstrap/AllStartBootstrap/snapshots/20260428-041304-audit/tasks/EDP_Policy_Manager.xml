@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2015-02-09T10:54:13.9629482</Date>
+    <SecurityDescriptor>D:P(A;;FA;;;BA)(A;;FA;;;SY)(A;;FA;;;S-1-5-87-2978287140-3787137133-1749738600-1988163579-2060695581)</SecurityDescriptor>
+    <Source>$(@%SystemRoot%\system32\ApplockerCsp.dll,-101)</Source>
+    <Author>$(@%SystemRoot%\system32\ApplockerCsp.dll,-100)</Author>
+    <Description>$(@%SystemRoot%\system32\ApplockerCsp.dll,-102)</Description>
+    <URI>\Microsoft\Windows\AppID\EDP Policy Manager</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalService">
+      <UserId>S-1-5-19</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <AllowHardTerminate>false</AllowHardTerminate>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <WnfStateChangeTrigger>
+      <StateName>7588BCA328009213</StateName>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger>
+      <StateName>75E0BCA328009213</StateName>
+    </WnfStateChangeTrigger>
+  </Triggers>
+  <Actions Context="LocalService">
+    <ComHandler>
+      <ClassId>{DECA92E0-AF85-439E-9204-86679978DA08}</ClassId>
+      <Data><![CDATA[EdpPolicyManager]]></Data>
+    </ComHandler>
+  </Actions>
+</Task>

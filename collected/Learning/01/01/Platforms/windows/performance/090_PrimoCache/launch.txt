@@ -1,0 +1,1 @@
+﻿iwr "https://www.intechinfo.com/files/PrimoCacheSetup-4_4_0.exe" -OutFile "$env:TEMP\PrimoCacheSetup.exe"; & "$env:TEMP\PrimoCacheSetup.exe"

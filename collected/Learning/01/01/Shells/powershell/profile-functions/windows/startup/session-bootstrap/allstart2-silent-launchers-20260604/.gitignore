@@ -1,0 +1,13 @@
+# Generated/transient files
+logs/
+snapshots/
+quarantine/
+*.log
+*.tmp
+*.bak
+*.backup
+__pycache__/
+.venv/
+venv/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,6 @@
+MOVED: /mnt/f/Downloads/A/a.ps1 -> /mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Diagnostics/StressTesting/PowerShell/hardware-truth-suite-20260603/a.ps1
+MOVED: /mnt/f/Downloads/A/README.md -> /mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Diagnostics/StressTesting/PowerShell/hardware-truth-suite-20260603/README.md
+MOVED: /mnt/f/Downloads/A/tests -> /mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Diagnostics/StressTesting/PowerShell/hardware-truth-suite-20260603/tests
+COPIED_NOT_MOVED_WINDOWS_REPORTS: /mnt/c/HWStressTest_HermesInventory -> /mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Diagnostics/StressTesting/PowerShell/hardware-truth-suite-20260603/artifacts/HWStressTest_HermesInventory
+COPIED_NOT_MOVED_WINDOWS_ARTIFACT_DIR: /mnt/c/HWStressTest_HermesSelfTest -> /mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Diagnostics/StressTesting/PowerShell/hardware-truth-suite-20260603/artifacts/HWStressTest_HermesSelfTest
+MOVED_FILE: /mnt/c/Temp/hermes_parse_hwtruth.ps1 -> /mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Diagnostics/StressTesting/PowerShell/hardware-truth-suite-20260603/artifacts/temp/hermes_parse_hwtruth.ps1

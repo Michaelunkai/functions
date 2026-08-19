@@ -1,0 +1,1 @@
+﻿Stop-Service -Name "NvTelemetryContainer" -Force -ErrorAction SilentlyContinue; Set-Service -Name "NvTelemetryContainer" -StartupType Disabled -ErrorAction SilentlyContinue; Write-Host "NVIDIA telemetry disabled"

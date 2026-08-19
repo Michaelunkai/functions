@@ -1,0 +1,173 @@
+# Safe Docker Desktop cleanup implementation for Windows PowerShell 5.
+# Contract: Docker-only cleanup must never call wsl.exe --shutdown, unregister WSL distros,
+# kill wsl/wslhost/wslservice, kill generic vmwp.exe, stop non-Docker Hyper-V VMs, or touch non-Docker WSL state.
+[CmdletBinding()]
+param(
+    [switch]$SelfTest,
+    [switch]$WhatIfOnly
+)
+
+$__extractedFunctionName = 'dkill'
+$__extractedScriptPath = $PSCommandPath
+
+if ($SelfTest.IsPresent) {
+    [pscustomobject]@{
+        Script = $__extractedScriptPath
+        Exists = (Test-Path -LiteralPath $__extractedScriptPath)
+        Function = $__extractedFunctionName
+        Mode = 'SelfTest'
+        SelfTestBound = $SelfTest.IsPresent
+        WhatIfOnlyBound = $WhatIfOnly.IsPresent
+        WslSafe = $true
+        ProhibitedActions = @('wsl --shutdown','wsl --unregister','Stop-Process wsl*','taskkill vmwp.exe','Stop-VM wildcard/non-Docker')
+    }
+    return
+}
+
+function dkill {
+    param([switch]$WhatIfOnly)
+    $ErrorActionPreference = 'Continue'
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-Host "`n=== SAFE DOCKER CLEANUP (WSL PROTECTED) ===" -ForegroundColor Yellow
+
+    function Invoke-DkillStep {
+        param([string]$Name, [scriptblock]$Action)
+        Write-Host "  -> $Name" -ForegroundColor Cyan
+        if ($WhatIfOnly) { Write-Host "     WHATIF: skipped" -ForegroundColor DarkGray; return }
+        try { & $Action } catch { Write-Host "     WARN: $($_.Exception.Message)" -ForegroundColor DarkYellow }
+    }
+
+    Write-Host "  WSL action policy: NONE (no shutdown, unregister, WSL process kill, or non-Docker VM stop)" -ForegroundColor Green
+
+    $dockerConfigFiles = @(
+        'C:\Users\micha\AppData\Roaming\Docker\settings-store.json',
+        'C:\Users\micha\.docker\daemon.json',
+        'C:\Users\micha\.docker\config.json',
+        'C:\Users\micha\.docker\windows-daemon.json',
+        'C:\Users\micha\AppData\Roaming\Docker\login-info.json',
+        'C:\Users\micha\AppData\Roaming\Docker\features-overrides.json'
+    )
+    $snap = @{}
+    foreach ($f in $dockerConfigFiles) {
+        if ([System.IO.File]::Exists($f)) { $snap[$f] = [System.IO.File]::ReadAllText($f) }
+    }
+    Write-Host "  Saved Docker config files: $($snap.Count)" -ForegroundColor Cyan
+    $initFreeC = $null
+    try { $initFreeC = (Get-Volume -DriveLetter C -ErrorAction SilentlyContinue).SizeRemaining } catch {}
+
+    Invoke-DkillStep 'Stop Docker Desktop UI/backend processes only' {
+        @('Docker Desktop','docker','com.docker.backend','com.docker.proxy','com.docker.cli','vpnkit','com.docker.vpnkit','docker-agent','docker-sandbox','docker-compose','com.docker.dev-envs') |
+            ForEach-Object { Get-Process -Name $_ -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue }
+    }
+
+    Invoke-DkillStep 'Stop Docker Desktop Windows service only' {
+        Stop-Service -Name 'com.docker.service' -Force -ErrorAction SilentlyContinue
+    }
+
+    Invoke-DkillStep 'Stop DockerDesktopVM only (never generic vmwp / never other VMs)' {
+        $vm = Get-VM -Name 'DockerDesktopVM' -ErrorAction SilentlyContinue
+        if ($vm -and $vm.State -ne 'Off') { Stop-VM -Name 'DockerDesktopVM' -Force -TurnOff -ErrorAction SilentlyContinue }
+    }
+
+    Invoke-DkillStep 'Dismount/delete Docker Hyper-V VHDX paths only' {
+        $paths = @(
+            'C:\ProgramData\DockerDesktop\vm-data\DockerDesktop.vhdx',
+            'C:\Hyper-V\DockerDesktop.vhdx'
+        )
+        foreach ($p in $paths) {
+            if ([System.IO.File]::Exists($p)) {
+                try { Dismount-VHD -Path $p -ErrorAction SilentlyContinue } catch {}
+                try {
+                    cmd /c "takeown /f `"$p`" /a /d Y" 2>$null | Out-Null
+                    cmd /c "icacls `"$p`" /grant Administrators:F /q" 2>$null | Out-Null
+                    Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue
+                    if (-not (Test-Path -LiteralPath $p)) { Write-Host "     removed $p" -ForegroundColor Green }
+                } catch { Write-Host "     WARN removing ${p}: $($_.Exception.Message)" -ForegroundColor DarkYellow }
+            }
+        }
+    }
+
+    Invoke-DkillStep 'Delete Docker Desktop data/cache directories only' {
+        $dirs = @(
+            'C:\ProgramData\DockerDesktop\vm-data',
+            'C:\ProgramData\Docker',
+            'C:\Users\micha\AppData\Local\Docker',
+            'C:\Users\micha\AppData\Roaming\Docker'
+        )
+        foreach ($d in $dirs) {
+            if ([System.IO.Directory]::Exists($d)) {
+                Remove-Item -LiteralPath $d -Recurse -Force -ErrorAction SilentlyContinue
+                if (-not (Test-Path -LiteralPath $d)) { Write-Host "     removed $d" -ForegroundColor Green }
+            }
+        }
+        foreach ($sub in @('buildx','mutagen','desktop-build','docker-next','models','modules','bin','log','run','tasks')) {
+            $d = "C:\Users\micha\.docker\$sub"
+            if ([System.IO.Directory]::Exists($d)) { Remove-Item -LiteralPath $d -Recurse -Force -ErrorAction SilentlyContinue }
+        }
+        Get-ChildItem 'C:\Windows\Temp' -Filter '*docker*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+        Get-ChildItem 'C:\Users\micha\AppData\Local\Temp' -Filter '*docker*' -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+    }
+
+    Invoke-DkillStep 'Restore Docker config snapshot' {
+        foreach ($f in $snap.Keys) {
+            $dir = [System.IO.Path]::GetDirectoryName($f)
+            if (-not [System.IO.Directory]::Exists($dir)) { [System.IO.Directory]::CreateDirectory($dir) | Out-Null }
+            [System.IO.File]::WriteAllText($f, $snap[$f])
+        }
+    }
+
+    Invoke-DkillStep 'Start Docker Desktop service/app' {
+        Set-Service 'com.docker.service' -StartupType Automatic -ErrorAction SilentlyContinue
+        # Auto-start the privileged helper service with NO user interaction: try a
+        # direct start first, then a SYSTEM-privileged scheduled task (no UAC
+        # prompt, no Docker 'Would you like to start the service?' dialog). Then
+        # WAIT until the service is genuinely Running before launching Docker
+        # Desktop, so the startup dialog never appears.
+        $svcName = 'com.docker.service'
+        $taskName = 'DockerDkillStartService'
+        $started = $false
+        try {
+            Start-Service -Name $svcName -ErrorAction Stop
+            $started = $true
+        } catch {}
+        if (-not $started) {
+            try {
+                $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+                if (-not $task) {
+                    $action = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument '-NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -Command "Start-Service -Name com.docker.service"'
+                    $principal = New-ScheduledTaskPrincipal -UserId 'SYSTEM' -LogonType ServiceAccount -RunLevel Highest
+                    $settings = New-ScheduledTaskSettingsSet -Hidden -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 5)
+                    Register-ScheduledTask -TaskName $taskName -Action $action -Principal $principal -Settings $settings -Force -ErrorAction SilentlyContinue | Out-Null
+                    $task = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
+                }
+                if ($task) { Start-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue }
+            } catch {}
+        }
+        # Wait up to 60s for the service to actually be Running.
+        $svc = $null
+        for ($i = 0; $i -lt 60; $i++) {
+            $svc = Get-Service -Name $svcName -ErrorAction SilentlyContinue
+            if ($svc -and $svc.Status -eq 'Running') { break }
+            Start-Sleep -Seconds 1
+        }
+        if ($svc -and $svc.Status -eq 'Running') {
+            Write-Host "     $svcName is Running" -ForegroundColor Green
+        } else {
+            Write-Host "     WARN: $svcName not Running after start attempt" -ForegroundColor DarkYellow
+        }
+        $exe = 'C:\Program Files\Docker\Docker\Docker Desktop.exe'
+        if (Test-Path -LiteralPath $exe) { Start-Process -FilePath $exe -ArgumentList '--minimize' -WindowStyle Hidden }
+    }
+
+    Start-Sleep -Seconds 2
+    $sw.Stop()
+    $freedGB = $null
+    try {
+        if ($null -ne $initFreeC) { $freedGB = [math]::Round(((Get-Volume -DriveLetter C -ErrorAction SilentlyContinue).SizeRemaining - $initFreeC) / 1GB, 2) }
+    } catch {}
+    Write-Host "`n=== SAFE DKILL DONE in $([math]::Round($sw.Elapsed.TotalSeconds,2))s ===" -ForegroundColor Green
+    Write-Host "  WSL action    : NONE (no shutdown/unregister/kill)" -ForegroundColor Green
+    if ($null -ne $freedGB) { Write-Host "  C: delta      : $freedGB GB" -ForegroundColor Yellow }
+}
+
+& $__extractedFunctionName -WhatIfOnly:$WhatIfOnly.IsPresent

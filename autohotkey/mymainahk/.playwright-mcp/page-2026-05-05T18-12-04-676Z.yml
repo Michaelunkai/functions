@@ -1,0 +1,207 @@
+- generic [active] [ref=e1]:
+  - generic:
+    - region "Toast message":
+      - heading "0 notifications total" [level=2] [ref=e3]
+      - alert
+  - region [ref=e4]
+  - generic [ref=e5]:
+    - generic [ref=e7]:
+      - button "Skip to search" [ref=e8] [cursor=pointer]:
+        - generic [ref=e9]: Skip to search
+      - button "Skip to main content" [ref=e10] [cursor=pointer]:
+        - generic [ref=e11]: Skip to main content
+      - button "Keyboard shortcuts" [ref=e12] [cursor=pointer]:
+        - generic [ref=e13]: Keyboard shortcuts
+      - button "Close jump menu" [ref=e14] [cursor=pointer]:
+        - img [ref=e15]
+        - generic [ref=e17]: Close jump menu
+    - banner "Global Navigation" [ref=e18]:
+      - generic [ref=e19]:
+        - link "LinkedIn" [ref=e20] [cursor=pointer]:
+          - /url: https://www.linkedin.com/feed/?nis=true
+          - img "LinkedIn" [ref=e23]:
+            - img [ref=e24]
+        - generic [ref=e28]:
+          - combobox "Search" [ref=e29]
+          - generic:
+            - img
+        - navigation "Primary Navigation" [ref=e30]:
+          - list [ref=e31]:
+            - listitem [ref=e32]:
+              - link "new feed updates notifications Home" [ref=e33] [cursor=pointer]:
+                - /url: https://www.linkedin.com/feed/?nis=true&
+                - generic [ref=e34]:
+                  - generic [ref=e37]: new feed updates notifications
+                  - img [ref=e41]
+                - generic "Home" [ref=e43]
+            - listitem [ref=e44]:
+              - link "2 new network updates notifications My Network" [ref=e45] [cursor=pointer]:
+                - /url: https://www.linkedin.com/mynetwork/?
+                - generic [ref=e46]:
+                  - generic [ref=e47]:
+                    - generic [ref=e48]: "2"
+                    - generic [ref=e49]: 2 new network updates notifications
+                  - img [ref=e53]
+                - generic "My Network" [ref=e55]
+            - listitem [ref=e56]:
+              - link "Jobs" [ref=e57] [cursor=pointer]:
+                - /url: https://www.linkedin.com/jobs/?
+                - img [ref=e61]
+                - generic "Jobs" [ref=e63]
+            - listitem [ref=e64]:
+              - link "5 new messages notifications Messaging" [ref=e65] [cursor=pointer]:
+                - /url: https://www.linkedin.com/messaging/?
+                - generic [ref=e66]:
+                  - generic [ref=e67]:
+                    - generic [ref=e68]: "5"
+                    - generic [ref=e69]: 5 new messages notifications
+                  - img [ref=e73]
+                - generic "Messaging" [ref=e75]
+            - listitem [ref=e76]:
+              - link "20 new notifications Notifications" [ref=e77] [cursor=pointer]:
+                - /url: https://www.linkedin.com/notifications/?
+                - generic [ref=e78]:
+                  - generic [ref=e79]:
+                    - generic [ref=e80]: "20"
+                    - generic [ref=e81]: 20 new notifications
+                  - img [ref=e85]
+                - generic "Notifications" [ref=e87]
+            - listitem [ref=e88]:
+              - button "Michael Fedorovsky Me" [ref=e90] [cursor=pointer]:
+                - img "Michael Fedorovsky" [ref=e91]
+                - generic [ref=e92]:
+                  - text: Me
+                  - img [ref=e93]
+            - listitem [ref=e95]:
+              - button "For Business" [ref=e97] [cursor=pointer]:
+                - img [ref=e101]
+                - generic "For Business" [ref=e103]:
+                  - text: For Business
+                  - img [ref=e104]
+            - listitem [ref=e106]:
+              - link "Try Premium for ₪0" [ref=e108] [cursor=pointer]:
+                - /url: javascript:void(0)
+                - generic [ref=e109]:
+                  - img [ref=e110]
+                  - generic [ref=e112]: Try Premium for ₪0
+    - generic [ref=e113]:
+      - generic [ref=e116]:
+        - main [ref=e117]:
+          - generic [ref=e120]:
+            - generic [ref=e124]:
+              - generic [ref=e125]:
+                - generic [ref=e126]:
+                  - link "Mobile Group Ltd. logo" [ref=e127] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/company/mobile-group-ltd/life
+                    - img "Mobile Group Ltd. logo" [ref=e130]
+                  - link "Mobile Group Ltd." [ref=e132] [cursor=pointer]:
+                    - /url: https://www.linkedin.com/company/mobile-group-ltd/life
+                - generic [ref=e133]:
+                  - button "Share" [ref=e136] [cursor=pointer]:
+                    - img [ref=e137]
+                    - generic [ref=e139]: Share
+                  - button "Show more options" [ref=e141] [cursor=pointer]:
+                    - img [ref=e142]
+                    - generic [ref=e144]: Show more options
+              - generic [ref=e146]:
+                - heading "DevOps Engineer" [level=1] [ref=e147]
+                - button "View verified hiring modal" [ref=e149] [cursor=pointer]:
+                  - img [ref=e152]
+              - generic [ref=e156]:
+                - generic [ref=e157]: Hadera, Haifa District, Israel
+                - generic [ref=e158]: ·
+                - generic [ref=e160]: 2 weeks ago
+                - generic [ref=e161]: ·
+                - generic [ref=e162]: 46 applicants
+                - paragraph [ref=e163]:
+                  - generic [ref=e164]: Promoted by hirer
+                  - generic [ref=e165]: ·
+                  - generic [ref=e166]: No response insights available yet
+              - generic [ref=e167]:
+                - button "Matches your job preferences, workplace type is On-site." [ref=e168] [cursor=pointer]:
+                  - strong [ref=e171]:
+                    - img [ref=e173]
+                    - text: On-site
+                  - generic [ref=e175]: Matches your job preferences, workplace type is On-site.
+                - button "Matches your job preferences, job type is Full-time." [ref=e176] [cursor=pointer]:
+                  - strong [ref=e179]:
+                    - img [ref=e181]
+                    - text: Full-time
+                  - generic [ref=e183]: Matches your job preferences, job type is Full-time.
+              - generic [ref=e185]:
+                - button "Easy Apply to DevOps Engineer at Mobile Group Ltd." [ref=e188] [cursor=pointer]:
+                  - img [ref=e189]
+                  - generic [ref=e191]: Easy Apply
+                - button "Save DevOps Engineer at Mobile Group Ltd." [ref=e192] [cursor=pointer]:
+                  - generic [ref=e193]: Save
+                  - generic [ref=e194]: Save DevOps Engineer at Mobile Group Ltd.
+            - generic [ref=e204]:
+              - article [ref=e205]:
+                - heading "About the job" [level=2] [ref=e208]
+              - button "Click to see more description" [ref=e210] [cursor=pointer]:
+                - img [ref=e211]
+                - generic [ref=e213]: See more
+            - generic [ref=e215]:
+              - generic [ref=e216]:
+                - heading "Set alert for similar jobs" [level=2] [ref=e217]
+                - generic [ref=e219]: DevOps Engineer, Hadera, Haifa District, Israel
+              - generic [ref=e221] [cursor=pointer]:
+                - generic [ref=e222]: "Off"
+                - generic [ref=e223]: Set alert
+                - switch "Set alert"
+            - alert [ref=e226]: Loading job details
+        - complementary [ref=e239]
+      - contentinfo [ref=e242]:
+        - generic [ref=e244]:
+          - generic [ref=e245]:
+            - navigation [ref=e246]:
+              - list
+            - generic [ref=e248]:
+              - list [ref=e249]:
+                - listitem [ref=e250]:
+                  - img [ref=e251]
+                  - generic [ref=e253]:
+                    - link "Questions? Visit our Help Center." [ref=e254] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/help/linkedin?trk=d_flagship3_job_details
+                      - text: Questions?
+                    - paragraph [ref=e255]: Visit our Help Center.
+                - listitem [ref=e256]:
+                  - img [ref=e257]
+                  - generic [ref=e259]:
+                    - link "Manage your account and privacy Go to your Settings." [ref=e260] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/psettings/
+                      - text: Manage your account and privacy
+                    - paragraph [ref=e261]: Go to your Settings.
+                - listitem [ref=e262]:
+                  - img [ref=e263]
+                  - generic [ref=e265]:
+                    - link "Recommendation transparency Learn more about Recommended Content." [ref=e266] [cursor=pointer]:
+                      - /url: https://www.linkedin.com/help/linkedin/answer/a1339724
+                      - text: Recommendation transparency
+                    - paragraph [ref=e267]: Learn more about Recommended Content.
+              - generic [ref=e268]:
+                - generic [ref=e269]: Select Language
+                - combobox "Select Language" [ref=e270]
+          - paragraph [ref=e271]: LinkedIn Corporation © 2026
+    - generic:
+      - generic:
+        - complementary:
+          - generic [ref=e273]:
+            - generic [ref=e275] [cursor=pointer]:
+              - img "Michael Fedorovsky" [ref=e277]
+              - button "You are on the messaging overlay. Press enter to open the list of conversations." [ref=e278]:
+                - generic [ref=e279]:
+                  - generic [ref=e280]: Messaging
+                  - generic [ref=e281]: You are on the messaging overlay. Press enter to open the list of conversations.
+              - mark [ref=e282]:
+                - generic [ref=e283]: "5"
+            - generic [ref=e284]:
+              - button "Open messenger dropdown menu" [ref=e286] [cursor=pointer]:
+                - img "Open messenger dropdown menu" [ref=e287]
+              - button "Compose message" [ref=e290] [cursor=pointer]:
+                - img [ref=e291]
+                - generic [ref=e293]: Compose message
+              - button "You are on the messaging overlay. Press enter to open the list of conversations." [ref=e294] [cursor=pointer]:
+                - img [ref=e295]
+                - generic [ref=e297]: You are on the messaging overlay. Press enter to open the list of conversations.
+        - complementary "AI-powered assistant to get help with your career, jobs etc"

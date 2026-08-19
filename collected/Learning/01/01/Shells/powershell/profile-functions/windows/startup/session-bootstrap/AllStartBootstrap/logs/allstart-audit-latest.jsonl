@@ -1,0 +1,240 @@
+﻿
+{"timestamp":"2026-04-29T23:23:52.7017337+03:00","level":"INFO","mode":"Audit","hostname":"USER","message":"allstart mode started: Audit"}
+{"timestamp":"2026-04-29T23:23:52.7488725+03:00","level":"INFO","mode":"Audit","hostname":"USER","message":"Admin: True; DryRun: True; PowerShell: 5.1.26100.8115"}
+{"timestamp":"2026-04-29T23:23:52.8711216+03:00","level":"INFO","mode":"Audit","hostname":"USER","message":"Audit snapshot keeps task XML export limited to configured protected/relevant tasks."}
+{"timestamp":"2026-04-29T23:23:56.9937904+03:00","level":"INFO","mode":"Audit","hostname":"USER","message":"Snapshot ready: F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260429-232352-audit"}
+{"timestamp":"2026-04-29T23:23:57.6462408+03:00","level":"INFO","mode":"Audit","hostname":"USER","message":"Classification protected-system: 2"}
+{"timestamp":"2026-04-29T23:23:57.6492407+03:00","level":"INFO","mode":"Audit","hostname":"USER","message":"Classification required: 5"}
+{"timestamp":"2026-04-29T23:23:57.6512434+03:00","level":"INFO","mode":"Audit","hostname":"USER","message":"Classification unknown-keep-report: 231"}
+{"timestamp":"2026-04-29T23:23:57.6603093+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / AIMemoryBoost"}
+{"timestamp":"2026-04-29T23:23:57.6623090+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / AMD Install Manager - Check For Updates"}
+{"timestamp":"2026-04-29T23:23:57.6653771+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ASC_PerformanceMonitor"}
+{"timestamp":"2026-04-29T23:23:57.6673769+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / BackupClaudeCode"}
+{"timestamp":"2026-04-29T23:23:57.6693745+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ChromeProfiles"}
+{"timestamp":"2026-04-29T23:23:57.6713748+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ClaudeChannel"}
+{"timestamp":"2026-04-29T23:23:57.6733747+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ClaudeChannelHealth"}
+{"timestamp":"2026-04-29T23:23:57.6764330+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ClaudeUsageRefresh"}
+{"timestamp":"2026-04-29T23:23:57.6784329+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / CodexAadbAutoConnect"}
+{"timestamp":"2026-04-29T23:23:57.6804338+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / CreateExplorerShellUnelevatedTask"}
+{"timestamp":"2026-04-29T23:23:57.6824332+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / FitLauncher Path Bridge"}
+{"timestamp":"2026-04-29T23:23:57.6844994+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / FixDismSource"}
+{"timestamp":"2026-04-29T23:23:57.6874993+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / GCC"}
+{"timestamp":"2026-04-29T23:23:57.6884982+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / InputPriorityFixer"}
+{"timestamp":"2026-04-29T23:23:57.6920057+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Kim2_Afternoon"}
+{"timestamp":"2026-04-29T23:23:57.6940827+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Kim_Morning"}
+{"timestamp":"2026-04-29T23:23:57.6960832+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MasterStartupLauncher"}
+{"timestamp":"2026-04-29T23:23:57.6980831+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MicrosoftEdgeUpdateTaskMachineCore{A5C83DA7-FB44-4A79-A2F4-E6DE0C5921F2}"}
+{"timestamp":"2026-04-29T23:23:57.7010844+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MicrosoftEdgeUpdateTaskMachineUA{8CBAAD01-0206-497C-A395-E834EEF9A326}"}
+{"timestamp":"2026-04-29T23:23:57.7030841+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ModifyLinkUpdate"}
+{"timestamp":"2026-04-29T23:23:57.7051497+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MonthlyDriveCleanup"}
+{"timestamp":"2026-04-29T23:23:57.7081481+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MSIAfterburner"}
+{"timestamp":"2026-04-29T23:23:57.7101489+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / NuclearWatch_Logon"}
+{"timestamp":"2026-04-29T23:23:57.7121479+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / NVID-Apply-MaxGpuPower"}
+{"timestamp":"2026-04-29T23:23:57.7142095+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / NVIDIA App SelfUpdate_{B2FE1952-0186-46C3-BAEC-A80AA35AC5B8}"}
+{"timestamp":"2026-04-29T23:23:57.7172094+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ObsidianDailyNote"}
+{"timestamp":"2026-04-29T23:23:57.7192107+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ObsidianHotMemory"}
+{"timestamp":"2026-04-29T23:23:57.7212102+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ObsidianRebuildIndex"}
+{"timestamp":"2026-04-29T23:23:57.7242839+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ObsidianVaultIndex"}
+{"timestamp":"2026-04-29T23:23:57.7262826+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / OpenClaw Gateway"}
+{"timestamp":"2026-04-29T23:23:57.7282829+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PCMaxPerf"}
+{"timestamp":"2026-04-29T23:23:57.7312843+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / POPUP_KILLER_OnBoot"}
+{"timestamp":"2026-04-29T23:23:57.7332849+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RLP-Sync-Agent"}
+{"timestamp":"2026-04-29T23:23:57.7353580+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RLPDashboard"}
+{"timestamp":"2026-04-29T23:23:57.7373601+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / StartCN"}
+{"timestamp":"2026-04-29T23:23:57.7413587+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / StartDVR"}
+{"timestamp":"2026-04-29T23:23:57.7433601+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / TgChannel"}
+{"timestamp":"2026-04-29T23:23:57.7454309+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / TgTray"}
+{"timestamp":"2026-04-29T23:23:57.7484296+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / TVIPDiscover"}
+{"timestamp":"2026-04-29T23:23:57.7504291+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / TVStartupCheck"}
+{"timestamp":"2026-04-29T23:23:57.7524296+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Tweaking.com - Windows Repair Tray Icon"}
+{"timestamp":"2026-04-29T23:23:57.7545077+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WandGameAutoSync"}
+{"timestamp":"2026-04-29T23:23:57.7565058+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WeeklyPCOptimizer"}
+{"timestamp":"2026-04-29T23:23:57.7595058+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WinFocusMonitor"}
+{"timestamp":"2026-04-29T23:23:57.7615057+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / GoogleUpdaterTaskSystem148.0.7730.0{3E341EAD-9871-49C3-B363-01273178C2E6}"}
+{"timestamp":"2026-04-29T23:23:57.7635701+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / .NET Framework NGEN v4.0.30319"}
+{"timestamp":"2026-04-29T23:23:57.7655698+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / .NET Framework NGEN v4.0.30319 64"}
+{"timestamp":"2026-04-29T23:23:57.7675732+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / .NET Framework NGEN v4.0.30319 64 Critical"}
+{"timestamp":"2026-04-29T23:23:57.7705748+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / .NET Framework NGEN v4.0.30319 Critical"}
+{"timestamp":"2026-04-29T23:23:57.7725754+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RecoverabilityToastTask"}
+{"timestamp":"2026-04-29T23:23:57.7746488+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / AD RMS Rights Policy Template Management (Automated)"}
+{"timestamp":"2026-04-29T23:23:57.7766484+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / AD RMS Rights Policy Template Management (Manual)"}
+{"timestamp":"2026-04-29T23:23:57.7786484+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / EDP Policy Manager"}
+{"timestamp":"2026-04-29T23:23:57.7806487+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / VerifiedPublisherCertStoreCheck"}
+{"timestamp":"2026-04-29T23:23:57.7831598+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Microsoft Compatibility Appraiser Exp"}
+{"timestamp":"2026-04-29T23:23:57.7852334+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PcaPatchDbTask"}
+{"timestamp":"2026-04-29T23:23:57.7872361+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SdbinstMergeDbTask"}
+{"timestamp":"2026-04-29T23:23:57.7892349+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / appuriverifierinstall"}
+{"timestamp":"2026-04-29T23:23:57.7917438+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / BackupNonMaintenance"}
+{"timestamp":"2026-04-29T23:23:57.7937436+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Pre-staged app cleanup"}
+{"timestamp":"2026-04-29T23:23:57.7968178+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UCPD velocity"}
+{"timestamp":"2026-04-29T23:23:57.7988177+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Proxy"}
+{"timestamp":"2026-04-29T23:23:57.8008158+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / BitLocker Encrypt All Drives"}
+{"timestamp":"2026-04-29T23:23:57.8028181+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / BitLocker MDM policy Refresh"}
+{"timestamp":"2026-04-29T23:23:57.8058854+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / AikCertEnrollTask"}
+{"timestamp":"2026-04-29T23:23:57.8098846+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / CryptoPolicyTask"}
+{"timestamp":"2026-04-29T23:23:57.8118858+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / KeyPreGenTask"}
+{"timestamp":"2026-04-29T23:23:57.8139630+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SystemTask"}
+{"timestamp":"2026-04-29T23:23:57.8159652+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UserTask"}
+{"timestamp":"2026-04-29T23:23:57.8189637+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UserTask-Roam"}
+{"timestamp":"2026-04-29T23:23:57.8209627+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SyspartRepair"}
+{"timestamp":"2026-04-29T23:23:57.8229625+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / License Validation"}
+{"timestamp":"2026-04-29T23:23:57.8250344+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / LicenseImdsIntegration"}
+{"timestamp":"2026-04-29T23:23:57.8270354+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Backup"}
+{"timestamp":"2026-04-29T23:23:57.8290360+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Restore"}
+{"timestamp":"2026-04-29T23:23:57.8320347+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UnifiedConsentSyncTask"}
+{"timestamp":"2026-04-29T23:23:57.8341244+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Consolidator"}
+{"timestamp":"2026-04-29T23:23:57.8361240+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Data Integrity Check And Scan"}
+{"timestamp":"2026-04-29T23:23:57.8391246+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Data Integrity Scan for Crash Recovery"}
+{"timestamp":"2026-04-29T23:23:57.8411245+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Device"}
+{"timestamp":"2026-04-29T23:23:57.8431243+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Device User"}
+{"timestamp":"2026-04-29T23:23:57.8451947+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Driver Recovery on Reboot"}
+{"timestamp":"2026-04-29T23:23:57.8471957+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / HandleCommand"}
+{"timestamp":"2026-04-29T23:23:57.8501951+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / HandleWnsCommand"}
+{"timestamp":"2026-04-29T23:23:57.8521941+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / IntegrityCheck"}
+{"timestamp":"2026-04-29T23:23:57.8542746+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / LocateCommandUserSession"}
+{"timestamp":"2026-04-29T23:23:57.8562739+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RegisterDeviceAccountChange"}
+{"timestamp":"2026-04-29T23:23:57.8592749+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RegisterDeviceLocationRightsChange"}
+{"timestamp":"2026-04-29T23:23:57.8612749+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RegisterDevicePeriodic24"}
+{"timestamp":"2026-04-29T23:23:57.8632728+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RegisterDevicePolicyChange"}
+{"timestamp":"2026-04-29T23:23:57.8653307+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RegisterDeviceProtectionStateChanged"}
+{"timestamp":"2026-04-29T23:23:57.8683305+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RegisterDeviceWnsFallback"}
+{"timestamp":"2026-04-29T23:23:57.8703305+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RegisterUserDevice"}
+{"timestamp":"2026-04-29T23:23:57.8723327+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RecommendedTroubleshootingScanner"}
+{"timestamp":"2026-04-29T23:23:57.8744055+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UnexpectedCodepath"}
+{"timestamp":"2026-04-29T23:23:57.8774127+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / DirectXDatabaseUpdater"}
+{"timestamp":"2026-04-29T23:23:57.8794124+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / DXGIAdapterCache"}
+{"timestamp":"2026-04-29T23:23:57.8814118+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Microsoft-Windows-DiskDiagnosticResolver"}
+{"timestamp":"2026-04-29T23:23:57.8834131+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / dusmtask"}
+{"timestamp":"2026-04-29T23:23:57.8854819+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / EDP App Launch Task"}
+{"timestamp":"2026-04-29T23:23:57.8884815+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / EDP Auth Task"}
+{"timestamp":"2026-04-29T23:23:57.8904790+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / EDP Inaccessible Credentials Task"}
+{"timestamp":"2026-04-29T23:23:57.8929919+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / StorageCardEncryption Task"}
+{"timestamp":"2026-04-29T23:23:57.8950679+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MDMMaintenenceTask"}
+{"timestamp":"2026-04-29T23:23:57.8970678+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ExploitGuard MDM policy Refresh"}
+{"timestamp":"2026-04-29T23:23:57.8990675+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / DmClientOnScenarioDownload"}
+{"timestamp":"2026-04-29T23:23:57.9010690+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Property Definition Sync"}
+{"timestamp":"2026-04-29T23:23:57.9041295+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / BootstrapUsageDataReporting"}
+{"timestamp":"2026-04-29T23:23:57.9061306+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / GovernedFeatureUsageProcessing"}
+{"timestamp":"2026-04-29T23:23:57.9081307+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ReconcileConfigs"}
+{"timestamp":"2026-04-29T23:23:57.9101309+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ReconcileFeatures"}
+{"timestamp":"2026-04-29T23:23:57.9131319+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UsageDataFlushing"}
+{"timestamp":"2026-04-29T23:23:57.9152007+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UsageDataReceiver"}
+{"timestamp":"2026-04-29T23:23:57.9172014+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UsageDataReporting"}
+{"timestamp":"2026-04-29T23:23:57.9192005+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Monitoring"}
+{"timestamp":"2026-04-29T23:23:57.9222005+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / InputSettingsRestoreDataAvailable"}
+{"timestamp":"2026-04-29T23:23:57.9242808+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / LocalUserSyncDataAvailable"}
+{"timestamp":"2026-04-29T23:23:57.9262814+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MouseSyncDataAvailable"}
+{"timestamp":"2026-04-29T23:23:57.9282803+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PenSyncDataAvailable"}
+{"timestamp":"2026-04-29T23:23:57.9302810+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RemoteMouseSyncDataAvailable"}
+{"timestamp":"2026-04-29T23:23:57.9322813+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RemotePenSyncDataAvailable"}
+{"timestamp":"2026-04-29T23:23:57.9353609+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RemoteTouchpadSyncDataAvailable"}
+{"timestamp":"2026-04-29T23:23:57.9373611+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / syncpensettings"}
+{"timestamp":"2026-04-29T23:23:57.9393609+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / TouchpadSyncDataAvailable"}
+{"timestamp":"2026-04-29T23:23:57.9423594+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RestoreDevice"}
+{"timestamp":"2026-04-29T23:23:57.9444287+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ScanForUpdates"}
+{"timestamp":"2026-04-29T23:23:57.9464288+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SmartRetry"}
+{"timestamp":"2026-04-29T23:23:57.9484287+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WakeUpAndScanForUpdates"}
+{"timestamp":"2026-04-29T23:23:57.9514293+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Synchronize Language Settings"}
+{"timestamp":"2026-04-29T23:23:57.9534296+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Installation"}
+{"timestamp":"2026-04-29T23:23:57.9555175+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ReconcileLanguageResources"}
+{"timestamp":"2026-04-29T23:23:57.9575183+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WindowsActionDialog"}
+{"timestamp":"2026-04-29T23:23:57.9605183+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / DetectHardwareChange"}
+{"timestamp":"2026-04-29T23:23:57.9625179+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RemediateHardwareChange"}
+{"timestamp":"2026-04-29T23:23:57.9655781+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Cellular"}
+{"timestamp":"2026-04-29T23:23:57.9675780+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Logon"}
+{"timestamp":"2026-04-29T23:23:57.9695775+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MdmDiagnosticsCleanup"}
+{"timestamp":"2026-04-29T23:23:57.9715785+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Retry"}
+{"timestamp":"2026-04-29T23:23:57.9746511+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RunOnReboot"}
+{"timestamp":"2026-04-29T23:23:57.9766535+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MapsUpdateTask"}
+{"timestamp":"2026-04-29T23:23:57.9786552+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / AutomaticOfflineMemoryDiagnostic"}
+{"timestamp":"2026-04-29T23:23:57.9816548+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ProcessMemoryDiagnosticEvents"}
+{"timestamp":"2026-04-29T23:23:57.9837205+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SystemSoundsService"}
+{"timestamp":"2026-04-29T23:23:57.9857215+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / NcsiIdentifyUserProxies"}
+{"timestamp":"2026-04-29T23:23:57.9877201+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WiFiTask"}
+{"timestamp":"2026-04-29T23:23:57.9912275+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Background Synchronization"}
+{"timestamp":"2026-04-29T23:23:57.9932349+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Logon Synchronization"}
+{"timestamp":"2026-04-29T23:23:57.9953205+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PCR Prediction Framework Firmware Update Task"}
+{"timestamp":"2026-04-29T23:23:57.9983192+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RequestTrace"}
+{"timestamp":"2026-04-29T23:23:58.0103997+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WhesvcToast"}
+{"timestamp":"2026-04-29T23:23:58.0134001+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Secure-Boot-Update"}
+{"timestamp":"2026-04-29T23:23:58.0154850+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Device Install Group Policy"}
+{"timestamp":"2026-04-29T23:23:58.0174866+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Device Install Reboot Required"}
+{"timestamp":"2026-04-29T23:23:58.0194844+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Pluton-Ksp-Provisioning"}
+{"timestamp":"2026-04-29T23:23:58.0214871+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / EduPrintProv"}
+{"timestamp":"2026-04-29T23:23:58.0236010+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PrinterCleanupTask"}
+{"timestamp":"2026-04-29T23:23:58.0266003+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PrintJobCleanupTask"}
+{"timestamp":"2026-04-29T23:23:58.0306018+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / LoginCheck"}
+{"timestamp":"2026-04-29T23:23:58.0331060+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Registration"}
+{"timestamp":"2026-04-29T23:23:58.0371815+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MobilityManager"}
+{"timestamp":"2026-04-29T23:23:58.0391820+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Initialization"}
+{"timestamp":"2026-04-29T23:23:58.0411819+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / RemoteAssistanceTask"}
+{"timestamp":"2026-04-29T23:23:58.0442882+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MRT_ERROR_HB"}
+{"timestamp":"2026-04-29T23:23:58.0462881+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / OOBEFodSetup"}
+{"timestamp":"2026-04-29T23:23:58.0482945+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PITRTask"}
+{"timestamp":"2026-04-29T23:23:58.0502950+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SetupCleanupTask"}
+{"timestamp":"2026-04-29T23:23:58.0522948+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SetupRecoveryDataTask"}
+{"timestamp":"2026-04-29T23:23:58.0554123+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / FamilySafetyRefreshTask"}
+{"timestamp":"2026-04-29T23:23:58.0574135+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ThemeAssetTask_SyncFODState"}
+{"timestamp":"2026-04-29T23:23:58.0594135+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UpdateUserPictureTask"}
+{"timestamp":"2026-04-29T23:23:58.0614137+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UpdateUserPictureTaskContained"}
+{"timestamp":"2026-04-29T23:23:58.0639230+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UninstallSMB1ClientTask"}
+{"timestamp":"2026-04-29T23:23:58.0659993+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UninstallSMB1ServerTask"}
+{"timestamp":"2026-04-29T23:23:58.0679972+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SvcRestartTask"}
+{"timestamp":"2026-04-29T23:23:58.0699972+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SvcRestartTaskLogon"}
+{"timestamp":"2026-04-29T23:23:58.0719983+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SvcRestartTaskNetwork"}
+{"timestamp":"2026-04-29T23:23:58.0740768+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SpaceAgentTask"}
+{"timestamp":"2026-04-29T23:23:58.0760824+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SpaceManagerTask"}
+{"timestamp":"2026-04-29T23:23:58.0780841+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SpeechModelDownloadTask"}
+{"timestamp":"2026-04-29T23:23:58.0800822+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Storage Tiers Management Initialization"}
+{"timestamp":"2026-04-29T23:23:58.0830833+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Storage Tiers Optimization"}
+{"timestamp":"2026-04-29T23:23:58.0851672+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / EnableLicenseAcquisition"}
+{"timestamp":"2026-04-29T23:23:58.0871655+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / LicenseAcquisition"}
+{"timestamp":"2026-04-29T23:23:58.0891667+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PowerGridForecastTask"}
+{"timestamp":"2026-04-29T23:23:58.0916731+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MsCtfMonitor"}
+{"timestamp":"2026-04-29T23:23:58.0936730+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / ForceSynchronizeTime"}
+{"timestamp":"2026-04-29T23:23:58.0957376+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SynchronizeTime"}
+{"timestamp":"2026-04-29T23:23:58.0977377+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Tpm-HASCertRetr"}
+{"timestamp":"2026-04-29T23:23:58.0997360+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Tpm-Maintenance"}
+{"timestamp":"2026-04-29T23:23:58.1017373+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Tpm-PreAttestationHealthCheck"}
+{"timestamp":"2026-04-29T23:23:58.1038181+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Report policies"}
+{"timestamp":"2026-04-29T23:23:58.1058182+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Schedule Scan"}
+{"timestamp":"2026-04-29T23:23:58.1088177+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Schedule Scan Static Task"}
+{"timestamp":"2026-04-29T23:23:58.1108160+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Schedule Wake To Work"}
+{"timestamp":"2026-04-29T23:23:58.1128157+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Schedule Work"}
+{"timestamp":"2026-04-29T23:23:58.1148795+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Start Oobe Expedite Work"}
+{"timestamp":"2026-04-29T23:23:58.1168785+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / StartOobeAppsScanAfterUpdate"}
+{"timestamp":"2026-04-29T23:23:58.1188785+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / StartOobeAppsScan_LicenseAccepted"}
+{"timestamp":"2026-04-29T23:23:58.1208788+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UIEOrchestrator"}
+{"timestamp":"2026-04-29T23:23:58.1228793+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / USO_UxBroker"}
+{"timestamp":"2026-04-29T23:23:58.1249506+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UUS Failover Task"}
+{"timestamp":"2026-04-29T23:23:58.1269481+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UsageAndQualityInsights-MaintenanceTask"}
+{"timestamp":"2026-04-29T23:23:58.1299496+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Usb-Notifications"}
+{"timestamp":"2026-04-29T23:23:58.1319497+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / HiveUploadTask"}
+{"timestamp":"2026-04-29T23:23:58.1340345+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PerformRemediation"}
+{"timestamp":"2026-04-29T23:23:58.1360324+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WiFiTask"}
+{"timestamp":"2026-04-29T23:23:58.1380353+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / QueueReporting"}
+{"timestamp":"2026-04-29T23:23:58.1400348+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / BfeOnServiceStartTypeChange"}
+{"timestamp":"2026-04-29T23:23:58.1420349+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / UpdateLibrary"}
+{"timestamp":"2026-04-29T23:23:58.1441006+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / InitialConfiguration"}
+{"timestamp":"2026-04-29T23:23:58.1461002+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / PolicyConfiguration"}
+{"timestamp":"2026-04-29T23:23:58.1481001+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / InitialConfiguration"}
+{"timestamp":"2026-04-29T23:23:58.1501058+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Calibration Loader"}
+{"timestamp":"2026-04-29T23:23:58.1521060+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Refresh Group Policy Cache"}
+{"timestamp":"2026-04-29T23:23:58.1541659+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Scheduled Start"}
+{"timestamp":"2026-04-29T23:23:58.1561666+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / CacheTask"}
+{"timestamp":"2026-04-29T23:23:58.1581660+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / CDSSync"}
+{"timestamp":"2026-04-29T23:23:58.1611659+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / MoProfileManagement"}
+{"timestamp":"2026-04-29T23:23:58.1631666+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WIM-Hash-Management"}
+{"timestamp":"2026-04-29T23:23:58.1652419+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Work Folders Logon Synchronization"}
+{"timestamp":"2026-04-29T23:23:58.1672421+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Work Folders Maintenance Work"}
+{"timestamp":"2026-04-29T23:23:58.1692420+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Automatic-Device-Join"}
+{"timestamp":"2026-04-29T23:23:58.1712417+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Device-Sync"}
+{"timestamp":"2026-04-29T23:23:58.1732414+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Recovery-Check"}
+{"timestamp":"2026-04-29T23:23:58.1753104+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / NotificationTask"}
+{"timestamp":"2026-04-29T23:23:58.1773164+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / OobeDiscovery"}
+{"timestamp":"2026-04-29T23:23:58.1793162+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / XblGameSaveTask"}
+{"timestamp":"2026-04-29T23:23:58.1813162+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Firefox Background Update S-1-5-21-4273236717-3318517009-3029446451-1001 308046B0AF4A39CB"}
+{"timestamp":"2026-04-29T23:23:58.1833158+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / Firefox Default Browser Agent 308046B0AF4A39CB"}
+{"timestamp":"2026-04-29T23:23:58.1863796+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / WinPerfMax"}
+{"timestamp":"2026-04-29T23:23:58.1883781+03:00","level":"SKIP","mode":"Audit","hostname":"USER","message":"Unknown startup entry kept: ScheduledTask / SoftLandingCreativeManagementTask"}
+{"timestamp":"2026-04-29T23:23:58.2029393+03:00","level":"INFO","mode":"Audit","hostname":"USER","message":"allstart mode completed in 5551ms"}

@@ -1,0 +1,97 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
+  <Package Name="Codex PC Bridge"
+           Manufacturer="Michaelovsky"
+           Version="$(var.InstallerVersion)"
+           UpgradeCode="$(var.InstallerUpgradeCode)"
+           Scope="perMachine"
+           InstallerVersion="500">
+    <MajorUpgrade DowngradeErrorMessage="A newer Codex PC Bridge is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Codex PC Bridge">
+        <Component Id="BridgeExecutable" Guid="*" Bitness="always64">
+          <File Id="BridgeExe"
+                Source="$(var.PublishRoot)\tray\CodexPcBridge.exe"
+                KeyPath="yes" />
+          <ServiceInstall Id="BridgeServiceInstall"
+                          Name="CodexPcBridgeV2"
+                          DisplayName="Codex PC Bridge"
+                          Description="Provides reboot-persistent Android and browser control through authenticated local and encrypted relay transports."
+                          Type="ownProcess"
+                          Start="auto"
+                          ErrorControl="normal"
+                          Account="LocalSystem"
+                          Arguments="--service">
+            <util:ServiceConfig FirstFailureActionType="restart"
+                                SecondFailureActionType="restart"
+                                ThirdFailureActionType="restart"
+                                ResetPeriodInDays="1"
+                                RestartServiceDelayInSeconds="10" />
+          </ServiceInstall>
+          <ServiceControl Id="BridgeServiceControl"
+                          Name="CodexPcBridgeV2"
+                          Start="install"
+                          Stop="both"
+                          Remove="uninstall"
+                          Wait="yes" />
+        </Component>
+
+        <Component Id="TrayStartup" Guid="*" Bitness="always64">
+          <RegistryValue Root="HKLM"
+                         Key="Software\Microsoft\Windows\CurrentVersion\Run"
+                         Name="CodexPcBridgeAgent"
+                         Type="string"
+                         Value="&quot;[INSTALLFOLDER]CodexPcBridge.exe&quot;"
+                         KeyPath="yes" />
+        </Component>
+
+        <Component Id="ActivationTool" Guid="*" Bitness="always64">
+          <File Id="ActivationScript"
+                Source="$(var.PublishRoot)\tools\Activate-CodexPcBridgeV2.ps1"
+                KeyPath="yes" />
+        </Component>
+
+        <Component Id="RelayConfigurationTool" Guid="*" Bitness="always64">
+          <File Id="RelayConfigurationScript"
+                Source="$(var.PublishRoot)\tools\Configure-CodexPcBridgeRelay.ps1"
+                KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Codex PC Bridge">
+        <Component Id="ProgramMenuShortcuts" Guid="*">
+          <Shortcut Id="StartAgentShortcut"
+                    Name="Codex PC Bridge"
+                    Description="Start the Codex PC Bridge tray agent"
+                    Target="[INSTALLFOLDER]CodexPcBridge.exe"
+                    WorkingDirectory="INSTALLFOLDER" />
+          <Shortcut Id="ProvisionAgentShortcut"
+                    Name="Repair tray enrollment"
+                    Description="Recreate the current Windows user's protected tray credential"
+                    Target="[INSTALLFOLDER]CodexPcBridge.exe"
+                    Arguments="--provision-agent"
+                    WorkingDirectory="INSTALLFOLDER" />
+          <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
+          <RegistryValue Root="HKCU"
+                         Key="Software\Michaelovsky\CodexPcBridge"
+                         Name="ShortcutsInstalled"
+                         Type="integer"
+                         Value="1"
+                         KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="Complete" Title="Codex PC Bridge" Level="1">
+      <ComponentRef Id="BridgeExecutable" />
+      <ComponentRef Id="TrayStartup" />
+      <ComponentRef Id="ActivationTool" />
+      <ComponentRef Id="RelayConfigurationTool" />
+      <ComponentRef Id="ProgramMenuShortcuts" />
+    </Feature>
+  </Package>
+</Wix>

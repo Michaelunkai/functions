@@ -1,0 +1,16 @@
+<Project Sdk="WixToolset.Sdk/5.0.2">
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <OutputName>CodexPcBridge-$(PlatformName)</OutputName>
+    <InstallerPlatform>$(PlatformName)</InstallerPlatform>
+    <DefineConstants>
+      PublishRoot=$(PublishRoot);
+      PlatformName=$(PlatformName);
+      InstallerVersion=$(InstallerVersion);
+      InstallerUpgradeCode=$(InstallerUpgradeCode)
+    </DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+</Project>

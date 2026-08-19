@@ -1,0 +1,1 @@
+﻿Stop-Service -Name "WerSvc" -Force -ErrorAction SilentlyContinue; Set-Service -Name "WerSvc" -StartupType Disabled; Write-Host "Windows Error Reporting disabled"

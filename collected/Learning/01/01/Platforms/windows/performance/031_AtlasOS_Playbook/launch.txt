@@ -1,0 +1,1 @@
+﻿Start-Process "https://atlasos.net/"; Write-Host "Download AtlasOS Playbook from website"

@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.2" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Author>Microsoft</Author>
+    <URI>\Microsoft\Windows\RemovalTools\MRT_ERROR_HB</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+      <RunLevel>HighestAvailable</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <ExecutionTimeLimit>PT30M</ExecutionTimeLimit>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <Duration>PT10M</Duration>
+      <WaitTimeout>PT1H</WaitTimeout>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+  </Settings>
+  <Triggers>
+    <TimeTrigger id="MRT_ERROR_HB">
+      <StartBoundary>2026-03-18T22:37:17+03:00</StartBoundary>
+      <EndBoundary>2026-05-17T22:37:17+03:00</EndBoundary>
+      <Repetition>
+        <Interval>PT5H</Interval>
+      </Repetition>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <Exec>
+      <Command>C:\Users\micha\AppData\Local\Temp\MSERT.exe</Command>
+      <Arguments>/EHB /HeartbeatFailure "SubmitHeartbeatReportData" /HeartbeatError "0x80072ee7"</Arguments>
+      <WorkingDirectory>C:\Users\micha\AppData\Local\Temp</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>

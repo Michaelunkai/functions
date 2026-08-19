@@ -1,0 +1,411 @@
+#Requires AutoHotkey v2.0
+#SingleInstance Force
+
+; ============================================================================
+; HOTKEYS - Keyboard shortcuts
+; ============================================================================
+
+; Win+W - Launch Wand and Nyrna
+#w::
+{
+    Run('"C:\Users\User\AppData\Local\Wand\Wand.exe"')
+    Run('"C:\Users\User\AppData\Roaming\Nyrna\nyrna.exe"')
+}
+
+; Ctrl+1 - Move active window to the other monitor (handles fullscreen/maximized windows)
+^1::
+{
+    hwnd := WinGetID("A")
+    if (!hwnd) {
+        return
+    }
+
+    ; Get monitor count
+    monitorCount := MonitorGetCount()
+    if (monitorCount < 2) {
+        ToolTip("Only 1 monitor detected")
+        SetTimer(() => ToolTip(), -1500)
+        return
+    }
+
+    ; Check if window is maximized
+    wasMaximized := WinGetMinMax("ahk_id " hwnd) = 1
+
+    ; If maximized, restore first to get proper positioning
+    if (wasMaximized) {
+        WinRestore("ahk_id " hwnd)
+        Sleep(50)  ; Brief pause to let window restore
+    }
+
+    ; Get current window position (after restore if was maximized)
+    WinGetPos(&winX, &winY, &winW, &winH, "ahk_id " hwnd)
+
+    ; Find which monitor the window is on
+    currentMonitor := 1
+    Loop monitorCount {
+        MonitorGet(A_Index, &mLeft, &mTop, &mRight, &mBottom)
+        ; Check if window center is on this monitor
+        winCenterX := winX + (winW // 2)
+        winCenterY := winY + (winH // 2)
+        if (winCenterX >= mLeft && winCenterX < mRight && winCenterY >= mTop && winCenterY < mBottom) {
+            currentMonitor := A_Index
+            break
+        }
+    }
+
+    ; Switch to the other monitor (toggle between 1 and 2)
+    targetMonitor := (currentMonitor = 1) ? 2 : 1
+
+    ; Get target monitor work area
+    MonitorGetWorkArea(targetMonitor, &tLeft, &tTop, &tRight, &tBottom)
+
+    ; Get current monitor work area for relative positioning
+    MonitorGetWorkArea(currentMonitor, &cLeft, &cTop, &cRight, &cBottom)
+
+    ; Calculate relative position on current monitor
+    relX := (winX - cLeft) / (cRight - cLeft)
+    relY := (winY - cTop) / (cBottom - cTop)
+
+    ; Apply same relative position on target monitor
+    newX := tLeft + (relX * (tRight - tLeft))
+    newY := tTop + (relY * (tBottom - tTop))
+
+    ; Ensure window fits on target monitor
+    newX := Max(tLeft, Min(newX, tRight - winW))
+    newY := Max(tTop, Min(newY, tBottom - winH))
+
+    ; Move the window
+    WinMove(newX, newY, , , "ahk_id " hwnd)
+
+    ; If window was maximized, re-maximize it on the new monitor
+    if (wasMaximized) {
+        Sleep(50)  ; Brief pause before maximizing
+        WinMaximize("ahk_id " hwnd)
+    }
+
+    ToolTip("Moved to Monitor " targetMonitor)
+    SetTimer(() => ToolTip(), -1500)
+}
+
+; Ctrl+2 - Switch focus to the other monitor (based on active window position)
+^2::
+{
+    ; Get monitor count
+    monitorCount := MonitorGetCount()
+    if (monitorCount < 2) {
+        ToolTip("Only 1 monitor detected")
+        SetTimer(() => ToolTip(), -1500)
+        return
+    }
+
+    ; Get active window to determine current monitor
+    activeHwnd := WinGetID("A")
+
+    ; Determine current monitor based on active window (or mouse if no active window)
+    currentMonitor := 1
+    if (activeHwnd) {
+        try {
+            WinGetPos(&winX, &winY, &winW, &winH, "ahk_id " activeHwnd)
+            winCenterX := winX + (winW // 2)
+            winCenterY := winY + (winH // 2)
+
+            Loop monitorCount {
+                MonitorGet(A_Index, &mLeft, &mTop, &mRight, &mBottom)
+                if (winCenterX >= mLeft && winCenterX < mRight && winCenterY >= mTop && winCenterY < mBottom) {
+                    currentMonitor := A_Index
+                    break
+                }
+            }
+        }
+    } else {
+        ; Fallback to mouse position if no active window
+        MouseGetPos(&mouseX, &mouseY)
+        Loop monitorCount {
+            MonitorGet(A_Index, &mLeft, &mTop, &mRight, &mBottom)
+            if (mouseX >= mLeft && mouseX < mRight && mouseY >= mTop && mouseY < mBottom) {
+                currentMonitor := A_Index
+                break
+            }
+        }
+    }
+
+    ; Target the other monitor (toggle between 1 and 2)
+    targetMonitor := (currentMonitor = 1) ? 2 : 1
+
+    ; Get target monitor bounds
+    MonitorGet(targetMonitor, &tLeft, &tTop, &tRight, &tBottom)
+
+    ; Build list of candidate windows on target monitor
+    candidateWindows := []
+    for hwnd in WinGetList() {
+        try {
+            ; Skip the current active window
+            if (hwnd = activeHwnd)
+                continue
+
+            ; Skip windows without title
+            title := WinGetTitle("ahk_id " hwnd)
+            if (!title || title = "")
+                continue
+
+            ; Get window style to check visibility
+            style := WinGetStyle("ahk_id " hwnd)
+            if !(style & 0x10000000)  ; WS_VISIBLE
+                continue
+
+            ; Get window class
+            winClass := WinGetClass("ahk_id " hwnd)
+
+            ; Skip system windows
+            if (winClass = "Shell_TrayWnd" || winClass = "Shell_SecondaryTrayWnd" ||
+                winClass = "Progman" || winClass = "WorkerW" || winClass = "Windows.UI.Core.CoreWindow" ||
+                winClass = "DV2ControlHost" || winClass = "TopLevelWindowForOverflowXamlIsland" ||
+                winClass = "Xaml_WindowedPopupClass")
+                continue
+
+            ; Get extended style
+            exStyle := WinGetExStyle("ahk_id " hwnd)
+
+            ; Skip tool windows (like floating toolbars)
+            if (exStyle & 0x80)  ; WS_EX_TOOLWINDOW
+                continue
+
+            ; Get window position
+            WinGetPos(&wX, &wY, &wW, &wH, "ahk_id " hwnd)
+
+            ; Skip tiny windows (likely tooltips or hidden windows)
+            if (wW < 50 || wH < 50)
+                continue
+
+            ; Calculate window center
+            wCenterX := wX + (wW // 2)
+            wCenterY := wY + (wH // 2)
+
+            ; Check if window center is on target monitor
+            if (wCenterX >= tLeft && wCenterX < tRight &&
+                wCenterY >= tTop && wCenterY < tBottom) {
+                candidateWindows.Push(hwnd)
+            }
+        } catch {
+            ; Skip problematic windows
+            continue
+        }
+    }
+
+    ; If we found windows on target monitor, activate the first one (topmost in Z-order)
+    if (candidateWindows.Length > 0) {
+        targetHwnd := candidateWindows[1]
+        WinActivate("ahk_id " targetHwnd)
+        Sleep(50)
+        ; Verify activation worked
+        if (WinActive("ahk_id " targetHwnd)) {
+            ToolTip("Switched to Monitor " targetMonitor)
+            SetTimer(() => ToolTip(), -1500)
+            return
+        }
+    }
+
+    ; If no window found or activation failed, move mouse to target monitor center and click
+    centerX := tLeft + ((tRight - tLeft) // 2)
+    centerY := tTop + ((tBottom - tTop) // 2)
+    MouseMove(centerX, centerY, 0)
+    ToolTip("No window on Monitor " targetMonitor " - moved mouse")
+    SetTimer(() => ToolTip(), -1500)
+}
+
+; ============================================================================
+; HOTSTRINGS - Type these anywhere to trigger actions
+; ============================================================================
+
+; kkkk - Force kill the foreground application (no mercy)
+:*:kkkk::
+{
+    hwnd := WinGetID("A")
+    if (hwnd) {
+        pid := WinGetPID("A")
+        if (pid) {
+            Run('taskkill /F /PID ' pid, , "Hide")
+        }
+    }
+}
+
+; yyyt - Open YouTube account chooser silently (no terminal window)
+:*:yyyt::
+{
+    Run('powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -File "F:\backup\windowsapps\Credentials\youtube\login\a.ps1"', , "Hide")
+}
+
+; aboveit - Make current window always on top
+:*:aboveit::
+{
+    hwnd := WinGetID("A")
+    if (hwnd) {
+        WinSetAlwaysOnTop(1, "ahk_id " hwnd)
+        ToolTip("Window set to Always On Top")
+        SetTimer(() => ToolTip(), -1500)
+    }
+}
+
+; downit - Remove always on top from current window
+:*:downit::
+{
+    hwnd := WinGetID("A")
+    if (hwnd) {
+        WinSetAlwaysOnTop(0, "ahk_id " hwnd)
+        ToolTip("Always On Top removed")
+        SetTimer(() => ToolTip(), -1500)
+    }
+}
+
+; allit - Open Everything search
+:*:allit::
+{
+    Run('"F:\backup\windowsapps\installed\Everything\everything.exe"')
+}
+
+; ddownloads - Open Downloads folder
+:*:ddownloads::
+{
+    Run("explorer.exe shell:Downloads")
+}
+
+; rrer - Open new terminal
+:*:rrer::
+{
+    Run("wt.exe")
+}
+
+; xccc - Open Google Chrome
+:*:xccc::
+{
+    Run('"C:\Program Files\Google\Chrome\Application\chrome.exe"')
+}
+
+; ffff - Open Firefox
+:*:ffff::
+{
+    Run('"F:\backup\windowsapps\installed\firefox\firefox.exe"')
+}
+
+; mymail - Copy email to clipboard
+:*:mymail::
+{
+    A_Clipboard := "michaelovsky5@gmail.com"
+    ToolTip("Email copied to clipboard")
+    SetTimer(() => ToolTip(), -1500)
+}
+
+; myp - Copy password to clipboard
+:*:myp::
+{
+    A_Clipboard := "Blackablacka3!"
+    ToolTip("Password copied to clipboard")
+    SetTimer(() => ToolTip(), -1500)
+}
+
+; toto - Open Todoist
+:*:toto::
+{
+    Run('"C:\Program Files\WindowsApps\88449BC3.TodoistPlannerCalendarMSIX_9.26.2.0_x64__71ef4824z52ta\app\Todoist.exe"')
+}
+
+; pass - Copy password to clipboard
+:*:pass::
+{
+    A_Clipboard := "Aa1111111!"
+    ToolTip("Password copied to clipboard")
+    SetTimer(() => ToolTip(), -1500)
+}
+
+; yyyy - Split latest used apps into 2 equal parts (left/right)
+:*:yyyy::
+{
+    windows := GetRecentWindows(2)
+    if (windows.Length < 2) {
+        ToolTip("Need at least 2 windows")
+        SetTimer(() => ToolTip(), -1500)
+        return
+    }
+    MonitorGetWorkArea(, &mLeft, &mTop, &mRight, &mBottom)
+    mWidth := mRight - mLeft
+    mHeight := mBottom - mTop
+    halfWidth := mWidth // 2
+
+    ; First window - left half
+    WinRestore("ahk_id " windows[1])
+    WinMove(mLeft, mTop, halfWidth, mHeight, "ahk_id " windows[1])
+
+    ; Second window - right half
+    WinRestore("ahk_id " windows[2])
+    WinMove(mLeft + halfWidth, mTop, halfWidth, mHeight, "ahk_id " windows[2])
+
+    ToolTip("Split 2 windows")
+    SetTimer(() => ToolTip(), -1500)
+}
+
+; tttt - Split latest used apps into 3 equal parts (thirds)
+:*:tttt::
+{
+    windows := GetRecentWindows(3)
+    if (windows.Length < 3) {
+        ToolTip("Need at least 3 windows")
+        SetTimer(() => ToolTip(), -1500)
+        return
+    }
+    MonitorGetWorkArea(, &mLeft, &mTop, &mRight, &mBottom)
+    mWidth := mRight - mLeft
+    mHeight := mBottom - mTop
+    thirdWidth := mWidth // 3
+
+    ; First window - left third
+    WinRestore("ahk_id " windows[1])
+    WinMove(mLeft, mTop, thirdWidth, mHeight, "ahk_id " windows[1])
+
+    ; Second window - middle third
+    WinRestore("ahk_id " windows[2])
+    WinMove(mLeft + thirdWidth, mTop, thirdWidth, mHeight, "ahk_id " windows[2])
+
+    ; Third window - right third
+    WinRestore("ahk_id " windows[3])
+    WinMove(mLeft + (thirdWidth * 2), mTop, thirdWidth, mHeight, "ahk_id " windows[3])
+
+    ToolTip("Split 3 windows")
+    SetTimer(() => ToolTip(), -1500)
+}
+
+; Helper function to get recent windows (excluding desktop, taskbar, etc.)
+GetRecentWindows(count) {
+    windows := []
+    excludeList := ["Program Manager", "Windows Input Experience", ""]
+
+    for hwnd in WinGetList() {
+        if (windows.Length >= count)
+            break
+
+        try {
+            title := WinGetTitle("ahk_id " hwnd)
+            winClass := WinGetClass("ahk_id " hwnd)
+            style := WinGetStyle("ahk_id " hwnd)
+
+            ; Skip empty titles and non-visible windows
+            if (title = "" || !(style & 0x10000000))  ; WS_VISIBLE
+                continue
+
+            ; Skip taskbar, system tray, etc.
+            if (winClass = "Shell_TrayWnd" || winClass = "Shell_SecondaryTrayWnd" || winClass = "Progman")
+                continue
+
+            ; Skip windows without caption bar (likely not app windows)
+            if !(style & 0xC00000)  ; WS_CAPTION
+                continue
+
+            for exclude in excludeList {
+                if (title = exclude)
+                    continue 2
+            }
+
+            windows.Push(hwnd)
+        }
+    }
+    return windows
+}

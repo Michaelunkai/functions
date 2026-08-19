@@ -1,0 +1,127 @@
+﻿{
+    "createdAt":  "2026-04-30T13:43:20.9680252+03:00",
+    "reason":  "startup-pre-unauthorized-run-disable",
+    "script":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\Invoke-allstart.ps1",
+    "config":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\allstart.config.psd1",
+    "isAdmin":  true,
+    "registryRun":  [
+                        {
+                            "hive":  "HKCU",
+                            "path":  "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "FullScreenSnip",
+                            "value":  "\"F:\\study\\Platforms\\windows\\snipping\\SnipToClipBoard\\FullScreenSnip.exe\""
+                        },
+                        {
+                            "hive":  "HKLM",
+                            "path":  "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+                            "name":  "RtkAudUService",
+                            "value":  "\"C:\\Windows\\System32\\DriverStore\\FileRepository\\realtekservice.inf_amd64_9873da36e3c839c5\\RtkAudUService64.exe\" -background"
+                        }
+                    ],
+    "startupFolders":  [
+                           {
+                               "scope":  "User",
+                               "path":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+                               "name":  "desktop.ini",
+                               "fullName":  "C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\desktop.ini",
+                               "attributes":  "Hidden, System, Archive",
+                               "length":  174,
+                               "copiedTo":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260430-134318-startup-pre-unauthorized-run-disable\\startup-user\\desktop.ini"
+                           },
+                           {
+                               "scope":  "Common",
+                               "path":  "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+                               "name":  "desktop.ini",
+                               "fullName":  "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\desktop.ini",
+                               "attributes":  "Hidden, System, Archive",
+                               "length":  174,
+                               "copiedTo":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260430-134318-startup-pre-unauthorized-run-disable\\startup-common\\desktop.ini"
+                           }
+                       ],
+    "scheduledTasks":  [
+                           {
+                               "taskName":  "Autorun_current_ahk",
+                               "taskPath":  "\\",
+                               "state":  "Running",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260430-134318-startup-pre-unauthorized-run-disable\\tasks\\Autorun_current_ahk.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "ClawdBotTray",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260430-134318-startup-pre-unauthorized-run-disable\\tasks\\ClawdBotTray.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OpenSpeedy_Tray",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260430-134318-startup-pre-unauthorized-run-disable\\tasks\\OpenSpeedy_Tray.xml",
+                               "exists":  true
+                           },
+                           {
+                               "taskName":  "OpenWhisper_Tray",
+                               "taskPath":  "\\",
+                               "state":  "Ready",
+                               "xmlPath":  "F:\\study\\Learning\\01\\01\\Shells\\powershell\\profile-functions\\windows\\startup\\session-bootstrap\\AllStartBootstrap\\snapshots\\20260430-134318-startup-pre-unauthorized-run-disable\\tasks\\OpenWhisper_Tray.xml",
+                               "exists":  true
+                           }
+                       ],
+    "appStartupTasks":  [
+                            {
+                                "packageFamilyName":  "88449BC3.TodoistPlannerCalendarMSIX_71ef4824z52ta",
+                                "taskId":  "TodoistStartupId",
+                                "state":  0,
+                                "userEnabledStartupOnce":  0
+                            },
+                            {
+                                "packageFamilyName":  "91750D7E.Slack_8she8kybcnzg4",
+                                "taskId":  "SlackStartup",
+                                "state":  1,
+                                "userEnabledStartupOnce":  0
+                            },
+                            {
+                                "packageFamilyName":  "AdvancedMicroDevicesInc-2.AMDRadeonSoftware_0a9344xs7nr4m",
+                                "taskId":  "launcherrsxruntimeTask",
+                                "state":  2,
+                                "userEnabledStartupOnce":  0
+                            },
+                            {
+                                "packageFamilyName":  "Claude_pzs8sxrjxfjjc",
+                                "taskId":  "ClaudeStartup",
+                                "state":  0,
+                                "userEnabledStartupOnce":  0
+                            },
+                            {
+                                "packageFamilyName":  "Microsoft.GamingApp_8wekyb3d8bbwe",
+                                "taskId":  "Xbox.App.Tasks.FullTrustComponent",
+                                "state":  0,
+                                "userEnabledStartupOnce":  0
+                            },
+                            {
+                                "packageFamilyName":  "Microsoft.WindowsTerminal_8wekyb3d8bbwe",
+                                "taskId":  "StartTerminalOnLoginTask",
+                                "state":  0,
+                                "userEnabledStartupOnce":  0
+                            },
+                            {
+                                "packageFamilyName":  "Microsoft.YourPhone_8wekyb3d8bbwe",
+                                "taskId":  "YourPhone.Start",
+                                "state":  2,
+                                "userEnabledStartupOnce":  1
+                            },
+                            {
+                                "packageFamilyName":  "MicrosoftWindows.CrossDevice_cw5n1h2txyewy",
+                                "taskId":  "CrossDevice.Start",
+                                "state":  2,
+                                "userEnabledStartupOnce":  0
+                            },
+                            {
+                                "packageFamilyName":  "OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0",
+                                "taskId":  "ChatGPT",
+                                "state":  2,
+                                "userEnabledStartupOnce":  0
+                            }
+                        ]
+}

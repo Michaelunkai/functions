@@ -1,0 +1,14 @@
+# Build outputs
+dist/
+out/
+*.iso
+
+# Local/test logs
+*.log
+*.tmp
+.env
+.env.*
+
+# Windows noise
+Thumbs.db
+Desktop.ini

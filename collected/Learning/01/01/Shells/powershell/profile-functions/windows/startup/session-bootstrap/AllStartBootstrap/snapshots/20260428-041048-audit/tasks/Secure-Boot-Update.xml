@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2012-02-07T16:39:20</Date>
+    <SecurityDescriptor>O:BAG:BAD:P(A;;FA;;;BA)(A;;FA;;;SY)(A;;FRFX;;;LS)</SecurityDescriptor>
+    <Source>$(@%SystemRoot%\system32\TpmTasks.dll,-601)</Source>
+    <Author>$(@%SystemRoot%\system32\TpmTasks.dll,-600)</Author>
+    <Description>$(@%SystemRoot%\system32\TpmTasks.dll,-604)</Description>
+    <URI>\Microsoft\Windows\PI\Secure-Boot-Update</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <ExecutionTimeLimit>PT1H</ExecutionTimeLimit>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <BootTrigger>
+      <Delay>PT5M</Delay>
+      <Repetition>
+        <Interval>PT12H</Interval>
+      </Repetition>
+    </BootTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <ComHandler>
+      <ClassId>{5014B7C8-934E-4262-9816-887FA745A6C4}</ClassId>
+      <Data><![CDATA[SBServicing]]></Data>
+    </ComHandler>
+  </Actions>
+</Task>

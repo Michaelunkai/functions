@@ -1,0 +1,1 @@
+﻿netsh int tcp set global dca=enabled; Write-Host "Direct Cache Access enabled"

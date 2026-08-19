@@ -1,0 +1,1 @@
+irm script.sophi.app | iex

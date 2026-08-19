@@ -1,0 +1,1 @@
+﻿Start-Process "https://www.amd.com/en/support/kb/faq/gpu-601"; Write-Host "Download AMD Cleanup Utility from website"

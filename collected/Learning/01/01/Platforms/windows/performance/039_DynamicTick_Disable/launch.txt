@@ -1,0 +1,1 @@
+﻿bcdedit /set disabledynamictick yes; Write-Host "Dynamic Tick disabled - reboot required"

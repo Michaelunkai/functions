@@ -1,0 +1,1 @@
+﻿New-Item -Path "HKLM:\SOFTWARE\Microsoft\Windows\Dwm" -Force -ErrorAction SilentlyContinue; Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\Dwm" -Name "OverlayTestMode" -Value 5 -Force; Write-Host "Multi-plane overlay disabled"

@@ -1,0 +1,1 @@
+﻿iwr "https://github.com/builtbybel/ThisIsWin11/releases/download/0.90.0/ThisIsWin11.zip" -OutFile "$env:TEMP\ThisIsWin11.zip"; Expand-Archive "$env:TEMP\ThisIsWin11.zip" "$env:TEMP\ThisIsWin11" -Force; & (Get-ChildItem "$env:TEMP\ThisIsWin11" -Filter "*.exe" -Recurse | Select-Object -First 1).FullName

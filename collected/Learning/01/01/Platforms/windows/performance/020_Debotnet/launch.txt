@@ -1,0 +1,1 @@
+﻿iwr "https://github.com/builtbybel/debotnet/releases/download/0.4.2/debotnet.zip" -OutFile "$env:TEMP\debotnet.zip"; Expand-Archive "$env:TEMP\debotnet.zip" "$env:TEMP\debotnet" -Force; & (Get-ChildItem "$env:TEMP\debotnet" -Filter "*.exe" -Recurse | Select-Object -First 1).FullName

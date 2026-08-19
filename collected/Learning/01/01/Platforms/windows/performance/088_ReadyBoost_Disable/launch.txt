@@ -1,0 +1,1 @@
+﻿Set-Service -Name "EMDMgmt" -StartupType Disabled -ErrorAction SilentlyContinue; Write-Host "ReadyBoost disabled"

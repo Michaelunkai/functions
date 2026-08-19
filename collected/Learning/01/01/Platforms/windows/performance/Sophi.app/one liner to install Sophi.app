@@ -1,0 +1,1 @@
+irm app.sophi.app -useb | iex

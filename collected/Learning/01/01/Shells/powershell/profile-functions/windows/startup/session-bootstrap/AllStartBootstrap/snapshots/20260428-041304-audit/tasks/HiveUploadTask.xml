@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Version>1.0</Version>
+    <SecurityDescriptor>D:P(A;;FA;;;BA)(A;;FA;;;SY)</SecurityDescriptor>
+    <Source>$(@%SystemRoot%\system32\profsvc,-500)</Source>
+    <Author>$(@%SystemRoot%\system32\profsvc,-500)</Author>
+    <Description>$(@%SystemRoot%\system32\profsvc,-501)</Description>
+    <URI>\Microsoft\Windows\User Profile Service\HiveUploadTask</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>true</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <RestartOnFailure>
+      <Count>3</Count>
+      <Interval>PT2M</Interval>
+    </RestartOnFailure>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <RunOnlyIfIdle>true</RunOnlyIfIdle>
+    <IdleSettings>
+      <Duration>PT10M</Duration>
+      <WaitTimeout>PT2H</WaitTimeout>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>2007-08-28T00:00:00</StartBoundary>
+      <Repetition>
+        <Interval>PT12H</Interval>
+      </Repetition>
+      <RandomDelay>PT1H</RandomDelay>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <ComHandler>
+      <ClassId>{BA677074-762C-444B-94C8-8C83F93F6605}</ClassId>
+    </ComHandler>
+  </Actions>
+</Task>

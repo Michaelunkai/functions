@@ -1,0 +1,40 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2010-09-30T14:53:37.9516706</Date>
+    <SecurityDescriptor>D:(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;OICI;GR;;;AU)(A;;FRFX;;;LS)</SecurityDescriptor>
+    <URI>\Microsoft\Windows\.NET Framework\.NET Framework NGEN v4.0.30319 64 Critical</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="Author">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <ExecutionTimeLimit>PT2H</ExecutionTimeLimit>
+    <Hidden>true</Hidden>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <WakeToRun>true</WakeToRun>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+    <MaintenanceSettings>
+      <Period>P1D</Period>
+      <Deadline>P2D</Deadline>
+    </MaintenanceSettings>
+  </Settings>
+  <Triggers>
+    <IdleTrigger />
+  </Triggers>
+  <Actions Context="Author">
+    <ComHandler>
+      <ClassId>{613FBA38-A3DF-4AB8-9674-5604984A299A}</ClassId>
+      <Data><![CDATA[/RuntimeWide]]></Data>
+    </ComHandler>
+  </Actions>
+</Task>

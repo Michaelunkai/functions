@@ -1,0 +1,37 @@
+﻿<?xml version='1.0' encoding='utf-8' standalone='yes'?>
+<assembly>
+  <assemblyIdentity
+      language="neutral"
+      name="Microsoft-OneCore-UnifiedUpdatePlatform-ProductEnumerator"
+      processorArchitecture="*"
+      version="0.0.0.0"
+      versionScope="nonSxS"
+      />
+  <migration
+      replacementSettingsVersionRange="1"
+      replacementVersionRange="10.0.*"
+      settingsVersion="2"
+      >
+    <machineSpecific>
+      <migXml xmlns="">
+        <rules context="System">
+          <include>
+            <objectSet>
+              <pattern type="Registry">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Update\TargetingInfo\PersistentDynamicInstalled\* [*]</pattern>
+            </objectSet>
+          </include>
+          <trackChanges>
+            <objectSet>
+              <pattern type="Registry">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Update\TargetingInfo\PersistentDynamicInstalled\* [*]</pattern>
+            </objectSet>
+          </trackChanges>
+          <merge script="MigXmlHelper.DestinationPriority()">
+            <objectSet>
+              <pattern type="Registry">HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Update\TargetingInfo\PersistentDynamicInstalled\* [*]</pattern>
+            </objectSet>
+          </merge>
+        </rules>
+      </migXml>
+    </machineSpecific>
+  </migration>
+</assembly>

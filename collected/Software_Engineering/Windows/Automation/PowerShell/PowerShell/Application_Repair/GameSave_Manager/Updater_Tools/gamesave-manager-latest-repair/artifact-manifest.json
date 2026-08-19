@@ -1,0 +1,38 @@
+[
+  {
+    "source": "/tmp/repair_gamesavemanager_latest.ps1",
+    "dest": "/mnt/f/study/Software_Engineering/Windows/Automation/PowerShell/Application_Repair/GameSave_Manager/Updater_Tools/gamesave-manager-latest-repair/scripts/repair_gamesavemanager_latest.ps1",
+    "bytes": 6872,
+    "mode": "moved/copied from session temp"
+  },
+  {
+    "source": "/tmp/verify_gsm.ps1",
+    "dest": "/mnt/f/study/Software_Engineering/Windows/Automation/PowerShell/Application_Repair/GameSave_Manager/Updater_Tools/gamesave-manager-latest-repair/tests/verify_gsm.ps1",
+    "bytes": 614,
+    "mode": "moved/copied from session temp"
+  },
+  {
+    "source": "/tmp/diag_gsm.ps1",
+    "dest": "/mnt/f/study/Software_Engineering/Windows/Automation/PowerShell/Application_Repair/GameSave_Manager/Updater_Tools/gamesave-manager-latest-repair/artifacts/diagnostics/diag_gsm.ps1",
+    "bytes": 1149,
+    "mode": "moved/copied from session temp"
+  },
+  {
+    "source": "/tmp/diagnose_trainer.ps1",
+    "dest": "/mnt/f/study/Software_Engineering/Windows/Automation/PowerShell/Application_Repair/GameSave_Manager/Updater_Tools/gamesave-manager-latest-repair/artifacts/diagnostics/diagnose_trainer.ps1",
+    "bytes": 322,
+    "mode": "moved/copied from session temp"
+  },
+  {
+    "source": "/mnt/c/Temp/repair_gamesavemanager_latest.ps1",
+    "dest": "/mnt/f/study/Software_Engineering/Windows/Automation/PowerShell/Application_Repair/GameSave_Manager/Updater_Tools/gamesave-manager-latest-repair/artifacts/live-copy-C-Temp-repair_gamesavemanager_latest.ps1",
+    "bytes": 6872,
+    "mode": "copied"
+  },
+  {
+    "source": "/mnt/c/Temp/gsm_latest_repair/last_run.log",
+    "dest": "/mnt/f/study/Software_Engineering/Windows/Automation/PowerShell/Application_Repair/GameSave_Manager/Updater_Tools/gamesave-manager-latest-repair/artifacts/logs/last_run.log",
+    "bytes": 537,
+    "mode": "copied"
+  }
+]

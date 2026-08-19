@@ -1,0 +1,30 @@
+# Build outputs
+build/
+dist/*
+!dist/app.exe
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# .NET / IDE
+bin/
+obj/
+.vs/
+*.user
+*.suo
+
+# Python/agent caches if future helpers are added
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+.cache/
+
+# Secrets
+.env
+*.key
+*.pem

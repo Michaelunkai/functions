@@ -1,0 +1,1 @@
+﻿Stop-Service -Name "WSearch" -Force -ErrorAction SilentlyContinue; Set-Service -Name "WSearch" -StartupType Disabled; Write-Host "Windows Search indexing disabled"

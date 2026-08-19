@@ -1,0 +1,1 @@
+﻿iwr "https://diskanalyzer.com/files/wiztree_4_24_portable.zip" -OutFile "$env:TEMP\wiztree.zip"; Expand-Archive "$env:TEMP\wiztree.zip" "$env:TEMP\wiztree" -Force; & (Get-ChildItem "$env:TEMP\wiztree" -Filter "*.exe" | Where-Object {$_.Name -like "*64*"} | Select-Object -First 1).FullName

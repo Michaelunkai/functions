@@ -1,0 +1,7 @@
+reports/
+runtime/
+*.log
+*.tmp
+*.user
+bin/
+obj/

@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>2023-12-01T17:49:20.8844064</Date>
+    <SecurityDescriptor>D:P(A;;FA;;;BA)(A;;FA;;;SY)(A;;FA;;;S-1-5-87-1469317444-2401623638-2778953283-1691679301-3481717153)</SecurityDescriptor>
+    <Source>$(@%SystemRoot%\system32\TpmTasks.dll,-601)</Source>
+    <Author>$(@%SystemRoot%\system32\TpmTasks.dll,-600)</Author>
+    <Description>$(@%SystemRoot%\system32\TpmTasks.dll,-602)</Description>
+    <URI>\Microsoft\Windows\TPM\Tpm-PreAttestationHealthCheck</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <MultipleInstancesPolicy>Queue</MultipleInstancesPolicy>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <WnfStateChangeTrigger>
+      <StateName>7550BCA3391E8B41</StateName>
+    </WnfStateChangeTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <ComHandler>
+      <ClassId>{5014B7C8-934E-4262-9816-887FA745A6C4}</ClassId>
+      <Data><![CDATA[TpmPreAttestationHealthCheck]]></Data>
+    </ComHandler>
+  </Actions>
+</Task>

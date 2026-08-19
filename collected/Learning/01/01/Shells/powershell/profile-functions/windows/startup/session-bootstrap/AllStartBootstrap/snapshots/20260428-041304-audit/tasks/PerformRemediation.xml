@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <SecurityDescriptor>D:P(A;;FA;;;SY)(A;;FRFX;;;LS)(A;;FRFX;;;BA)</SecurityDescriptor>
+    <Source>$(@%systemroot%\system32\WaasMedicSvcImpl.dll,-103)</Source>
+    <Author>$(@%systemroot%\system32\WaasMedicSvcImpl.dll,-102)</Author>
+    <Description>$(@%systemroot%\system32\WaasMedicSvcImpl.dll,-104)</Description>
+    <URI>\Microsoft\Windows\WaaSMedic\PerformRemediation</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="LocalSystem">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>2000-10-15T03:00:00</StartBoundary>
+      <Repetition>
+        <Interval>P7D</Interval>
+      </Repetition>
+      <RandomDelay>PT4H</RandomDelay>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="LocalSystem">
+    <ComHandler>
+      <ClassId>{72566E27-1ABB-4EB3-B4F0-EB431CB1CB32}</ClassId>
+      <Data><![CDATA[None]]></Data>
+    </ComHandler>
+  </Actions>
+</Task>

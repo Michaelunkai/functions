@@ -1,0 +1,10 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory, Position = 0)][string]$Name,
+    [Parameter(ValueFromRemainingArguments)]$Remaining
+)
+
+. 'F:\study\Windows\PowerShell\Profile\ps5-profile-portable\legacy-safe-functions\Invoke-ProfileFunctionMutation.ps1'
+
+$names = @($Name) + @($Remaining | Where-Object { $null -ne $_ })
+Invoke-ProfileFunctionRemove -Name $names

@@ -1,0 +1,15 @@
+# Local/editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# PowerShell transient outputs
+*.log
+*.tmp
+*.bak
+*.transcript.txt
+
+# OS files
+Thumbs.db
+Desktop.ini

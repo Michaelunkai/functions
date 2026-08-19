@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🦞 ClawDoctor - Free OpenClaw Diagnostics</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <div class="logo-icons">🦞💊</div>
+        <div class="logo-text">
+          <h1>ClawDoctor</h1>
+          <span class="version-badge">v2.0.0</span>
+        </div>
+      </div>
+      <p class="tagline">Automatic diagnostics & repair for OpenClaw • 100% Free Forever</p>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main-content">
+      <!-- Initial State -->
+      <div id="initial-state" class="section active">
+        <button class="btn-primary" onclick="startDiagnosis()">🔍 Start Diagnosis</button>
+      </div>
+
+      <!-- Scanning State -->
+      <div id="scanning-state" class="section">
+        <div class="scan-header">
+          <span class="icon">🔍</span>
+          <span class="status">System scan in progress...</span>
+        </div>
+        <div id="scan-steps"></div>
+      </div>
+
+      <!-- Results State -->
+      <div id="results-state" class="section">
+        <div class="scan-header complete">
+          <span class="icon">✅</span>
+          <span class="status">System scan complete</span>
+          <button class="link-btn" onclick="showDetails()">Details</button>
+        </div>
+        
+        <div id="diagnosis-steps"></div>
+        
+        <!-- Feedback -->
+        <div id="feedback-section" class="feedback-section hidden">
+          <div class="feedback-icon">🩺</div>
+          <p class="feedback-question">Did this fix your problem?</p>
+          <div class="feedback-buttons">
+            <button class="btn-success" onclick="feedbackYes()">✅ Yes, fixed!</button>
+            <button class="btn-error" onclick="feedbackNo()">❌ No, still broken</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <span>ClawDoctor v1.3.0 | 100% Free Forever</span>
+    </footer>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Version>1.0</Version>
+    <SecurityDescriptor>D:(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;OICI;GRGX;;;AU)</SecurityDescriptor>
+    <Source>$(@%systemRoot%\system32\wsqmcons.exe,-106)</Source>
+    <Author>$(@%systemRoot%\system32\wsqmcons.exe,-108)</Author>
+    <Description>$(@%systemRoot%\system32\wsqmcons.exe,-107)</Description>
+    <URI>\Microsoft\Windows\Customer Experience Improvement Program\Consolidator</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="WinSQMAccount">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>2004-01-02T00:00:00</StartBoundary>
+      <Repetition>
+        <Interval>PT6H</Interval>
+      </Repetition>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="WinSQMAccount">
+    <Exec>
+      <Command>%SystemRoot%\System32\wsqmcons.exe</Command>
+    </Exec>
+  </Actions>
+</Task>

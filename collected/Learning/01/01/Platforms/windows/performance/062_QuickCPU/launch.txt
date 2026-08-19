@@ -1,0 +1,1 @@
+﻿iwr "https://coderbag.com/assets/downloads/quickcpu/QuickCpuSetup.exe" -OutFile "$env:TEMP\QuickCpuSetup.exe"; & "$env:TEMP\QuickCpuSetup.exe"

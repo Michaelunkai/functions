@@ -1,0 +1,81 @@
+{
+  "mission": "GIGABYTE Control Center repeating AMD Ryzen Master install prompt fixer",
+  "root_wsl": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527",
+  "root_windows": "F:\\study\\Operating_Systems\\Windows\\Administration\\Hardware\\Vendors\\GIGABYTE\\Control_Center\\Installer_Fixes\\gcc-ryzen-master-install-loop-fix-20260527",
+  "production_script_copied_not_moved": "C:\\ProgramData\\Hermes\\Fix-GCCInstallLoop.ps1",
+  "moved_temp_artifacts": [
+    {
+      "from": "/mnt/c/Temp/ryzen_gcc_diag.ps1",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/diagnostics/ryzen_gcc_diag.ps1",
+      "action": "copied_then_deleted"
+    },
+    {
+      "from": "/mnt/c/Temp/ryzen_gcc_diag2.ps1",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/diagnostics/ryzen_gcc_diag2.ps1",
+      "action": "copied_then_deleted"
+    },
+    {
+      "from": "/mnt/c/Temp/ryzen_gcc_search.ps1",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/diagnostics/ryzen_gcc_search.ps1",
+      "action": "copied_then_deleted"
+    },
+    {
+      "from": "/mnt/c/Temp/ryzen_key_check.ps1",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/diagnostics/ryzen_key_check.ps1",
+      "action": "copied_then_deleted"
+    },
+    {
+      "from": "/mnt/c/Temp/fix_gcc_ryzen_marker.ps1",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/diagnostics/fix_gcc_ryzen_marker.ps1",
+      "action": "copied_then_deleted"
+    },
+    {
+      "from": "/mnt/c/Temp/gcc_install_loop_fix_general.ps1",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/diagnostics/gcc_install_loop_fix_general.ps1",
+      "action": "copied_then_deleted"
+    },
+    {
+      "from": "/mnt/c/Temp/gcc_install_loop_clip_source.ps1",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/diagnostics/gcc_install_loop_clip_source.ps1",
+      "action": "copied_then_deleted"
+    },
+    {
+      "from": "/mnt/c/Temp/set_gcc_oneliner_clip.ps1",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/diagnostics/set_gcc_oneliner_clip.ps1",
+      "action": "copied_then_deleted"
+    },
+    {
+      "from": "/mnt/c/Temp/set_short_fix_clip.ps1",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/diagnostics/set_short_fix_clip.ps1",
+      "action": "copied_then_deleted"
+    },
+    {
+      "from": "/mnt/c/Temp/gcc_install_loop_fix_oneliner.txt",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/artifacts/gcc_install_loop_fix_oneliner.txt",
+      "action": "copied_then_deleted"
+    }
+  ],
+  "copied_screenshots": [
+    {
+      "from": "/home/ubuntu/.hermes/image_cache/img_02b68645178f.jpg",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/screenshots/img_02b68645178f.jpg",
+      "action": "copied_not_moved"
+    },
+    {
+      "from": "/home/ubuntu/.hermes/image_cache/img_8d2bf4faa418.jpg",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/screenshots/img_8d2bf4faa418.jpg",
+      "action": "copied_not_moved"
+    },
+    {
+      "from": "/home/ubuntu/.hermes/image_cache/img_b433c9f4becb.jpg",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/screenshots/img_b433c9f4becb.jpg",
+      "action": "copied_not_moved"
+    },
+    {
+      "from": "/home/ubuntu/.hermes/image_cache/img_d2dac5ef5c62.jpg",
+      "to": "/mnt/f/study/Operating_Systems/Windows/Administration/Hardware/Vendors/GIGABYTE/Control_Center/Installer_Fixes/gcc-ryzen-master-install-loop-fix-20260527/screenshots/img_d2dac5ef5c62.jpg",
+      "action": "copied_not_moved"
+    }
+  ],
+  "primary_entrypoint_windows": "F:\\study\\Operating_Systems\\Windows\\Administration\\Hardware\\Vendors\\GIGABYTE\\Control_Center\\Installer_Fixes\\gcc-ryzen-master-install-loop-fix-20260527\\scripts\\Fix-GCCInstallLoop.ps1"
+}

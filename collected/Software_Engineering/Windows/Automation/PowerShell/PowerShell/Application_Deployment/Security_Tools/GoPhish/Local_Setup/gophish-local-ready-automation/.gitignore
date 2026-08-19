@@ -1,0 +1,8 @@
+.gophish-runtime/
+node_modules/
+*.log
+*.tmp
+*.zip
+*.db
+*.db-shm
+*.db-wal

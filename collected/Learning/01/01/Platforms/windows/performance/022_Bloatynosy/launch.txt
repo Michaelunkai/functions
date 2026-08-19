@@ -1,0 +1,1 @@
+﻿iwr "https://github.com/builtbybel/BloatyNosy/releases/download/1.8.0/BloatyNosy.zip" -OutFile "$env:TEMP\BloatyNosy.zip"; Expand-Archive "$env:TEMP\BloatyNosy.zip" "$env:TEMP\BloatyNosy" -Force; & (Get-ChildItem "$env:TEMP\BloatyNosy" -Filter "*.exe" -Recurse | Select-Object -First 1).FullName

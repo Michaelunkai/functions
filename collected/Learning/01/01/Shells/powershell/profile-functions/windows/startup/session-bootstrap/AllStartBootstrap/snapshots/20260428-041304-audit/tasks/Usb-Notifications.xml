@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.6" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <SecurityDescriptor>O:BAG:BAD:(A;OICI;FA;;;BA)(A;OICI;FA;;;SY)(A;;FR;;;IU)</SecurityDescriptor>
+    <Author>$(@%SystemRoot%\system32\usbtask.dll,-600)</Author>
+    <Description>$(@%SystemRoot%\system32\usbtask.dll,-602)</Description>
+    <URI>\Microsoft\Windows\USB\Usb-Notifications</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="Users">
+      <GroupId>S-1-5-4</GroupId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <AllowHardTerminate>false</AllowHardTerminate>
+    <AllowStartOnDemand>false</AllowStartOnDemand>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <Enabled>false</Enabled>
+    <Hidden>true</Hidden>
+    <MultipleInstancesPolicy>Parallel</MultipleInstancesPolicy>
+    <Priority>6</Priority>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <WnfStateChangeTrigger>
+      <StateName>7530BCA3381D8441</StateName>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger>
+      <StateName>7510BCA3381D8441</StateName>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger>
+      <StateName>7518BCA3381D8441</StateName>
+    </WnfStateChangeTrigger>
+    <WnfStateChangeTrigger>
+      <StateName>7528BCA3381D8441</StateName>
+    </WnfStateChangeTrigger>
+  </Triggers>
+  <Actions Context="Users">
+    <ComHandler>
+      <ClassId>{E05BE1C8-92A8-4757-B575-ACAECB4E6A40}</ClassId>
+    </ComHandler>
+  </Actions>
+</Task>

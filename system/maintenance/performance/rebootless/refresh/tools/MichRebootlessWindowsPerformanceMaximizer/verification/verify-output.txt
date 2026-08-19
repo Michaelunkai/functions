@@ -1,0 +1,13 @@
+
+
+Time             : 2026-06-05T21:17:34.9072248+03:00
+ExactApp         : F:\study\Platforms\windows\system\maintenance\performance\rebootless\refresh\tools\MichRebootlessWindowsPerformanceMaximizer\app\MichRebootlessWindowsPerformanceMaximizer.exe
+ProjectSHA256    : 769b20af10f532b933e9bbca75060b59bf48fdd97dcf1ae21a1e8b1f79fd060b
+ProductionSHA256 : 769b20af10f532b933e9bbca75060b59bf48fdd97dcf1ae21a1e8b1f79fd060b
+HashesMatch      : True
+VerifyExit       : 0
+RunSmoke         : True
+SmokeExit        : 0
+SmokeEnded       : True
+SmokeTotalMs     : 8074
+ContractSeconds  : 15

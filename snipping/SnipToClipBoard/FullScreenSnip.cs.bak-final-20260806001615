@@ -1,0 +1,1276 @@
+using System;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Windows.Forms;
+using Microsoft.Win32;
+using System.Threading;
+
+static class AppLog
+{
+    private static string path = Path.Combine(Path.GetTempPath(), "FullScreenSnip.log");
+    public static void Init()
+    {
+        try { File.AppendAllText(path, "\r\n===== " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " FullScreenSnip started =====\r\n"); } catch { }
+    }
+    public static void Write(string format, params object[] args)
+    {
+        try { File.AppendAllText(path, DateTime.Now.ToString("HH:mm:ss.fff") + "  " + string.Format(format, args) + "\r\n"); } catch { }
+    }
+}
+
+static class GraphicsExtensions
+{
+    public static void FillRoundedRectangle(Graphics g, Brush brush, int x, int y, int width, int height, int radius)
+    {
+        using (GraphicsPath path = new GraphicsPath())
+        {
+            path.AddArc(x, y, radius * 2, radius * 2, 180, 90);
+            path.AddArc(x + width - radius * 2, y, radius * 2, radius * 2, 270, 90);
+            path.AddArc(x + width - radius * 2, y + height - radius * 2, radius * 2, radius * 2, 0, 90);
+            path.AddArc(x, y + height - radius * 2, radius * 2, radius * 2, 90, 90);
+            path.CloseFigure();
+            g.FillPath(brush, path);
+        }
+    }
+}
+
+class FullScreenSnip : Form
+{
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool RegisterHotKey(IntPtr hWnd, int id, uint fsModifiers, uint vk);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetLastError();
+
+    [DllImport("user32.dll")]
+    private static extern bool SetProcessDPIAware();
+
+    [DllImport("shcore.dll")]
+    private static extern int SetProcessDpiAwareness(int awareness);
+
+    [DllImport("user32.dll")]
+    private static extern int GetSystemMetrics(int nIndex);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool OpenClipboard(IntPtr hWndNewOwner);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool EmptyClipboard();
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetClipboardData(uint uFormat, IntPtr hMem);
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool CloseClipboard();
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GlobalAlloc(uint uFlags, UIntPtr dwBytes);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GlobalLock(IntPtr hMem);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool GlobalUnlock(IntPtr hMem);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern IntPtr GlobalFree(IntPtr hMem);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint RegisterClipboardFormat(string lpszFormat);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromPoint(POINT pt, uint dwFlags);
+
+    [DllImport("shcore.dll")]
+    private static extern int GetDpiForMonitor(IntPtr hmonitor, int dpiType, out uint dpiX, out uint dpiY);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr MonitorFromWindow(IntPtr hwnd, uint dwFlags);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT lpPoint);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumProc lpfnEnum, IntPtr dwData);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+
+    private delegate bool MonitorEnumProc(IntPtr hMonitor, IntPtr hdcMonitor, ref RECT lprcMonitor, IntPtr dwData);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X; public int Y; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MONITORINFO
+    {
+        public int cbSize;
+        public RECT rcMonitor;
+        public RECT rcWork;
+        public uint dwFlags;
+    }
+
+    private const int SM_CXSCREEN = 0;
+    private const int SM_CYSCREEN = 1;
+    private const int SM_XVIRTUALSCREEN = 76;
+    private const int SM_YVIRTUALSCREEN = 77;
+    private const int SM_CXVIRTUALSCREEN = 78;
+    private const int SM_CYVIRTUALSCREEN = 79;
+    private const uint MONITOR_DEFAULTTONEAREST = 2;
+
+    private const int HOTKEY_FULLSCREEN = 9002;
+    private const int HOTKEY_FREESNIP = 9003;
+    private const int HOTKEY_FULLSCREEN_IMG = 9004;
+    private const int HOTKEY_FREESNIP_IMG = 9005;
+    private const uint MOD_CTRL = 0x0002;
+    private const uint MOD_ALT = 0x0001;
+    private const uint MOD_NOREPEAT = 0x4000;
+    private const uint VK_S = 0x53;
+    private const uint VK_Q = 0x51;
+    private const int WM_HOTKEY = 0x0312;
+
+    private NotifyIcon trayIcon;
+    private static Mutex mutex;
+    private HotkeyHost hotkeyHost;
+    private bool hotkeyFullscreenRegistered = false;
+    private bool hotkeyFreesnipRegistered = false;
+    private bool hotkeyFullscreenImgRegistered = false;
+    private bool hotkeyFreesnipImgRegistered = false;
+    private bool saveAsPath = false;
+    private bool runAtStartup = true;
+    private bool overlayOpen = false;
+    private string screenshotFolder;
+    private MenuItem saveAsPathMenuItem;
+    private MenuItem startupMenuItem;
+    // Track the unmanaged HICON handle for the tray icon (proper cleanup)
+    private IntPtr _trayIconHandle = IntPtr.Zero;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool DestroyIcon(IntPtr hIcon);
+
+    public FullScreenSnip()
+    {
+        this.ShowInTaskbar = false;
+        this.WindowState = FormWindowState.Minimized;
+        this.FormBorderStyle = FormBorderStyle.None;
+        this.Opacity = 0;
+        this.Size = new Size(1, 1);
+        this.Load += FullScreenSnip_Load;
+
+        // Hotkeys live on a dedicated message-only window (HWND_MESSAGE) that
+        // nothing can hide, minimize or destroy. Registering on this.Handle was
+        // fragile: hiding the form destroys its WinForms handle, which releases
+        // the RegisterHotKey registrations (e.g. the startup manager's "quiet"
+        // window-hiding breaks Alt+S/Alt+Q/Ctrl+Alt+S/Ctrl+Alt+Q until restart).
+        hotkeyHost = new HotkeyHost();
+        hotkeyHost.HotkeyPressed += OnHostHotkey;
+        AppLog.Write("constructor: hotkeyHost created");
+
+        screenshotFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Screenshots");
+        if (!Directory.Exists(screenshotFolder))
+        {
+            Directory.CreateDirectory(screenshotFolder);
+        }
+    }
+
+    private void FullScreenSnip_Load(object sender, EventArgs e)
+    {
+        try
+        {
+            LoadSettings();
+            SetupTrayIcon();
+            
+            // Robust startup registration: verify current state and fix if needed
+            if (runAtStartup)
+            {
+                if (!VerifyStartupRegistration())
+                {
+                    // Registration missing or corrupted - re-register
+                    AddToStartup();
+                }
+            }
+            else
+            {
+                // Ensure we're removed if disabled
+                if (VerifyStartupRegistration())
+                {
+                    RemoveFromStartup();
+                }
+            }
+            
+            hotkeyHost.CreateMessageOnly();
+            RegisterHotkeys();
+            this.Hide();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show("Startup error: " + ex.Message, "FullScreenSnip Error",
+                MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
+
+    private void LoadSettings()
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(@"SOFTWARE\FullScreenSnip", false))
+            {
+                if (key != null)
+                {
+                    saveAsPath = ((int)key.GetValue("SaveAsPath", 0)) == 1;
+                    runAtStartup = ((int)key.GetValue("RunAtStartup", 1)) == 1;
+                    string folder = key.GetValue("ScreenshotFolder", "") as string;
+                    if (!string.IsNullOrEmpty(folder) && Directory.Exists(folder))
+                    {
+                        screenshotFolder = folder;
+                    }
+                }
+            }
+        }
+        catch { }
+    }
+
+    private void SaveSettings()
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.CreateSubKey(@"SOFTWARE\FullScreenSnip"))
+            {
+                if (key != null)
+                {
+                    key.SetValue("SaveAsPath", saveAsPath ? 1 : 0);
+                    key.SetValue("RunAtStartup", runAtStartup ? 1 : 0);
+                    key.SetValue("ScreenshotFolder", screenshotFolder);
+                }
+            }
+        }
+        catch { }
+    }
+
+    private Icon CreateTrayIcon()
+    {
+        // Create a high-quality, properly managed tray icon
+        using (Bitmap bmp = new Bitmap(32, 32))
+        {
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = SmoothingMode.AntiAlias;
+                g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode = PixelOffsetMode.HighQuality;
+                g.Clear(Color.Transparent);
+
+                // Camera body - modern blue
+                using (SolidBrush bodyBrush = new SolidBrush(Color.FromArgb(41, 98, 155)))
+                {
+                    GraphicsExtensions.FillRoundedRectangle(g, bodyBrush, 3, 9, 26, 18, 4);
+                }
+
+                // Camera lens ring
+                using (Pen lensPen = new Pen(Color.FromArgb(20, 50, 80), 2))
+                {
+                    g.DrawEllipse(lensPen, 10, 11, 12, 12);
+                }
+
+                // Lens inner
+                using (SolidBrush lensBrush = new SolidBrush(Color.FromArgb(70, 130, 180)))
+                {
+                    g.FillEllipse(lensBrush, 12, 13, 8, 8);
+                }
+
+                // Lens center highlight
+                using (SolidBrush highlightBrush = new SolidBrush(Color.FromArgb(180, 210, 240)))
+                {
+                    g.FillEllipse(highlightBrush, 14, 15, 4, 4);
+                }
+
+                // Flash indicator (top-left accent)
+                using (SolidBrush flashBrush = new SolidBrush(Color.FromArgb(255, 193, 7)))
+                {
+                    g.FillRectangle(flashBrush, 5, 4, 7, 4);
+                    // Small triangle for flash shape
+                    Point[] flashTri = { new Point(5, 4), new Point(12, 4), new Point(8, 0) };
+                    g.FillPolygon(flashBrush, flashTri);
+                }
+
+                // Subtle border for visibility on dark/light taskbars
+                using (Pen borderPen = new Pen(Color.FromArgb(0, 0, 0, 80), 1))
+                {
+                    GraphicsExtensions.FillRoundedRectangle(g, new SolidBrush(Color.FromArgb(0, 0, 0, 0)), 1, 7, 30, 22, 5);
+                    // Just draw border
+                    using (GraphicsPath path = new GraphicsPath())
+                    {
+                        path.AddArc(1, 7, 10, 10, 180, 90);
+                        path.AddArc(21, 7, 10, 10, 270, 90);
+                        path.AddArc(21, 19, 10, 10, 0, 90);
+                        path.AddArc(1, 19, 10, 10, 90, 90);
+                        path.CloseFigure();
+                        g.DrawPath(borderPen, path);
+                    }
+                }
+            }
+            // GetHicon creates an unmanaged HICON; Icon.FromHandle doesn't own it.
+            // We must track and destroy it when the NotifyIcon is disposed.
+            IntPtr hIcon = bmp.GetHicon();
+            Icon icon = Icon.FromHandle(hIcon);
+            // Store the handle for later cleanup
+            _trayIconHandle = hIcon;
+            return icon;
+        }
+    }
+
+    private void SetupTrayIcon()
+    {
+        trayIcon = new NotifyIcon();
+        trayIcon.Icon = CreateTrayIcon();
+        trayIcon.Text = "FullScreenSnip\nAlt+S/Ctrl+Alt+S: PNG\nAlt+Q/Ctrl+Alt+Q: Image";
+        trayIcon.Visible = true;
+        trayIcon.DoubleClick += OnCaptureClick;
+
+        ContextMenu menu = new ContextMenu();
+        menu.MenuItems.Add("--- PNG Mode (saves file) ---");
+        menu.MenuItems.Add("Full Screen PNG (Ctrl+Alt+S)", OnCaptureClick);
+        menu.MenuItems.Add("Free Snip PNG (Alt+S)", OnFreeSnipClick);
+        menu.MenuItems.Add("-");
+        menu.MenuItems.Add("--- Image Mode (clipboard) ---");
+        menu.MenuItems.Add("Full Screen Image (Ctrl+Alt+Q)", OnCaptureImgClick);
+        menu.MenuItems.Add("Free Snip Image (Alt+Q)", OnFreeSnipImgClick);
+        menu.MenuItems.Add("-");
+
+        saveAsPathMenuItem = new MenuItem("Also Save PNG File (image ALWAYS on clipboard)");
+        saveAsPathMenuItem.Checked = saveAsPath;
+        saveAsPathMenuItem.Click += OnToggleSaveAsPath;
+        menu.MenuItems.Add(saveAsPathMenuItem);
+
+        menu.MenuItems.Add("Change Screenshot Folder...", OnChangeFolderClick);
+        menu.MenuItems.Add("-");
+
+        startupMenuItem = new MenuItem("Run at Startup");
+        startupMenuItem.Checked = runAtStartup;
+        startupMenuItem.Click += OnToggleStartup;
+        menu.MenuItems.Add(startupMenuItem);
+
+        menu.MenuItems.Add("-");
+        menu.MenuItems.Add("Re-register Hotkeys", OnReregisterClick);
+        menu.MenuItems.Add("Exit", OnExitClick);
+        trayIcon.ContextMenu = menu;
+    }
+
+    private void RegisterHotkeys()
+    {
+        IntPtr target = hotkeyHost != null ? hotkeyHost.Handle : this.Handle;
+        UnregisterHotKey(target, HOTKEY_FULLSCREEN);
+        UnregisterHotKey(target, HOTKEY_FREESNIP);
+        UnregisterHotKey(target, HOTKEY_FULLSCREEN_IMG);
+        UnregisterHotKey(target, HOTKEY_FREESNIP_IMG);
+        Thread.Sleep(100);
+
+        hotkeyFullscreenRegistered = RegisterHotKey(target, HOTKEY_FULLSCREEN, MOD_CTRL | MOD_ALT | MOD_NOREPEAT, VK_S);
+        hotkeyFreesnipRegistered = RegisterHotKey(target, HOTKEY_FREESNIP, MOD_ALT | MOD_NOREPEAT, VK_S);
+
+        hotkeyFullscreenImgRegistered = RegisterHotKey(target, HOTKEY_FULLSCREEN_IMG, MOD_CTRL | MOD_ALT | MOD_NOREPEAT, VK_Q);
+        hotkeyFreesnipImgRegistered = RegisterHotKey(target, HOTKEY_FREESNIP_IMG, MOD_ALT | MOD_NOREPEAT, VK_Q);
+        AppLog.Write("RegisterHotkeys: CtrlAltS={0} AltS={1} CtrlAltQ={2} AltQ={3} (target 0x{4:X})",
+            hotkeyFullscreenRegistered, hotkeyFreesnipRegistered, hotkeyFullscreenImgRegistered, hotkeyFreesnipImgRegistered, target.ToInt64());
+
+        string msg = "";
+        bool allOk = hotkeyFullscreenRegistered && hotkeyFreesnipRegistered && hotkeyFullscreenImgRegistered && hotkeyFreesnipImgRegistered;
+        if (allOk)
+        {
+            msg = "PNG: Ctrl+Alt+S / Alt+S\nImage: Ctrl+Alt+Q / Alt+Q";
+            trayIcon.ShowBalloonTip(3000, "FullScreenSnip Ready!", msg, ToolTipIcon.Info);
+        }
+        else
+        {
+            if (!hotkeyFullscreenRegistered) msg += "Ctrl+Alt+S failed. ";
+            if (!hotkeyFreesnipRegistered) msg += "Alt+S failed. ";
+            if (!hotkeyFullscreenImgRegistered) msg += "Ctrl+Alt+Q failed. ";
+            if (!hotkeyFreesnipImgRegistered) msg += "Alt+Q failed. ";
+            trayIcon.ShowBalloonTip(5000, "FullScreenSnip Warning", msg + "Use tray menu.", ToolTipIcon.Warning);
+        }
+    }
+
+    private void OnCaptureClick(object sender, EventArgs e) { CaptureFullScreen(false); }
+    private void OnFreeSnipClick(object sender, EventArgs e) { StartFreeSnip(false); }
+    private void OnCaptureImgClick(object sender, EventArgs e) { CaptureFullScreen(true); }
+    private void OnFreeSnipImgClick(object sender, EventArgs e) { StartFreeSnip(true); }
+
+    private void OnToggleSaveAsPath(object sender, EventArgs e)
+    {
+        saveAsPath = !saveAsPath;
+        saveAsPathMenuItem.Checked = saveAsPath;
+        SaveSettings();
+        string mode = saveAsPath ? "Clipboard image + PNG file" : "Clipboard image only";
+        trayIcon.ShowBalloonTip(2000, "Mode Changed", "Snapshot is ALWAYS on the clipboard as an image. " + mode, ToolTipIcon.Info);
+    }
+
+    private void OnToggleStartup(object sender, EventArgs e)
+    {
+        runAtStartup = !runAtStartup;
+        startupMenuItem.Checked = runAtStartup;
+        if (runAtStartup) AddToStartup(); else RemoveFromStartup();
+        SaveSettings();
+        trayIcon.ShowBalloonTip(2000, "Startup Changed",
+            runAtStartup ? "Will run at Windows startup" : "Removed from startup", ToolTipIcon.Info);
+    }
+
+    private void OnChangeFolderClick(object sender, EventArgs e)
+    {
+        using (FolderBrowserDialog fbd = new FolderBrowserDialog())
+        {
+            fbd.Description = "Select folder for screenshots";
+            fbd.SelectedPath = screenshotFolder;
+            if (fbd.ShowDialog() == DialogResult.OK)
+            {
+                screenshotFolder = fbd.SelectedPath;
+                SaveSettings();
+                trayIcon.ShowBalloonTip(2000, "Folder Changed", screenshotFolder, ToolTipIcon.Info);
+            }
+        }
+    }
+
+    private void OnReregisterClick(object sender, EventArgs e)
+    {
+        UnregisterHotKey(this.Handle, HOTKEY_FULLSCREEN);
+        UnregisterHotKey(this.Handle, HOTKEY_FREESNIP);
+        UnregisterHotKey(this.Handle, HOTKEY_FULLSCREEN_IMG);
+        UnregisterHotKey(this.Handle, HOTKEY_FREESNIP_IMG);
+        Thread.Sleep(200);
+        RegisterHotkeys();
+    }
+
+    private void OnExitClick(object sender, EventArgs e)
+    {
+        trayIcon.Visible = false;
+        Application.Exit();
+    }
+
+    private void AddToStartup()
+    {
+        try
+        {
+            string exePath = Application.ExecutablePath;
+            // Ensure path is properly quoted for command line
+            string quotedPath = "\"" + exePath + "\"";
+            
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true))
+            {
+                if (key != null)
+                {
+                    key.SetValue("FullScreenSnip", quotedPath, RegistryValueKind.String);
+                    key.Flush(); // Force write to disk
+                    
+                    // Verify the value was written correctly
+                    object verifyValue = key.GetValue("FullScreenSnip");
+                    if (verifyValue == null || !verifyValue.ToString().Equals(quotedPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        throw new InvalidOperationException("Startup registry value verification failed");
+                    }
+                }
+                else
+                {
+                    throw new InvalidOperationException("Could not open Run registry key for writing");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error but don't crash - show balloon tip if tray icon exists
+            System.Diagnostics.Debug.WriteLine("AddToStartup failed: " + ex.Message);
+            if (trayIcon != null && trayIcon.Visible)
+            {
+                trayIcon.ShowBalloonTip(3000, "Startup Registration Failed", 
+                    "Could not register for auto-start: " + ex.Message, ToolTipIcon.Error);
+            }
+        }
+    }
+
+    private void RemoveFromStartup()
+    {
+        try
+        {
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", true))
+            {
+                if (key != null)
+                {
+                    key.DeleteValue("FullScreenSnip", false);
+                    key.Flush();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine("RemoveFromStartup failed: " + ex.Message);
+        }
+    }
+
+    // Verify startup registration is intact (call on each load)
+    private bool VerifyStartupRegistration()
+    {
+        try
+        {
+            string exePath = Application.ExecutablePath;
+            string quotedPath = "\"" + exePath + "\"";
+            
+            using (RegistryKey key = Registry.CurrentUser.OpenSubKey(
+                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", false))
+            {
+                if (key != null)
+                {
+                    object value = key.GetValue("FullScreenSnip");
+                    if (value != null && value.ToString().Equals(quotedPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true; // Correctly registered
+                    }
+                }
+            }
+            return false; // Not registered or wrong path
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void OnHostHotkey(int id)
+    {
+        AppLog.Write("Hotkey fired: id={0}", id);
+        if (id == HOTKEY_FULLSCREEN) CaptureFullScreen(false);
+        else if (id == HOTKEY_FREESNIP) StartFreeSnip(false);
+        else if (id == HOTKEY_FULLSCREEN_IMG) CaptureFullScreen(true);
+        else if (id == HOTKEY_FREESNIP_IMG) StartFreeSnip(true);
+    }
+
+    private void CaptureFullScreen(bool forceImageClipboard)
+    {
+        try
+        {
+            POINT cursorPos;
+            GetCursorPos(out cursorPos);
+            IntPtr hMonitor = MonitorFromPoint(cursorPos, MONITOR_DEFAULTTONEAREST);
+
+            MONITORINFO mi = new MONITORINFO();
+            mi.cbSize = Marshal.SizeOf(mi);
+            GetMonitorInfo(hMonitor, ref mi);
+
+            int minX = mi.rcMonitor.Left;
+            int minY = mi.rcMonitor.Top;
+            int width = mi.rcMonitor.Right - mi.rcMonitor.Left;
+            int height = mi.rcMonitor.Bottom - mi.rcMonitor.Top;
+
+            using (Bitmap bmp = new Bitmap(width, height))
+            {
+                using (Graphics g = Graphics.FromImage(bmp))
+                {
+                    g.CopyFromScreen(minX, minY, 0, 0, new Size(width, height), CopyPixelOperation.SourceCopy);
+                }
+                SaveOrCopy(bmp, width, height, forceImageClipboard);
+            }
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("CaptureFullScreen failed: " + ex.Message);
+            trayIcon.ShowBalloonTip(3000, "Screenshot Error", ex.Message, ToolTipIcon.Error);
+        }
+    }
+
+    private void StartFreeSnip(bool forceImageClipboard)
+    {
+        // FIX: never stack multiple overlays - ignore the hotkey if one is open
+        if (overlayOpen) { AppLog.Write("StartFreeSnip: ignored, overlay already open"); return; }
+        AppLog.Write("StartFreeSnip: opening overlay");
+
+        Thread.Sleep(150);
+        Application.DoEvents();
+
+        POINT cursorPos;
+        GetCursorPos(out cursorPos);
+        IntPtr hMonitor = MonitorFromPoint(cursorPos, MONITOR_DEFAULTTONEAREST);
+
+        MONITORINFO mi = new MONITORINFO();
+        mi.cbSize = Marshal.SizeOf(mi);
+        GetMonitorInfo(hMonitor, ref mi);
+        AppLog.Write("StartFreeSnip: cursor=({0},{1}) monitor=({2},{3})-({4},{5})",
+            cursorPos.X, cursorPos.Y, mi.rcMonitor.Left, mi.rcMonitor.Top, mi.rcMonitor.Right, mi.rcMonitor.Bottom);
+
+        SnipOverlay overlay = null;
+        try
+        {
+            overlay = new SnipOverlay(this, forceImageClipboard, new Rectangle(mi.rcMonitor.Left, mi.rcMonitor.Top, mi.rcMonitor.Right - mi.rcMonitor.Left, mi.rcMonitor.Bottom - mi.rcMonitor.Top));
+        }
+        catch (Exception ex)
+        {
+            // FIX: never wedge overlayOpen=true on a failed construction
+            overlayOpen = false;
+            AppLog.Write("StartFreeSnip: overlay construct failed: " + ex.Message);
+            return;
+        }
+        overlay.FormClosed += (s2, e2) => { overlayOpen = false; AppLog.Write("Overlay closed (FormClosed)"); };
+        overlayOpen = true;
+        try
+        {
+            overlay.Show();
+            overlay.Activate();
+        }
+        catch (Exception ex)
+        {
+            overlayOpen = false;
+            AppLog.Write("StartFreeSnip: overlay show failed: " + ex.Message);
+        }
+        AppLog.Write("StartFreeSnip: overlay.Show/Activate done");
+    }
+
+    public void ProcessSnipResult(Bitmap result, Rectangle screenRect, bool forceImageClipboard)
+    {
+        if (result == null)
+        {
+            // Snapshot crop unavailable - fall back to a fresh screen capture
+            ProcessSnip(screenRect, forceImageClipboard);
+            return;
+        }
+        try
+        {
+            AppLog.Write("ProcessSnipResult: {0}x{1} from snapshot", result.Width, result.Height);
+            SaveOrCopy(result, result.Width, result.Height, forceImageClipboard);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("ProcessSnipResult failed: " + ex.Message);
+            trayIcon.ShowBalloonTip(3000, "Snip Error", ex.Message, ToolTipIcon.Error);
+        }
+        finally
+        {
+            result.Dispose();
+        }
+    }
+
+    public void ProcessSnip(Rectangle selection, bool forceImageClipboard)
+    {
+        if (selection.Width <= 0 || selection.Height <= 0) return;
+
+        try
+        {
+            Bitmap bmp = new Bitmap(selection.Width, selection.Height);
+            using (Graphics g = Graphics.FromImage(bmp))
+            {
+                g.CopyFromScreen(selection.X, selection.Y, 0, 0, selection.Size, CopyPixelOperation.SourceCopy);
+            }
+            SaveOrCopy(bmp, selection.Width, selection.Height, forceImageClipboard);
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("ProcessSnip failed: " + ex.Message);
+            trayIcon.ShowBalloonTip(3000, "Snip Error", ex.Message, ToolTipIcon.Error);
+        }
+    }
+
+    private void SaveOrCopy(Bitmap bmp, int width, int height, bool forceImageClipboard)
+    {
+        // HARD RULE: the snapshot ALWAYS goes to the clipboard as an IMAGE - never
+        // just a file path. Optional PNG file saving is a bonus, never a replacement.
+        try
+        {
+            CopyImageToClipboard(bmp);
+
+            string msg = "Image on clipboard (" + width + "x" + height + ")";
+            if (saveAsPath && !forceImageClipboard)
+            {
+                string filename = "screenshot_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".png";
+                string fullPath = Path.Combine(screenshotFolder, filename);
+                try
+                {
+                    bmp.Save(fullPath, System.Drawing.Imaging.ImageFormat.Png);
+                    msg = "Image on clipboard (" + width + "x" + height + ")\nPNG also saved: " + fullPath;
+                }
+                catch { }
+            }
+            trayIcon.ShowBalloonTip(2000, "Screenshot Captured!", msg, ToolTipIcon.Info);
+            AppLog.Write("Capture OK {0}x{1} -> clipboard", width, height);
+            // The app STAYS RUNNING in the tray. It only exits when the user clicks
+            // "Exit" on the tray menu. The snapshot is already owned by the system
+            // clipboard (SetClipboardData), so it stays on the clipboard permanently.
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("SaveOrCopy failed: " + ex.Message);
+            trayIcon.ShowBalloonTip(3000, "Clipboard Error", ex.Message, ToolTipIcon.Error);
+        }
+    }
+
+    private void CopyImageToClipboard(Bitmap bmp)
+    {
+        // HARD RULE: the snapshot ALWAYS lands on the clipboard as an image.
+        // We put it there with SetClipboardData + global-memory handles (DIBV5 and
+        // PNG formats). Once SetClipboardData succeeds, the SYSTEM owns the memory,
+        // so the image persists on the clipboard even if this app exits immediately -
+        // the snapshot can never silently disappear.
+        IntPtr hDib = IntPtr.Zero;
+        IntPtr hPng = IntPtr.Zero;
+        try
+        {
+            hDib = BuildDibV5(bmp);
+            hPng = BuildPngMem(bmp);
+            uint pngFmt = RegisterClipboardFormat("PNG");
+
+            for (int attempt = 0; attempt < 10; attempt++)
+            {
+                if (OpenClipboard(IntPtr.Zero))
+                {
+                    try
+                    {
+                        EmptyClipboard();
+                        SetClipboardData(CF_DIBV5, hDib);
+                        SetClipboardData(pngFmt, hPng);
+                        // success - the system now owns both handles
+                        hDib = IntPtr.Zero;
+                        hPng = IntPtr.Zero;
+                    }
+                    finally
+                    {
+                        CloseClipboard();
+                    }
+                    return;
+                }
+                System.Threading.Thread.Sleep(50);
+            }
+            throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error(), "Clipboard is busy");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Write("CopyImageToClipboard native failed: " + ex.Message);
+            try { Clipboard.SetImage(bmp); } catch { }
+        }
+        finally
+        {
+            if (hDib != IntPtr.Zero) GlobalFree(hDib);
+            if (hPng != IntPtr.Zero) GlobalFree(hPng);
+        }
+    }
+
+    private const uint CF_DIBV5 = 17;
+    private const uint GMEM_MOVEABLE = 0x0002;
+
+    private IntPtr BuildDibV5(Bitmap bmp)
+    {
+        int width = bmp.Width;
+        int height = bmp.Height;
+
+        byte[] pixelBytes = new byte[width * height * 4];
+        BitmapData bd = bmp.LockBits(new Rectangle(0, 0, width, height),
+            ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+        try
+        {
+            IntPtr src0 = bd.Scan0;
+            for (int y = 0; y < height; y++)
+            {
+                Marshal.Copy(new IntPtr(src0.ToInt64() + (long)y * bd.Stride),
+                    pixelBytes, y * width * 4, width * 4);
+            }
+        }
+        finally
+        {
+            bmp.UnlockBits(bd);
+        }
+
+        using (MemoryStream ms = new MemoryStream(124 + pixelBytes.Length))
+        using (BinaryWriter bw = new BinaryWriter(ms))
+        {
+            bw.Write(124);                  // biSize
+            bw.Write(width);                // biWidth
+            bw.Write(-height);              // biHeight (top-down)
+            bw.Write((short)1);             // biPlanes
+            bw.Write((short)32);            // biBitCount
+            bw.Write(0);                    // biCompression = BI_RGB
+            bw.Write(width * height * 4);   // biSizeImage
+            bw.Write(2835);                 // biXPelsPerMeter
+            bw.Write(2835);                 // biYPelsPerMeter
+            bw.Write(0);                    // biClrUsed
+            bw.Write(0);                    // biClrImportant
+            bw.Write(0x00FF0000);           // biRedMask
+            bw.Write(0x0000FF00);           // biGreenMask
+            bw.Write(0x000000FF);           // biBlueMask
+            bw.Write(0xFF000000);           // biAlphaMask
+            bw.Write(0);                    // biCSType
+            bw.Write(new byte[36]);         // biEndpoints
+            bw.Write(0); bw.Write(0); bw.Write(0); // biGammaRed/Green/Blue
+            bw.Write(0);                    // biIntent
+            bw.Write(0);                    // biProfileData
+            bw.Write(0);                    // biProfileSize
+            bw.Write(0);                    // biReserved
+            bw.Write(pixelBytes);
+            return CopyToGlobal(ms.ToArray());
+        }
+    }
+
+    private IntPtr BuildPngMem(Bitmap bmp)
+    {
+        using (MemoryStream ms = new MemoryStream())
+        {
+            bmp.Save(ms, System.Drawing.Imaging.ImageFormat.Png);
+            return CopyToGlobal(ms.ToArray());
+        }
+    }
+
+    private IntPtr CopyToGlobal(byte[] bytes)
+    {
+        IntPtr hMem = GlobalAlloc(GMEM_MOVEABLE, new UIntPtr((uint)bytes.Length));
+        if (hMem == IntPtr.Zero) throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error());
+        IntPtr ptr = GlobalLock(hMem);
+        if (ptr == IntPtr.Zero) { GlobalFree(hMem); throw new System.ComponentModel.Win32Exception(Marshal.GetLastWin32Error()); }
+        try
+        {
+            Marshal.Copy(bytes, 0, ptr, bytes.Length);
+        }
+        finally
+        {
+            GlobalUnlock(hMem);
+        }
+        return hMem;
+    }
+
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        if (hotkeyHost != null) hotkeyHost.DestroyHandle();
+        if (trayIcon != null)
+        {
+            trayIcon.Visible = false;
+            trayIcon.Dispose();
+        }
+        // Properly destroy the unmanaged HICON handle for the tray icon
+        if (_trayIconHandle != IntPtr.Zero)
+        {
+            DestroyIcon(_trayIconHandle);
+            _trayIconHandle = IntPtr.Zero;
+        }
+        base.OnFormClosing(e);
+    }
+
+    [STAThread]
+    static void Main()
+    {
+        AppLog.Init();
+        bool createdNew;
+        mutex = new Mutex(true, "Global\\FullScreenSnipMutex2025v3", out createdNew);
+        AppLog.Write("Main: createdNew={0}", createdNew);
+
+        if (!createdNew) return;
+
+        try { SetProcessDpiAwareness(2); } // PROCESS_PER_MONITOR_DPI_AWARE
+        catch { try { SetProcessDPIAware(); } catch { } }
+
+        try
+        {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new FullScreenSnip());
+        }
+        finally
+        {
+            if (mutex != null)
+            {
+                mutex.ReleaseMutex();
+            }
+        }
+    }
+}
+
+class HotkeyHost : NativeWindow
+{
+    public event Action<int> HotkeyPressed;
+    private const int WM_HOTKEY = 0x0312;
+
+    // Create a message-only window (HWND_MESSAGE as parent). It is not a real
+    // on-screen window: nothing can hide it, minimize it or destroy its handle,
+    // so hotkeys registered on it stay alive for the whole process lifetime.
+    public void CreateMessageOnly()
+    {
+        CreateParams cp = new CreateParams();
+        cp.Parent = new IntPtr(-3); // HWND_MESSAGE
+        CreateHandle(cp);
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WM_HOTKEY)
+        {
+            int id = m.WParam.ToInt32();
+            if (HotkeyPressed != null) HotkeyPressed(id);
+        }
+        base.WndProc(ref m);
+    }
+}
+
+class SnipOverlay : Form
+{
+    [DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+    private const int WM_SYSCOMMAND = 0x0112;
+    private const int SC_MOVE      = 0xF010;
+    private const int SC_SIZE      = 0xF000;
+    private const int SC_MINIMIZE  = 0xF020;
+    private const int SC_MAXIMIZE = 0xF030;
+    private const int SC_CLOSE    = 0xF060;
+    private const int SC_KEYMENU   = 0xF100;
+    private const int SC_MOUSEMENU = 0xF090;
+
+    private FullScreenSnip parent;
+    private Point startPoint;
+    private Rectangle selection;
+    private bool isSelecting = false;
+    private Bitmap screenCapture;
+    private bool forceImageClipboard;
+    private Rectangle monitorBounds;
+    private System.Windows.Forms.Timer idleTimer;
+    private System.Windows.Forms.Timer graceTimer;
+    private bool closing = false;
+    private const int WM_CAPTURECHANGED = 0x0215;
+
+    public SnipOverlay(FullScreenSnip parent, bool forceImageClipboard, Rectangle monitorBounds)
+    {
+        this.parent = parent;
+        this.forceImageClipboard = forceImageClipboard;
+        this.monitorBounds = monitorBounds;
+
+        this.SetStyle(
+            ControlStyles.AllPaintingInWmPaint |
+            ControlStyles.UserPaint |
+            ControlStyles.OptimizedDoubleBuffer,
+            true);
+        this.UpdateStyles();
+
+        this.FormBorderStyle = FormBorderStyle.None;
+        this.StartPosition = FormStartPosition.Manual;
+        this.Location = new Point(monitorBounds.Left, monitorBounds.Top);
+        this.Size = new Size(monitorBounds.Width, monitorBounds.Height);
+        this.TopMost = true;
+        this.ShowInTaskbar = false;
+        this.Cursor = Cursors.Cross;
+        this.BackColor = Color.Black;
+        this.Opacity = 1.0;
+        this.KeyPreview = true;
+
+        try
+        {
+            screenCapture = new Bitmap(monitorBounds.Width, monitorBounds.Height);
+            using (Graphics g = Graphics.FromImage(screenCapture))
+            {
+                g.CopyFromScreen(monitorBounds.Left, monitorBounds.Top, 0, 0, monitorBounds.Size, CopyPixelOperation.SourceCopy);
+            }
+        }
+        catch (Exception ex)
+        {
+            // FIX: a capture failure must never kill the overlay - show a dim screen instead
+            AppLog.Write("Overlay screen capture failed: " + ex.Message);
+            if (screenCapture != null) { screenCapture.Dispose(); screenCapture = null; }
+        }
+
+        this.MouseDown += OnMouseDown;
+        this.MouseMove += OnMouseMove;
+        this.MouseUp += OnMouseUp;
+        this.KeyDown += OnKeyDown;
+        this.Paint += OnPaint;
+        this.Load += OnLoad;
+    }
+
+    private void OnLoad(object sender, EventArgs e)
+    {
+        AppLog.Write("Overlay OnLoad: bounds={0}x{1} at {2},{3}", this.Width, this.Height, this.Left, this.Top);
+        // FIX: Force this window to be the active foreground window so it receives
+        // all keyboard and mouse events immediately without requiring a click to activate.
+        // Retry a few times: the OS foreground lock can reject the first attempts when
+        // the hotkey was fired from another process.
+        for (int i = 0; i < 6; i++)
+        {
+            SetForegroundWindow(this.Handle);
+            this.Activate();
+            this.BringToFront();
+            Application.DoEvents();
+            System.Threading.Thread.Sleep(35);
+        }
+        this.Focus();
+
+        // FIX (freeze guard): if another window steals activation - e.g. a Windows
+        // Security prompt - cancel the overlay. A 1.2s grace period tolerates the
+        // OS foreground lock rejecting our activation attempts, then auto-cancels so
+        // the screen can never remain frozen behind a dead fullscreen window.
+        // The grace timer is cancelled if the overlay regains activation, so a quick
+        // Alt+Tab away-and-back never closes an overlay the user still wants.
+        this.Deactivate += (s2, e2) =>
+        {
+            if (closing) return;
+            AppLog.Write("Overlay Deactivate");
+            if (graceTimer != null) { graceTimer.Stop(); graceTimer.Dispose(); graceTimer = null; }
+            graceTimer = new System.Windows.Forms.Timer();
+            graceTimer.Interval = 1200;
+            graceTimer.Tick += (s3, e3) =>
+            {
+                graceTimer.Stop(); graceTimer.Dispose(); graceTimer = null;
+                if (!closing && !this.IsDisposed) CloseOverlay("focus not regained");
+            };
+            graceTimer.Start();
+        };
+        this.Activated += (s2, e2) =>
+        {
+            if (closing) return;
+            AppLog.Write("Overlay Activated");
+            if (graceTimer != null) { graceTimer.Stop(); graceTimer.Dispose(); graceTimer = null; }
+        };
+
+        // FIX (watchdog): absolute safety net - if the overlay sits untouched for
+        // 25 seconds (focus stolen with no Deactivate, stuck message pump, hotkey
+        // double-fire), close it automatically so the screen can never stay frozen.
+        idleTimer = new System.Windows.Forms.Timer();
+        idleTimer.Interval = 25000;
+        idleTimer.Tick += (s2, e2) => { if (!closing) CloseOverlay("idle watchdog"); };
+        idleTimer.Start();
+        AppLog.Write("Overlay OnLoad complete");
+    }
+
+    protected override void WndProc(ref Message m)
+    {
+        if (m.Msg == WM_SYSCOMMAND)
+        {
+            // FIX: Block every system command that could close, move, resize, or menu
+            // the overlay window. The primary culprit is SC_KEYMENU (fired when Alt is
+            // still held from the hotkey that opened the overlay), and SC_MOVE (fired
+            // when Alt + left-click occurs on the window). Without this block the
+            // overlay is immediately destroyed on the user's first mouse press.
+            int cmd = m.WParam.ToInt32() & 0xFFF0;
+            if (cmd == SC_MOVE     || cmd == SC_SIZE    || cmd == SC_MINIMIZE ||
+                cmd == SC_MAXIMIZE || cmd == SC_CLOSE   || cmd == SC_KEYMENU  ||
+                cmd == SC_MOUSEMENU)
+            {
+                // Swallow the message — do not call base
+                m.Result = IntPtr.Zero;
+                return;
+            }
+        }
+
+        if (m.Msg == WM_CAPTURECHANGED)
+        {
+            // FIX: only abandon a drag that is genuinely still in progress. Mouse
+            // capture is ALSO released normally on mouse-up - and WM_CAPTURECHANGED is
+            // delivered synchronously inside that release - so this must NEVER clobber
+            // a selection that was just completed.
+            if (this.Capture) this.Capture = false;
+            if (isSelecting)
+            {
+                isSelecting = false;
+                if (selection.Width > 0 && selection.Height > 0)
+                {
+                    selection = Rectangle.Empty;
+                    this.Invalidate();
+                }
+            }
+        }
+
+        base.WndProc(ref m);
+    }
+
+    private void OnMouseDown(object sender, MouseEventArgs e)
+    {
+        ResetIdleTimer();
+        if (e.Button == MouseButtons.Left)
+        {
+            isSelecting = true;
+            startPoint = e.Location;
+            selection = new Rectangle(e.Location, Size.Empty);
+            // FIX: Capture the mouse so that MouseMove and MouseUp events are ALWAYS
+            // delivered to this window, even if the cursor leaves the window's client
+            // area during the drag. Without this, any stray movement outside the form
+            // bounds drops the mouse events and the selection is lost.
+            this.Capture = true;
+        }
+        else if (e.Button == MouseButtons.Right)
+        {
+            // Right-click cancels the overlay
+            CloseOverlay();
+        }
+    }
+
+    private void OnMouseMove(object sender, MouseEventArgs e)
+    {
+        ResetIdleTimer();
+        if (isSelecting)
+        {
+            int x = Math.Min(startPoint.X, e.X);
+            int y = Math.Min(startPoint.Y, e.Y);
+            int w = Math.Abs(e.X - startPoint.X);
+            int h = Math.Abs(e.Y - startPoint.Y);
+            selection = new Rectangle(x, y, w, h);
+            this.Invalidate();
+        }
+    }
+
+    private void OnMouseUp(object sender, MouseEventArgs e)
+    {
+        ResetIdleTimer();
+        if (e.Button == MouseButtons.Left && isSelecting)
+        {
+            // Mark the drag as finished BEFORE releasing capture: WM_CAPTURECHANGED is
+            // delivered synchronously by ReleaseCapture, and it must not see a drag
+            // still "in progress" (it would abandon the just-completed selection).
+            isSelecting = false;
+
+            if (selection.Width > 5 && selection.Height > 5)
+            {
+                // Valid selection — compute screen-space rectangle and capture
+                Rectangle screenRect = new Rectangle(
+                    this.Location.X + selection.X,
+                    this.Location.Y + selection.Y,
+                    selection.Width,
+                    selection.Height);
+
+                // FIX (reliability): crop the snapshot that was taken BEFORE this
+                // overlay appeared. This can never race with the overlay closing and
+                // can never capture the overlay itself - the clipboard image is always
+                // clean pixels. Falls back to a fresh CopyFromScreen only if the
+                // snapshot is unavailable.
+                Bitmap result = null;
+                if (screenCapture != null)
+                {
+                    try
+                    {
+                        result = new Bitmap(selection.Width, selection.Height);
+                        using (Graphics g = Graphics.FromImage(result))
+                        {
+                            g.DrawImage(screenCapture,
+                                new Rectangle(0, 0, selection.Width, selection.Height),
+                                new Rectangle(selection.X, selection.Y, selection.Width, selection.Height),
+                                GraphicsUnit.Pixel);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLog.Write("SnipOverlay crop failed: " + ex.Message);
+                        if (result != null) { result.Dispose(); result = null; }
+                    }
+                }
+
+                this.Capture = false;
+                CloseOverlay("selection");
+                parent.ProcessSnipResult(result, screenRect, forceImageClipboard);
+            }
+            else
+            {
+                // FIX: Selection too small — DO NOT close the overlay. Previously any
+                // click without a 5-pixel drag immediately closed the overlay, which was
+                // the most visible symptom of the bug. Now we just reset the selection
+                // and let the user try again without having to re-trigger the hotkey.
+                this.Capture = false;
+                selection = Rectangle.Empty;
+                this.Invalidate();
+            }
+        }
+    }
+
+    private void OnKeyDown(object sender, KeyEventArgs e)
+    {
+        ResetIdleTimer();
+        if (e.KeyCode == Keys.Escape)
+        {
+            AppLog.Write("Overlay ESC pressed");
+            CloseOverlay("esc");
+        }
+    }
+
+    private void ResetIdleTimer()
+    {
+        if (idleTimer != null)
+        {
+            idleTimer.Stop();
+            idleTimer.Start();
+        }
+    }
+
+    private void CloseOverlay(string reason)
+    {
+        AppLog.Write("CloseOverlay: reason={0}", reason);
+        // FIX: Always release mouse capture before closing to avoid a stuck OS-level
+        // capture that would prevent other windows from receiving mouse events.
+        if (closing) return;
+        closing = true;
+        if (idleTimer != null) { idleTimer.Stop(); idleTimer.Dispose(); idleTimer = null; }
+        if (graceTimer != null) { graceTimer.Stop(); graceTimer.Dispose(); graceTimer = null; }
+        if (this.Capture)
+            this.Capture = false;
+        try { this.Close(); } catch { }
+    }
+
+    private void CloseOverlay()
+    {
+        CloseOverlay("default");
+    }
+
+    private void OnPaint(object sender, PaintEventArgs e)
+    {
+        if (screenCapture != null)
+        {
+            e.Graphics.DrawImage(screenCapture, 0, 0);
+        }
+
+        using (SolidBrush dimBrush = new SolidBrush(Color.FromArgb(120, 0, 0, 0)))
+        using (Region dimRegion = new Region(new Rectangle(0, 0, this.Width, this.Height)))
+        {
+            if (selection.Width > 0 && selection.Height > 0)
+            {
+                dimRegion.Exclude(selection);
+            }
+            e.Graphics.FillRegion(dimBrush, dimRegion);
+        }
+
+        if (selection.Width > 0 && selection.Height > 0)
+        {
+            using (Pen borderPen = new Pen(Color.Red, 2))
+            {
+                e.Graphics.DrawRectangle(borderPen, selection);
+            }
+
+            string sizeText = selection.Width + " x " + selection.Height;
+            using (Font font = new Font("Segoe UI", 10, FontStyle.Bold))
+            using (SolidBrush bgBrush = new SolidBrush(Color.FromArgb(200, 0, 0, 0)))
+            using (SolidBrush textBrush = new SolidBrush(Color.White))
+            {
+                SizeF textSize = e.Graphics.MeasureString(sizeText, font);
+                float textX = selection.X + (selection.Width - textSize.Width) / 2;
+                float textY = selection.Y > 25 ? selection.Y - textSize.Height - 5 : selection.Bottom + 5;
+
+                if (textY < 0) textY = selection.Bottom + 5;
+                if (textY + textSize.Height > this.Height) textY = selection.Y + 5;
+
+                e.Graphics.FillRectangle(bgBrush, textX - 3, textY - 2, textSize.Width + 6, textSize.Height + 4);
+                e.Graphics.DrawString(sizeText, font, textBrush, textX, textY);
+            }
+        }
+
+        using (Font helpFont = new Font("Segoe UI", 12, FontStyle.Bold))
+        using (SolidBrush helpBg = new SolidBrush(Color.FromArgb(180, 0, 0, 0)))
+        using (SolidBrush helpText = new SolidBrush(Color.White))
+        {
+            string help = "Drag to select area | ESC or Right-click to cancel";
+            SizeF helpSize = e.Graphics.MeasureString(help, helpFont);
+            float hx = (this.Width - helpSize.Width) / 2;
+            float hy = 20;
+            e.Graphics.FillRectangle(helpBg, hx - 10, hy - 5, helpSize.Width + 20, helpSize.Height + 10);
+            e.Graphics.DrawString(help, helpFont, helpText, hx, hy);
+        }
+    }    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+        // FIX: Guarantee capture is always released on form close
+        closing = true;
+        if (idleTimer != null) { idleTimer.Stop(); idleTimer.Dispose(); idleTimer = null; }
+        if (graceTimer != null) { graceTimer.Stop(); graceTimer.Dispose(); graceTimer = null; }
+        if (this.Capture)
+            this.Capture = false;
+
+        if (screenCapture != null)
+        {
+            screenCapture.Dispose();
+            screenCapture = null;
+        }
+        base.OnFormClosing(e);
+    }
+}

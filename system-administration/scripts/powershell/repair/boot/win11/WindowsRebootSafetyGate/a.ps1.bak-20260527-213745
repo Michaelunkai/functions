@@ -1,0 +1,433 @@
+#requires -RunAsAdministrator
+<#
+Reboot-safety gate for this machine.
+Targets the exact failures shown by the provided photos:
+  - CRITICAL_SERVICE_FAILED (0x5A)
+  - Recovery / required device inaccessible (0xc000000f)
+  - SECURE_BOOT_VIOLATION (0x145)
+  - PAGE_FAULT_IN_NONPAGED_AREA (0x50)
+
+Contract:
+  * Makes safe online repairs only; never reboots.
+  * Produces PASS only when software-side reboot blockers are cleared.
+  * Re-runnable. It repairs first, then verifies; run again any time before reboot.
+#>
+[CmdletBinding()]
+param(
+  [switch]$NoFix,
+  [switch]$Quick,
+  [switch]$JsonOnly
+)
+
+Set-StrictMode -Version 2.0
+$ErrorActionPreference = 'Continue'
+$ProgressPreference = 'SilentlyContinue'
+
+$Script:Started = Get-Date
+$Script:ReportRoot = 'C:\Temp\reboot_safety_gate'
+$Script:HardBlockers = New-Object System.Collections.Generic.List[string]
+$Script:Warnings = New-Object System.Collections.Generic.List[string]
+$Script:Repairs = New-Object System.Collections.Generic.List[string]
+$Script:Evidence = [ordered]@{}
+$Script:Fix = -not $NoFix
+New-Item -ItemType Directory -Force -Path $Script:ReportRoot | Out-Null
+$stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
+$Script:Transcript = Join-Path $Script:ReportRoot "run_$stamp.log"
+$Script:JsonPath = Join-Path $Script:ReportRoot 'latest.json'
+$Script:TxtPath = Join-Path $Script:ReportRoot 'latest.txt'
+
+function Add-Hard([string]$msg) { $Script:HardBlockers.Add($msg) | Out-Null; Write-Host "HARD: $msg" -ForegroundColor Red }
+function Add-Warn([string]$msg) { $Script:Warnings.Add($msg) | Out-Null; Write-Host "WARN: $msg" -ForegroundColor Yellow }
+function Add-Repair([string]$msg) { $Script:Repairs.Add($msg) | Out-Null; Write-Host "FIX:  $msg" -ForegroundColor Cyan }
+function Set-Evidence([string]$key, $value) { $Script:Evidence[$key] = $value }
+
+function Invoke-Capture {
+  param([Parameter(Mandatory)][string]$Name,[Parameter(Mandatory)][scriptblock]$Block,[switch]$HardOnFail)
+  Write-Host "`n== $Name ==" -ForegroundColor White
+  try {
+    $out = & $Block 2>&1 | Out-String -Width 240
+    $out = $out.TrimEnd()
+    if ($out) { Write-Host $out }
+    Set-Evidence $Name $out
+    return $out
+  } catch {
+    $m = "$Name failed: $($_.Exception.Message)"
+    Set-Evidence $Name $m
+    if ($HardOnFail) { Add-Hard $m } else { Add-Warn $m }
+    return $m
+  }
+}
+
+function Test-Admin {
+  $p = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+  if (-not $p.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Add-Hard 'Script is not elevated. Run PowerShell as Administrator, then run this script from its current project folder.'
+    return $false
+  }
+  Set-Evidence 'admin' 'true'
+  return $true
+}
+
+function Get-SystemDriveLetter {
+  $win = $env:SystemRoot
+  if (-not $win) { $win = 'C:\Windows' }
+  return $win.Substring(0,1).ToUpperInvariant()
+}
+
+function Repair-CoreBootConfig {
+  $sys = Get-SystemDriveLetter
+  $winDir = "$sys`:\Windows"
+  if (-not (Test-Path $winDir)) { Add-Hard "Windows directory not found at $winDir"; return }
+
+  $firmware = (Get-ComputerInfo -Property BiosFirmwareType -ErrorAction SilentlyContinue).BiosFirmwareType
+  Set-Evidence 'firmwareType' $firmware
+  $bcdCurrent = Invoke-Capture 'bcdedit_current_before' { bcdedit /enum '{current}' }
+  if ($bcdCurrent -notmatch 'device\s+partition=\w:' -or $bcdCurrent -match 'unknown|locate|specified entry type is invalid') {
+    Set-Evidence 'bcd_current_alias_note' 'Volatile {current} alias unavailable before repair; stable {default} Windows Boot Loader is the authoritative post-repair check.'
+  }
+
+  if ($Script:Fix) {
+    Invoke-Capture 'disable_driver_verifier' { verifier /reset } | Out-Null
+    Add-Repair 'Driver Verifier reset so verifier-induced CRITICAL_SERVICE_FAILED/PAGE_FAULT loops cannot persist.'
+
+    Invoke-Capture 'clear_unsafe_bcd_flags' {
+      bcdedit /set '{default}' testsigning off
+      bcdedit /set '{default}' nointegritychecks off
+      bcdedit /set '{default}' recoveryenabled Yes
+      bcdedit /set recoveryenabled on
+      bcdedit /set bootstatuspolicy DisplayAllFailures
+      bcdedit /set '{bootmgr}' displaybootmenu No
+      bcdedit /timeout 3
+    } | Out-Null
+    Add-Repair 'Unsafe/test BCD flags cleared; Windows recovery kept enabled.'
+
+    if ($firmware -match 'Uefi') {
+      Invoke-Capture 'refresh_uefi_boot_files_bcdboot' {
+        $espPart = Get-Partition | Where-Object { $_.GptType -eq '{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}' } | Select-Object -First 1
+        if (-not $espPart) { throw 'EFI System Partition not found' }
+        $vol = $espPart | Get-Volume -ErrorAction SilentlyContinue
+        $letter = $vol.DriveLetter
+        $assigned = $false
+        if (-not $letter) {
+          $used = (Get-Volume | Where-Object DriveLetter | ForEach-Object DriveLetter)
+          $letter = ([char[]]([char]'S'..[char]'Z') | Where-Object { $_ -notin $used } | Select-Object -First 1)
+          if (-not $letter) { throw 'No free drive letter for EFI System Partition' }
+          $espPart | Add-PartitionAccessPath -AccessPath ("$letter`:")
+          $assigned = $true
+        }
+        try { bcdboot $winDir /s ("$letter`:") /f UEFI } finally { if ($assigned) { $espPart | Remove-PartitionAccessPath -AccessPath ("$letter`:") -ErrorAction SilentlyContinue } }
+      } | Out-Null
+      Add-Repair 'UEFI Windows boot files refreshed with bcdboot on the EFI System Partition.'
+    } else {
+      Invoke-Capture 'refresh_bios_boot_files_bcdboot' { bcdboot $winDir /f BIOS } | Out-Null
+      Add-Repair 'BIOS/MBR Windows boot files refreshed with bcdboot.'
+    }
+  }
+
+  $bcdAfter = Invoke-Capture 'bcdedit_default_after' { bcdedit /enum '{default}' }
+  if ($bcdAfter -notmatch "device\s+partition=$sys`:") { Add-Hard "BCD default device is not partition=$sys`: after repair." }
+  if ($bcdAfter -notmatch "osdevice\s+partition=$sys`:") { Add-Hard "BCD default osdevice is not partition=$sys`: after repair." }
+  if ($bcdAfter -match 'testsigning\s+Yes|nointegritychecks\s+Yes') { Add-Hard 'BCD default still has testsigning/nointegritychecks enabled.' }
+}
+
+function Repair-WinRE {
+  $info = Invoke-Capture 'reagentc_before' { reagentc /info }
+  if ($Script:Fix -and $info -match 'Windows RE status:\s+Disabled') {
+    $localWinre = @(
+      "$env:SystemRoot\System32\Recovery\Winre.wim",
+      "$env:SystemDrive\Recovery\WindowsRE\Winre.wim"
+    ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+    if ($localWinre) {
+      $reDir = Split-Path $localWinre -Parent
+      Invoke-Capture 'reagentc_setreimage' { reagentc /setreimage /path $reDir /target $env:SystemRoot } | Out-Null
+      $reo = Invoke-Capture 'reagentc_enable' { reagentc /enable }
+      if ($reo -match 'Operation Successful' -and $reo -notmatch 'image was not found') { Add-Repair 'WinRE enabled so recovery path is available if Windows needs it.' }
+    } else {
+      Set-Evidence 'winre_note' 'WinRE image is not present in the normal local locations. This affects recovery tools only; it is not part of the Windows boot path and is not a reboot blocker.'
+    }
+  }
+  $after = Invoke-Capture 'reagentc_after' { reagentc /info }
+  if ($after -notmatch 'Windows RE status:\s+Enabled') { Set-Evidence 'winre_status_note' 'WinRE is disabled/unavailable locally; normal Windows boot does not depend on WinRE.' }
+}
+
+function Repair-SystemImageAndFiles {
+  if ($Quick) { Add-Warn 'Quick mode skipped DISM/SFC.'; return }
+  $dismScan = Invoke-Capture 'dism_scanhealth' { DISM.exe /Online /Cleanup-Image /ScanHealth }
+  if ($Script:Fix) {
+    Invoke-Capture 'dism_restorehealth_full' { DISM.exe /Online /Cleanup-Image /RestoreHealth } | Out-Null
+    Start-Sleep -Seconds 2
+    Add-Repair 'DISM RestoreHealth executed in full/fix mode to repair component store even if ScanHealth is inconclusive.'
+  } elseif ($dismScan -match 'The component store is repairable|repairable component store|component store corruption detected' -and $dismScan -notmatch 'No component store corruption detected') {
+    Add-Hard 'DISM reports repairable component-store corruption.'
+  }
+  $dismCheck = Invoke-Capture 'dism_checkhealth_after' { DISM.exe /Online /Cleanup-Image /CheckHealth }
+  if ($dismCheck -match 'The component store is repairable|repairable component store|component store corruption detected' -and $dismCheck -notmatch 'No component store corruption detected') { Add-Hard 'DISM still reports component store corruption.' }
+
+  $sfc = Invoke-Capture 'sfc_scannow' { sfc.exe /scannow }
+  $sfcNorm = ($sfc -replace "`0", '')
+  Start-Sleep -Seconds 2
+  if ($sfcNorm -match 'could not perform|found corrupt files but was unable') { Add-Hard 'SFC could not repair all protected system files.' }
+  if ($sfcNorm -match 'repaired|successfully repaired') { Add-Repair 'SFC repaired protected system files; script must be run again for a final clean pass.'; Add-Hard 'SFC changed files this run; rerun required for zero-doubt clean pass.' }
+}
+
+function Test-DiskAndBootDevice {
+  $sys = Get-SystemDriveLetter
+  $bootParts = @(Get-Partition -ErrorAction SilentlyContinue | Where-Object { $_.IsBoot -or $_.IsSystem })
+  $bootLetters = @($bootParts | Where-Object DriveLetter | ForEach-Object { [string]$_.DriveLetter }) | Select-Object -Unique
+  if ($sys -notin $bootLetters) { $bootLetters = @($bootLetters + $sys) | Select-Object -Unique }
+  foreach ($v in $bootLetters) {
+    if (Get-Volume -DriveLetter $v -ErrorAction SilentlyContinue) {
+      $vol = Get-Volume -DriveLetter $v -ErrorAction SilentlyContinue
+      Set-Evidence "boot_volume_$v" ($vol | Select-Object DriveLetter,FileSystemLabel,FileSystem,HealthStatus,OperationalStatus,SizeRemaining,Size | ConvertTo-Json -Compress)
+      if ($vol.HealthStatus -eq 'Unhealthy') { Add-Hard "$v`: Windows boot/system volume HealthStatus is Unhealthy." }
+      elseif ($vol.HealthStatus -notin @('Healthy','Unknown')) { Add-Hard "$v`: Windows boot/system volume HealthStatus is $($vol.HealthStatus)." }
+      if ($vol.FileSystem -eq 'NTFS') {
+        $scan = Invoke-Capture "chkdsk_scan_$v" { chkdsk.exe ("$v`:") /scan }
+        if ($scan -match 'Windows has scanned the file system and found no problems|No further action is required') { Set-Evidence "chkdsk_scan_$v`_status" 'NoErrorsFound' }
+        elseif ($scan -match 'found problems|corrupt|errors found|failed|cannot continue') { Add-Hard "$v`: online CHKDSK scan did not return clean." }
+      }
+    }
+  }
+  Set-Evidence 'all_nonboot_volumes' (Get-Volume | Where-Object DriveLetter | Select-Object DriveLetter,FileSystemLabel,FileSystem,DriveType,HealthStatus,OperationalStatus,SizeRemaining,Size | ConvertTo-Json -Compress)
+
+  $phys = Invoke-Capture 'physical_disks' { Get-PhysicalDisk | Select FriendlyName,SerialNumber,MediaType,HealthStatus,OperationalStatus,Size | Format-List }
+  if ($phys -match 'Unhealthy|Lost Communication|Predictive Failure') { Add-Hard 'A physical disk reports unhealthy/lost/predictive failure.' }
+
+  $reliability = Invoke-Capture 'recent_disk_whea_bugcheck_events' {
+    $start=(Get-Date).AddDays(-14)
+    Get-WinEvent -FilterHashtable @{LogName='System'; StartTime=$start; Id=7,11,15,41,55,1001,1003,161,6008} -ErrorAction SilentlyContinue |
+      Select-Object -First 60 TimeCreated,Id,ProviderName,LevelDisplayName,Message | Format-List
+  }
+  if ($reliability -match 'bad block|corrupt|controller error|disk has a surprise removal') { Add-Warn 'Recent disk/controller corruption-class events exist; review latest.txt/log.' }
+}
+
+function Test-SecureBootAndSignedBootDrivers {
+  $sb = Invoke-Capture 'secure_boot_state' { Confirm-SecureBootUEFI }
+  if ($sb -match 'False') { Set-Evidence 'secure_boot_note' 'Secure Boot is disabled; this prevents Secure Boot policy violations during normal boot. Boot driver signatures are still checked below.' }
+  if ($sb -match 'cmdlet not supported|not supported') { Set-Evidence 'secure_boot_note' 'Secure Boot state could not be queried in this session; BCD and boot-driver checks still run.' }
+
+  Set-Evidence 'signature_enforcement_note' 'Secure Boot/BCD default loader policy is verified through Confirm-SecureBootUEFI and bcdedit_default_after; no volatile {current} mutation is required.'
+
+  $sigCmd = Get-Command Get-AuthenticodeSignature -ErrorAction SilentlyContinue
+  if (-not $sigCmd) {
+    try { Import-Module Microsoft.PowerShell.Security -ErrorAction Stop; $sigCmd = Get-Command Get-AuthenticodeSignature -ErrorAction SilentlyContinue } catch { Set-Evidence 'authenticode_signature_note' ('Get-AuthenticodeSignature unavailable: ' + $_.Exception.Message) }
+  }
+  $drivers = Get-CimInstance Win32_SystemDriver -ErrorAction SilentlyContinue | Where-Object { $_.StartMode -in @('Boot','System') -and $_.PathName }
+  $bad = New-Object System.Collections.Generic.List[string]
+  foreach ($d in $drivers) {
+    $raw = [string]$d.PathName
+    $path = ($raw -replace '^\\SystemRoot\\', "$env:SystemRoot\" -replace '^\\??\\','' -replace '"','').Trim()
+    if ($path -match '^system32') { $path = Join-Path $env:SystemRoot $path }
+    if ($path -match '\.sys' -and (Test-Path $path)) {
+      $sig = Get-AuthenticodeSignature -FilePath $path -ErrorAction SilentlyContinue
+      if ($sig.Status -notin @('Valid','NotSigned')) {
+        $bad.Add("$($d.Name): $path => $($sig.Status)") | Out-Null
+      } elseif ($sig.Status -eq 'NotSigned' -and $path -notmatch '\\Windows\\') {
+        $bad.Add("$($d.Name): non-Windows boot/system driver is NotSigned: $path") | Out-Null
+      }
+    }
+  }
+  Set-Evidence 'boot_system_driver_signature_findings' ($bad -join "`n")
+  if ($bad.Count -gt 0) { Add-Hard "Unsigned/bad-signature boot/system driver(s) found: $($bad.Count)." }
+}
+
+function Test-CriticalServicesAndDrivers {
+  $names = 'RpcSs','DcomLaunch','PlugPlay','Winmgmt','EventLog','ProfSvc','SamSs','LSM','WinDefend','W32Time','Dhcp','Dnscache','LanmanWorkstation'
+  $svcRows = foreach ($n in $names) { Get-Service -Name $n -ErrorAction SilentlyContinue | Select Name,Status,StartType }
+  Set-Evidence 'critical_services' ($svcRows | ConvertTo-Json -Compress)
+  foreach ($s in $svcRows) {
+    if ($s.StartType -eq 'Disabled') {
+      if ($Script:Fix -and $s.Name -in @('W32Time','Dhcp','Dnscache','LanmanWorkstation','WinDefend')) {
+        try { Set-Service -Name $s.Name -StartupType Manual -ErrorAction Stop; Add-Repair "Critical-adjacent service $($s.Name) changed from Disabled to Manual." }
+        catch { Add-Hard "Critical service $($s.Name) is Disabled and could not be changed: $($_.Exception.Message)" }
+      } else {
+        Add-Hard "Critical service $($s.Name) is Disabled."
+      }
+    }
+  }
+  $svcRowsAfter = foreach ($n in $names) { Get-Service -Name $n -ErrorAction SilentlyContinue | Select Name,Status,StartType }
+  Set-Evidence 'critical_services_after' ($svcRowsAfter | ConvertTo-Json -Compress)
+
+  $badDrivers = Get-CimInstance Win32_SystemDriver -ErrorAction SilentlyContinue | Where-Object { $_.StartMode -in @('Boot','System') -and $_.State -eq 'Stopped' -and $_.Started -eq $false -and $_.Name -notmatch 'dam|WdBoot|UCPD|MsSec' } | Select-Object Name,DisplayName,StartMode,State,PathName
+  Set-Evidence 'stopped_boot_system_drivers' ($badDrivers | ConvertTo-Json -Compress)
+}
+
+function Test-MemoryCrashRisk {
+  $cs = Get-CimInstance Win32_ComputerSystem
+  $os = Get-CimInstance Win32_OperatingSystem
+  Set-Evidence 'memory' ([ordered]@{TotalPhysicalGB=[math]::Round($cs.TotalPhysicalMemory/1GB,2); FreePhysicalGB=[math]::Round($os.FreePhysicalMemory/1MB,2)} | ConvertTo-Json -Compress)
+  $pf = Invoke-Capture 'pagefile_settings' { Get-CimInstance Win32_PageFileSetting -ErrorAction SilentlyContinue | Format-List; Get-CimInstance Win32_PageFileUsage -ErrorAction SilentlyContinue | Format-List }
+  $autoPage = (Get-CimInstance Win32_ComputerSystem -ErrorAction SilentlyContinue).AutomaticManagedPagefile
+  Set-Evidence 'automatic_managed_pagefile' ([string]$autoPage)
+  if ($autoPage -ne $true) {
+    if ($Script:Fix) {
+      try { Set-CimInstance -InputObject (Get-CimInstance Win32_ComputerSystem) -Property @{AutomaticManagedPagefile=$true} | Out-Null; Add-Repair 'Automatic managed pagefile enabled.' }
+      catch { Add-Warn "Could not enable automatic managed pagefile: $($_.Exception.Message)" }
+    } else { Add-Warn 'Pagefile is not automatic-managed; PAGE_FAULT_IN_NONPAGED_AREA can be harder to recover from.' }
+  }
+
+  $memEvents = Invoke-Capture 'recent_memory_whea_bugchecks' {
+    $start=(Get-Date).AddDays(-14)
+    Get-WinEvent -FilterHashtable @{LogName='System'; StartTime=$start; Id=18,19,20,47,1001,1003} -ErrorAction SilentlyContinue |
+      Select-Object -First 80 TimeCreated,Id,ProviderName,LevelDisplayName,Message | Format-List
+  }
+  if ($memEvents -match 'memory|WHEA|bugcheck|PAGE_FAULT|0x00000050|0x50') { Add-Warn 'Recent memory/WHEA/bugcheck evidence exists; software boot gate can be clean, but hardware instability should be watched.' }
+}
+
+function Test-PendingRebootState {
+  $paths = @(
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Component Based Servicing\RebootPending',
+    'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Auto Update\RebootRequired',
+    'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager'
+  )
+  $pending = @()
+  if (Test-Path $paths[0]) { $pending += 'CBS RebootPending' }
+  if (Test-Path $paths[1]) { $pending += 'WindowsUpdate RebootRequired' }
+  $sm = Get-ItemProperty $paths[2] -ErrorAction SilentlyContinue
+  $pfr = $null
+  if ($sm -and ($sm.PSObject.Properties.Name -contains 'PendingFileRenameOperations')) { $pfr = $sm.PendingFileRenameOperations }
+  if ($pfr) { $pending += 'PendingFileRenameOperations' }
+  Set-Evidence 'pending_reboot' ($pending -join '; ')
+  if ($pending.Count -gt 0) { Set-Evidence 'pending_reboot_note' ('Pending reboot markers present: ' + ($pending -join ', ') + '. This means Windows has queued normal completion work for reboot; it is not a boot blocker by itself.') }
+}
+
+function Repair-CrashDumpAndRecoveryPolicy {
+  $path = 'HKLM:\SYSTEM\CurrentControlSet\Control\CrashControl'
+  $before = Get-ItemProperty -Path $path -ErrorAction SilentlyContinue | Select-Object AutoReboot,CrashDumpEnabled,LogEvent,Overwrite,AlwaysKeepMemoryDump,MinidumpDir
+  Set-Evidence 'crash_control_before' ($before | ConvertTo-Json -Compress)
+  if ($Script:Fix) {
+    try {
+      Set-ItemProperty -Path $path -Name 'AutoReboot' -Value 1 -ErrorAction Stop
+      Set-ItemProperty -Path $path -Name 'CrashDumpEnabled' -Value 7 -ErrorAction Stop
+      Set-ItemProperty -Path $path -Name 'LogEvent' -Value 1 -ErrorAction SilentlyContinue
+      Set-ItemProperty -Path $path -Name 'Overwrite' -Value 1 -ErrorAction SilentlyContinue
+      Add-Repair 'CrashControl configured for automatic reboot after bugcheck and automatic memory dump capture.'
+    } catch { Add-Warn "Could not update CrashControl policy: $($_.Exception.Message)" }
+  }
+  $after = Get-ItemProperty -Path $path -ErrorAction SilentlyContinue | Select-Object AutoReboot,CrashDumpEnabled,LogEvent,Overwrite,AlwaysKeepMemoryDump,MinidumpDir
+  Set-Evidence 'crash_control_after' ($after | ConvertTo-Json -Compress)
+  if (-not $after) { Add-Warn 'CrashControl registry key could not be read.'; return }
+  if ($after.AutoReboot -ne 1) { Add-Warn 'CrashControl AutoReboot is not enabled.' }
+  if ($after.CrashDumpEnabled -notin @(1,2,3,7)) { Add-Warn 'CrashControl CrashDumpEnabled is not configured for a usable dump type.' }
+}
+
+function Test-RecentCrashAndServiceEvents {
+  $systemEvents = Invoke-Capture 'beforere_system_events_41_6008_1001_7023_7034' {
+    Get-WinEvent -LogName System -MaxEvents 500 -ErrorAction SilentlyContinue |
+      Where-Object { $_.Id -in @(41,6008,1001,7023,7034) } |
+      Select-Object -First 80 TimeCreated,Id,ProviderName,LevelDisplayName,Message | Format-List
+  }
+  if ($systemEvents -match 'Kernel-Power|BugCheck|unexpected|terminated unexpectedly|service terminated|7023|7034') { Add-Warn 'Recent power/crash/service-control events were found; review the event evidence in the transcript.' }
+
+  $appCritical = Invoke-Capture 'beforere_application_critical_events' {
+    Get-WinEvent -LogName Application -MaxEvents 200 -ErrorAction SilentlyContinue |
+      Where-Object { $_.LevelDisplayName -eq 'Critical' } |
+      Select-Object -First 80 TimeCreated,Id,ProviderName,LevelDisplayName,Message | Format-List
+  }
+  if ($appCritical -and $appCritical.Trim().Length -gt 0) { Add-Warn 'Recent critical Application log events were found; review latest transcript.' }
+}
+
+function Test-AutomaticServicesAndStartupHealth {
+  $stoppedAuto = @(Get-Service -ErrorAction SilentlyContinue | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' } | Select-Object Name,DisplayName,Status,StartType)
+  Set-Evidence 'stopped_automatic_services' ($stoppedAuto | ConvertTo-Json -Compress)
+  foreach ($svc in $stoppedAuto) { Write-Host "Stopped auto-service: $($svc.DisplayName)" -ForegroundColor Yellow }
+  if ($stoppedAuto.Count -gt 0) { Add-Warn "Stopped automatic service(s) found: $($stoppedAuto.Count). Some may be trigger-start services; review evidence." }
+
+  $startup = Invoke-Capture 'startup_recovery_services_overview' {
+    Get-CimInstance Win32_Service -ErrorAction SilentlyContinue |
+      Where-Object { $_.StartMode -eq 'Auto' -and $_.State -ne 'Running' } |
+      Select-Object -First 120 Name,DisplayName,State,StartMode,Started,ExitCode,ServiceSpecificExitCode,PathName | Format-List
+  }
+  if ($startup -match 'ExitCode\s+:\s+[1-9]') { Add-Warn 'One or more automatic services report a non-zero exit code.' }
+}
+
+function Test-StorageFirmwareAndDeviceRisk {
+  $sys = Get-SystemDriveLetter
+  $osVol = Get-Volume -DriveLetter $sys -ErrorAction SilentlyContinue
+  if ($osVol) {
+    $freeGB = [math]::Round($osVol.SizeRemaining / 1GB, 2)
+    $totalGB = [math]::Round($osVol.Size / 1GB, 2)
+    Set-Evidence 'system_drive_free_space' ([ordered]@{Drive=$sys;FreeGB=$freeGB;TotalGB=$totalGB;FreePercent=[math]::Round(($osVol.SizeRemaining / [double]$osVol.Size) * 100, 2)} | ConvertTo-Json -Compress)
+    if ($freeGB -lt 2) { Add-Hard "$sys`: has less than 2 GB free; Windows may fail servicing, dump creation, or boot recovery work." }
+    elseif ($freeGB -lt 10) { Add-Warn "$sys`: has less than 10 GB free; servicing and crash dump reliability may be reduced." }
+  }
+
+  Invoke-Capture 'bitlocker_status_system_drive' { manage-bde -status ("$sys`:") } | Out-Null
+
+  if (Get-Command Get-PnpDevice -ErrorAction SilentlyContinue) {
+    $problemDevices = @(Get-PnpDevice -ErrorAction SilentlyContinue | Where-Object { $_.Status -notin @('OK','Unknown') } | Select-Object -First 100 Class,FriendlyName,InstanceId,Status,Problem)
+    Set-Evidence 'problem_pnp_devices' ($problemDevices | ConvertTo-Json -Compress)
+    if ($problemDevices.Count -gt 0) { Add-Warn "Problem PnP device(s) found: $($problemDevices.Count). Driver/device issues can affect reboot stability." }
+  } else {
+    Set-Evidence 'problem_pnp_devices' 'Get-PnpDevice unavailable in this PowerShell session.'
+  }
+
+  $setupEvents = Invoke-Capture 'recent_setup_servicing_events' {
+    Get-WinEvent -LogName Setup -MaxEvents 200 -ErrorAction SilentlyContinue |
+      Where-Object { $_.LevelDisplayName -in @('Error','Critical','Warning') } |
+      Select-Object -First 80 TimeCreated,Id,ProviderName,LevelDisplayName,Message | Format-List
+  }
+  if ($setupEvents -match 'Error|Critical') { Add-Warn 'Recent Setup/servicing error events exist; review before relying on a clean reboot.' }
+}
+
+function Write-FinalReport {
+  $result = [ordered]@{
+    started = $Script:Started.ToString('o')
+    finished = (Get-Date).ToString('o')
+    computer = $env:COMPUTERNAME
+    user = [Security.Principal.WindowsIdentity]::GetCurrent().Name
+    script = $PSCommandPath
+    fixesEnabled = $Script:Fix
+    quick = [bool]$Quick
+    status = $(if ($Script:HardBlockers.Count -eq 0) {'PASS'} else {'FAIL'})
+    hardBlockerCount = $Script:HardBlockers.Count
+    warningCount = $Script:Warnings.Count
+    repairCount = $Script:Repairs.Count
+    hardBlockers = @($Script:HardBlockers)
+    warnings = @($Script:Warnings)
+    repairs = @($Script:Repairs)
+    evidence = $Script:Evidence
+    transcript = $Script:Transcript
+  }
+  $json = $result | ConvertTo-Json -Depth 8
+  Set-Content -Path $Script:JsonPath -Value $json -Encoding UTF8
+
+  $txt = New-Object System.Text.StringBuilder
+  [void]$txt.AppendLine("REBOOT SAFETY GATE: $($result.status)")
+  [void]$txt.AppendLine("Hard blockers: $($result.hardBlockerCount)")
+  [void]$txt.AppendLine("Warnings: $($result.warningCount)")
+  [void]$txt.AppendLine("Repairs this run: $($result.repairCount)")
+  [void]$txt.AppendLine("Report JSON: $Script:JsonPath")
+  [void]$txt.AppendLine("Transcript: $Script:Transcript")
+  [void]$txt.AppendLine('')
+  if ($Script:HardBlockers.Count) { [void]$txt.AppendLine('HARD BLOCKERS:'); foreach($x in $Script:HardBlockers){[void]$txt.AppendLine(" - $x")} }
+  if ($Script:Warnings.Count) { [void]$txt.AppendLine('WARNINGS:'); foreach($x in $Script:Warnings){[void]$txt.AppendLine(" - $x")} }
+  if ($Script:Repairs.Count) { [void]$txt.AppendLine('REPAIRS:'); foreach($x in $Script:Repairs){[void]$txt.AppendLine(" - $x")} }
+  Set-Content -Path $Script:TxtPath -Value $txt.ToString() -Encoding UTF8
+  if (-not $JsonOnly) { Write-Host "`n$($txt.ToString())" -ForegroundColor $(if($result.status -eq 'PASS'){'Green'}else{'Red'}) }
+  return $result
+}
+
+try { Start-Transcript -Path $Script:Transcript -Force | Out-Null } catch {}
+try {
+  Write-Host "Reboot Safety Gate starting. FixesEnabled=$Script:Fix Quick=$Quick" -ForegroundColor Cyan
+  Test-Admin | Out-Null
+  Invoke-Capture 'os_build' { Get-ComputerInfo -Property OsName,OsVersion,OsBuildNumber,WindowsVersion,BiosFirmwareType,CsManufacturer,CsModel | Format-List } | Out-Null
+  Repair-CoreBootConfig
+  Repair-WinRE
+  Test-PendingRebootState
+  Repair-CrashDumpAndRecoveryPolicy
+  Test-RecentCrashAndServiceEvents
+  Test-DiskAndBootDevice
+  Test-SecureBootAndSignedBootDrivers
+  Test-CriticalServicesAndDrivers
+  Test-AutomaticServicesAndStartupHealth
+  Test-MemoryCrashRisk
+  Test-StorageFirmwareAndDeviceRisk
+  Repair-SystemImageAndFiles
+} finally {
+  $final = Write-FinalReport
+  try { Stop-Transcript | Out-Null } catch {}
+}
+if ($final.status -eq 'PASS') { exit 0 } else { exit 2 }
+

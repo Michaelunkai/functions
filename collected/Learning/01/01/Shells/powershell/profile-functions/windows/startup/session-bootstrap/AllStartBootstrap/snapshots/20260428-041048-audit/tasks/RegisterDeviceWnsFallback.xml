@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <SecurityDescriptor>D:P(A;;FA;;;SY)(A;;FRFX;;;BA)</SecurityDescriptor>
+    <URI>\Microsoft\Windows\DeviceDirectoryClient\RegisterDeviceWnsFallback</URI>
+  </RegistrationInfo>
+  <Principals>
+    <Principal id="System">
+      <UserId>S-1-5-18</UserId>
+    </Principal>
+  </Principals>
+  <Settings>
+    <AllowHardTerminate>false</AllowHardTerminate>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <Hidden>true</Hidden>
+    <MultipleInstancesPolicy>Parallel</MultipleInstancesPolicy>
+    <Priority>10</Priority>
+    <RestartOnFailure>
+      <Count>14</Count>
+      <Interval>PT12H</Interval>
+    </RestartOnFailure>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>true</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>true</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <UseUnifiedSchedulingEngine>true</UseUnifiedSchedulingEngine>
+  </Settings>
+  <Triggers>
+    <TimeTrigger>
+      <StartBoundary>2026-05-20T20:54:13</StartBoundary>
+    </TimeTrigger>
+  </Triggers>
+  <Actions Context="System">
+    <ComHandler>
+      <ClassId>{AE31B729-D5FD-401E-AF42-784074835AFE}</ClassId>
+      <Data><![CDATA[-RegisterDevice -Periodic]]></Data>
+    </ComHandler>
+  </Actions>
+</Task>

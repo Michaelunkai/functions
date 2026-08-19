@@ -1,0 +1,1 @@
+﻿iwr "https://www.speedguide.net/files/TCPOptimizer.exe" -OutFile "$env:TEMP\TCPOptimizer.exe"; & "$env:TEMP\TCPOptimizer.exe"

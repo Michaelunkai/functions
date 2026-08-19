@@ -1,0 +1,5 @@
+@echo off
+set "LOG=C:\Temp\CDriveMaxSafeDeleteAudit\pending-startup-cleanup.log"
+echo ==== %DATE% %TIME% ====>>"%LOG%"
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe -NoProfile -ExecutionPolicy Bypass -File "F:\study\Platforms\windows\system-administration\scripts\powershell\cleanup\storage\CDriveDeleteAudit\Invoke-CDriveMaxSafeDeleteAudit.ps1" -ForceDeleteListed -DeleteManifest "C:\Temp\CDriveMaxSafeDeleteAudit\20260629_170533\max-safe-delete-candidates.csv" >>"%LOG%" 2>&1
+schtasks.exe /Delete /TN CDriveMaxSafeDeleteAudit-PendingCleanup /F >>"%LOG%" 2>&1

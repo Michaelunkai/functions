@@ -1,0 +1,34 @@
+﻿
+{"timestamp":"2026-04-29T23:24:22.9942906+03:00","level":"INFO","mode":"Verify","hostname":"USER","message":"allstart mode started: Verify"}
+{"timestamp":"2026-04-29T23:24:23.0530535+03:00","level":"INFO","mode":"Verify","hostname":"USER","message":"Admin: True; DryRun: False; PowerShell: 5.1.26100.8115"}
+{"timestamp":"2026-04-29T23:24:23.0701613+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"AhkScript exists: F:\\study\\Platforms\\windows\\autohotkey\\mymainahk\\current.ahk"}
+{"timestamp":"2026-04-29T23:24:23.0721625+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"FullScreenSnipExe exists: F:\\study\\Platforms\\windows\\snipping\\SnipToClipBoard\\FullScreenSnip.exe"}
+{"timestamp":"2026-04-29T23:24:23.0752239+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"OpenSpeedyExe exists: C:\\Users\\micha\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Game1024.OpenSpeedy_Microsoft.Winget.Source_8wekyb3d8bbwe\\Speedy.exe"}
+{"timestamp":"2026-04-29T23:24:23.0772257+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"OpenSpeedyVbs exists: C:\\Users\\micha\\.claude\\scripts\\openspeedy-silent.vbs"}
+{"timestamp":"2026-04-29T23:24:23.0792234+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"OpenWhisperExe exists: F:\\backup\\windowsapps\\installed\\OpenWhisper\\OpenWhispr\\OpenWhispr.exe"}
+{"timestamp":"2026-04-29T23:24:23.0822235+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"OpenWhisperVbs exists: C:\\Users\\micha\\.claude\\scripts\\openwhisper-silent.vbs"}
+{"timestamp":"2026-04-29T23:24:23.0842697+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"ClawdBotTrayVbs exists: F:\\study\\AI_ML\\AI_and_Machine_Learning\\Artificial_Intelligence\\openclaw\\ClawdBot\\ClawdbotTray.vbs"}
+{"timestamp":"2026-04-29T23:24:23.0862723+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"ClawdBotManagerExe exists: F:\\study\\AI_ML\\AI_and_Machine_Learning\\Artificial_Intelligence\\openclaw\\ClawdBot\\ClawdBotManager.exe"}
+{"timestamp":"2026-04-29T23:24:23.0892721+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"ClawdBotConfigPath exists: F:\\study\\AI_ML\\AI_and_Machine_Learning\\Artificial_Intelligence\\openclaw\\openclaw-home\\openclaw.json"}
+{"timestamp":"2026-04-29T23:24:23.0912723+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"ClawdBotRestartScript exists: F:\\study\\AI_ML\\AI_and_Machine_Learning\\Artificial_Intelligence\\openclaw\\ProfileFunctions\\Restart-OpenclawGateway.ps1"}
+{"timestamp":"2026-04-29T23:24:23.1189521+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"HKCU Run FullScreenSnip exists and is correct"}
+{"timestamp":"2026-04-29T23:24:24.1820360+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Autorun_current_ahk exists and is Running"}
+{"timestamp":"2026-04-29T23:24:24.6342535+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"ClawdBotTray exists and is Ready"}
+{"timestamp":"2026-04-29T23:24:25.0897743+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"OpenSpeedy_Tray exists and is Ready"}
+{"timestamp":"2026-04-29T23:24:26.7648206+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"OpenWhisper_Tray exists and is Ready"}
+{"timestamp":"2026-04-29T23:24:29.1144920+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Phone Link package exists: Microsoft.YourPhone_8wekyb3d8bbwe"}
+{"timestamp":"2026-04-29T23:24:29.1164932+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Cross-device package exists: MicrosoftWindows.CrossDevice_cw5n1h2txyewy"}
+{"timestamp":"2026-04-29T23:24:29.1334940+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Required app startup task enabled: Microsoft.YourPhone_8wekyb3d8bbwe / YourPhone.Start is Enabled"}
+{"timestamp":"2026-04-29T23:24:29.1394941+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Required app startup task enabled: MicrosoftWindows.CrossDevice_cw5n1h2txyewy / CrossDevice.Start is Enabled"}
+{"timestamp":"2026-04-29T23:24:29.1524951+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy Run entry absent: HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run / current.ahk"}
+{"timestamp":"2026-04-29T23:24:29.1555604+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy Run entry absent: HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run / Phone"}
+{"timestamp":"2026-04-29T23:24:29.1585613+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy Run entry absent: HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run / SecurityHealth"}
+{"timestamp":"2026-04-29T23:24:29.1615606+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy Run entry absent: HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run / RtkAudUService"}
+{"timestamp":"2026-04-29T23:24:29.1656269+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy Run entry absent: HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run / current.ahk"}
+{"timestamp":"2026-04-29T23:24:29.1686279+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy Run entry absent: HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run / Phone"}
+{"timestamp":"2026-04-29T23:24:29.1716262+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy Run entry absent: HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run / SecurityHealth"}
+{"timestamp":"2026-04-29T23:24:29.1746955+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy Run entry absent: HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run / RtkAudUService"}
+{"timestamp":"2026-04-29T23:24:29.1847632+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy startup-folder entry absent: C:\\Users\\micha\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\current.ahk.lnk"}
+{"timestamp":"2026-04-29T23:24:29.1998444+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"Legacy startup-folder entry absent: C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup\\current.ahk.lnk"}
+{"timestamp":"2026-04-29T23:24:32.4296019+03:00","level":"VERIFY","mode":"Verify","hostname":"USER","message":"ClawdBot readiness check passed"}
+{"timestamp":"2026-04-29T23:24:32.4496828+03:00","level":"INFO","mode":"Verify","hostname":"USER","message":"allstart mode completed in 9641ms"}
