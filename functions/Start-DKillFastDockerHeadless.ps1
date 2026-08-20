@@ -30,18 +30,10 @@ if ($__2scNeedBootstrap) {
 function Start-DKillFastDockerHeadless {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$DockerExe,[string]$Reason = 'headless restart')
-    if($NoLaunch -or $WhatIfPreference -or $script:DKillFastEarlyLaunchStarted) { Write-DKillFastLine 'DKILL_HEADLESS_START_SKIP launch disabled or already started' DarkGray; return $false }
-    $failures=@()
-    Write-Progress -Activity 'Docker launch' -Status 'Preparing headless Docker services' -PercentComplete 20
-    if($script:DKillFastIsAdmin){foreach($serviceName in @('vmms','vmcompute','hns','com.docker.service')){try{Set-Service -Name $serviceName -StartupType Automatic -ErrorAction Stop;Invoke-DKillFastSc -Action start -ServiceName $serviceName -Milliseconds 250}catch{$failures+=$_.Exception.Message;Write-DKillFastLine ("DKILL_HEADLESS_START_WARN service={0}: {1}" -f $serviceName,$_.Exception.Message) Yellow}}}
-    $serviceOnlyReady=$false
-    try{$serviceDeadline=(Get-Date).AddMilliseconds([Math]::Max(80,[Math]::Min(250,(Get-DKillFastRemainingMilliseconds)-900)));while((Get-Date)-lt$serviceDeadline){if(Test-DKillFastDockerReady -DockerExe $DockerExe){$serviceOnlyReady=$true;break};Start-Sleep -Milliseconds 120}}catch{$failures+=$_.Exception.Message;Write-DKillFastLine ("DKILL_HEADLESS_START_WARN readiness probe: {0}" -f $_.Exception.Message) Yellow}
-    if($serviceOnlyReady){$script:DKillFastEarlyLaunchStarted=$true;Write-Progress -Activity 'Docker launch' -Completed;Write-DKillFastLine ("DKILL_HEADLESS_START_OK service-only reason={0} warnings={1}" -f $Reason,$failures.Count) Green;return $true}
-    Write-Progress -Activity 'Docker launch' -Status 'Trying Docker Desktop CLI launch' -PercentComplete 60
-    if(Start-DKillFastDockerDesktopCli -DockerExe $DockerExe){$script:DKillFastEarlyLaunchStarted=$true;Write-Progress -Activity 'Docker launch' -Completed;Write-DKillFastLine ("DKILL_HEADLESS_START_OK cli reason={0} warnings={1}" -f $Reason,$failures.Count) Green;return $true}
-    Write-Progress -Activity 'Docker launch' -Status 'Trying Docker backend launch' -PercentComplete 80
-    if(Start-DKillFastBackendHeadless -DockerExe $DockerExe){$script:DKillFastEarlyLaunchStarted=$true;Write-Progress -Activity 'Docker launch' -Completed;Write-DKillFastLine ("DKILL_HEADLESS_START_OK backend reason={0} warnings={1}" -f $Reason,$failures.Count) Green;return $true}
-    Write-Progress -Activity 'Docker launch' -Completed;Write-DKillFastLine ("DKILL_HEADLESS_START_FAIL reason={0} warnings={1}" -f $Reason,$failures.Count) Red;return $false
+    $recovery = 'F:\study\Platforms\windows\functions\dkill.ps1'
+    if (-not (Test-Path -LiteralPath $recovery -PathType Leaf)) { throw "Canonical Docker VMM recovery not found: $recovery" }
+    & $recovery -Preserve
+    return [bool]($LASTEXITCODE -eq 0 -and (Get-Process -Name 'com.docker.sailor' -ErrorAction SilentlyContinue))
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

@@ -28,15 +28,13 @@ if ($__2scNeedBootstrap) {
     Initialize-CodexProfileFunctions
 }
 function rmdock {
-    $script = 'F:\study\Learning\01\01\Shells\powershell\profile-functions\windows\cleanup\maintenance-tools\Rmdock\Invoke-rmdock.ps1'
-    if (-not (Test-Path -LiteralPath $script)) {
-        throw "rmdock script not found: $script"
-    }
-    if ($args -contains '-SelfTest') {
-        & $script @args
-        return
-    }
-    . $script @args
+    [CmdletBinding()]
+    param([switch]$FactoryReset,[string]$ConfirmFactoryReset='',[switch]$NoRestart)
+    $safeDkill = 'F:\study\Platforms\windows\functions\dkill.ps1'
+    if (-not (Test-Path -LiteralPath $safeDkill -PathType Leaf)) { throw "Canonical Docker recovery script not found: $safeDkill" }
+    Write-Host 'rmdock is protected: using the bounded Docker VMM recovery path.' -ForegroundColor Cyan
+    & $safeDkill -FactoryReset:$FactoryReset -ConfirmFactoryReset $ConfirmFactoryReset -NoRestart:$NoRestart
+    $global:LASTEXITCODE = [int]$LASTEXITCODE
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

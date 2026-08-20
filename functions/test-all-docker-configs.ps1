@@ -28,16 +28,38 @@ if ($__2scNeedBootstrap) {
     Initialize-CodexProfileFunctions
 }
 function test-all-docker-configs {
-    $functions = Get-ChildItem function:docker* | Where-Object Name -like "docker*-*"
-
-    foreach ($func in $functions) {
-        Write-Host "Testing $($func.Name)..." -ForegroundColor Cyan
-        & $func.Name
-        Write-Host "Press any key to continue to next config..." -ForegroundColor Yellow
-        $null = $host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    [CmdletBinding()]
+    param()
+    $enforcer = 'F:\study\Platforms\windows\functions\Set-DockerHyperV.ps1'
+    & $enforcer -Label 'TEST ALL DOCKER CONFIGS (Docker VMM)' -Color 'Cyan' | Out-Host
+    if (-not $?) { throw 'Docker VMM enforcement failed.' }
+    $settingsPath = Join-Path $env:APPDATA 'Docker\settings-store.json'
+    $settings = [IO.File]::ReadAllText($settingsPath) | ConvertFrom-Json -ErrorAction Stop
+    if (-not [bool]$settings.UseLibkrun -or [bool]$settings.WslEngineEnabled -or [bool]$settings.UseVirtualizationFramework -or [bool]$settings.UseResourceSaver -or [int]$settings.MemoryMiB -ne 33792) {
+        throw 'Docker settings are not the required maximum-performance VMM configuration.'
     }
-
-    Write-Host "All docker configurations tested!" -ForegroundColor Green
+    $sailor = Get-Process -Name 'com.docker.sailor' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if (-not $sailor) { throw 'Docker VMM process com.docker.sailor is not running.' }
+    foreach ($number in 1..30) {
+        $presetPath = "F:\study\Platforms\windows\functions\docker$number.ps1"
+        $presetText = [IO.File]::ReadAllText($presetPath)
+        if ($presetText -match '(?i)wsl\.exe|\.wslconfig|DockerDesktopVM') { throw "Legacy backend route remains in docker$number." }
+    }
+    $dockerExe = 'C:\Program Files\Docker\Docker\resources\bin\docker.exe'
+    $info = New-Object Diagnostics.ProcessStartInfo
+    $info.FileName = $dockerExe
+    $info.Arguments = 'version --format "{{.Server.Version}}"'
+    $info.UseShellExecute = $false
+    $info.CreateNoWindow = $true
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    $process = [Diagnostics.Process]::Start($info)
+    if (-not $process.WaitForExit(15000)) { try { $process.Kill() } catch {}; throw 'Docker daemon verification exceeded 15 seconds.' }
+    $serverVersion = $process.StandardOutput.ReadToEnd().Trim()
+    $serverError = $process.StandardError.ReadToEnd().Trim()
+    if ($process.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($serverVersion)) { throw "Docker daemon verification failed: $serverError" }
+    Write-Host ("ALL_DOCKER_CONFIGS_VMM_OK presets=30 sailor_pid={0} server={1}" -f $sailor.Id,$serverVersion) -ForegroundColor Green
+    $global:LASTEXITCODE = 0
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

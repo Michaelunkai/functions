@@ -30,13 +30,10 @@ if ($__2scNeedBootstrap) {
 function Start-DKillFastBackendHeadless {
     [CmdletBinding()]
     param([string]$DockerExe)
-    $backendExe=Join-Path ${env:ProgramFiles} 'Docker\Docker\resources\com.docker.backend.exe'
-    if(-not(Test-Path -LiteralPath $backendExe)){Write-DKillFastLine ("DKILL_BACKEND_START_FAIL backend not found: {0}" -f $backendExe) Red;return $false}
-    Write-Progress -Activity 'Docker launch' -Status 'Starting Docker backend headlessly' -PercentComplete 65
-    $failures=@()
-    if($script:DKillFastIsAdmin){foreach($serviceName in @('vmms','vmcompute','hns','com.docker.service')){try{Set-Service -Name $serviceName -StartupType Automatic -ErrorAction Stop;Invoke-DKillFastSc -Action start -ServiceName $serviceName -Milliseconds 140}catch{$failures+=$_.Exception.Message;Write-DKillFastLine ("DKILL_BACKEND_START_WARN service={0}: {1}" -f $serviceName,$_.Exception.Message) Yellow}}}
-    try{New-Item -ItemType Directory -Force -Path 'C:\ProgramData\DockerDesktop\vm-data' -ErrorAction Stop|Out-Null}catch{$failures+=$_.Exception.Message;Write-DKillFastLine ("DKILL_BACKEND_START_WARN vm-data directory: {0}" -f $_.Exception.Message) Yellow}
-    $started=Start-DKillFastHiddenProcess -FilePath $backendExe -ArgumentList @('-unattended','-with-frontend=false','-accept-license','-engine','HyperV');Write-Progress -Activity 'Docker launch' -Completed;if($started){Write-DKillFastLine ("DKILL_BACKEND_START_OK warnings={0}" -f $failures.Count) Green;return $true};return $false
+    $recovery = 'F:\study\Platforms\windows\functions\dkill.ps1'
+    if (-not (Test-Path -LiteralPath $recovery -PathType Leaf)) { throw "Canonical Docker VMM recovery not found: $recovery" }
+    & $recovery -Preserve
+    return [bool]($LASTEXITCODE -eq 0 -and (Get-Process -Name 'com.docker.sailor' -ErrorAction SilentlyContinue))
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

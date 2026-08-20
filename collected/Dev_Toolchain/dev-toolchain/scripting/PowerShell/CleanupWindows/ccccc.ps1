@@ -31,23 +31,58 @@ function Remove-CCCCCTree {
 
 $startFree = Get-CCCCCFree
 $started = Get-Date
+$overallTimeoutSec = 1200  # 20 minutes max for entire script
 $report = New-Object System.Collections.Generic.List[object]
 
 function Invoke-CCCCCStep {
     param([string]$Name, [scriptblock]$Action)
+    $totalElapsed = ((Get-Date) - $started).TotalSeconds
+    if ($totalElapsed -gt $overallTimeoutSec) {
+        Write-Host ("===== ccccc SKIPPING: {0} (overall timeout exceeded) =====" -f $Name) -ForegroundColor Yellow
+        $report.Add([pscustomobject]@{ Step = $Name; FreedMB = 0; Seconds = 0; Ok = $false }) | Out-Null
+        return
+    }
     $before = Get-CCCCCFree
     $sw = [Diagnostics.Stopwatch]::StartNew()
     $ok = $true
+    $stepTimeoutSec = 120
     Write-Host ''
-    Write-Host ("===== ccccc STEP: {0} =====" -f $Name) -ForegroundColor Cyan
+    Write-Host ("===== ccccc STEP: {0} (timeout {1}s) =====" -f $Name, $stepTimeoutSec) -ForegroundColor Cyan
+    $actionDone = $false
+    $stepJob = $null
     try {
-        & $Action 2>&1 | Out-Host
+        # Run action in background job so it can be killed on timeout
+        $stepJob = Start-Job -ScriptBlock $Action
+        if (-not $stepJob) { throw 'Failed to start step job' }
+        $stepJob | Wait-Job -Timeout $stepTimeoutSec | Out-Null
+        if ($stepJob.State -eq 'Running') {
+            $stepJob | Stop-Job
+            $stepJob | Receive-Job -Wait -AutoRemoveJob -ErrorAction SilentlyContinue | Out-Host
+            $stepJob | Remove-Job -Force -ErrorAction SilentlyContinue
+            $ok = $false
+            Write-Warning ("[cccccc] step '{0}' EXCEEDED {1}s timeout and was terminated to prevent hang." -f $Name, $stepTimeoutSec)
+        } else {
+            $stepJob | Receive-Job -Wait -AutoRemoveJob -ErrorAction SilentlyContinue | Out-Host
+        }
+        $actionDone = $true
     } catch {
         $ok = $false
         Write-Warning ("[cccccc] step '{0}' failed but ccccc continued: {1}" -f $Name, $_.Exception.Message)
+        if ($stepJob) {
+            try { $stepJob | Stop-Job; $stepJob | Remove-Job -Force -ErrorAction SilentlyContinue } catch {}
+        }
+    } finally {
+        if ($stepJob -and $stepJob.State -eq 'Running') {
+            try { Stop-Job -Job $stepJob -ErrorAction SilentlyContinue; $stepJob | Remove-Job -Force -ErrorAction SilentlyContinue } catch {}
+        }
     }
     $after = Get-CCCCCFree
     $sw.Stop()
+    $totalElapsed = ((Get-Date) - $started).TotalSeconds
+    if ($totalElapsed -gt $overallTimeoutSec) {
+        Write-Warning ("[cccccc] OVERALL TIMEOUT exceeded {0}s; aborting remaining steps." -f $overallTimeoutSec)
+        $ok = $false
+    }
     $freedBytes = $after - $before
     $report.Add([pscustomobject]@{ Step = $Name; FreedMB = [math]::Round($freedBytes / 1MB, 1); Seconds = [math]::Round($sw.Elapsed.TotalSeconds, 1); Ok = $ok }) | Out-Null
     $freedColor = if ($freedBytes -gt 0) { 'Green' } elseif ($ok) { 'DarkGray' } else { 'Red' }

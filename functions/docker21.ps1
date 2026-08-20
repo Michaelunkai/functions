@@ -28,15 +28,13 @@ if ($__2scNeedBootstrap) {
     Initialize-CodexProfileFunctions
 }
 function docker21 {
-    & "$env:SystemRoot\System32\wsl.exe" -d ubuntu --user root -- bash -c "echo '[wsl2]
-memory=16GB
-processors=6
-swap=16GB
-networkingMode=NAT
-localhostForwarding=true
-kernelCommandLine=net.ipv4.tcp_keepalive_time=60' > /mnt/c/Users/micha/.wslconfig ; echo 'Applied higher Docker WSL2 config: 16GB RAM, 6 CPUs, 16GB swap, optimized TCP'"
-    & "$env:SystemRoot\System32\wsl.exe" --shutdown
-    & "$env:SystemRoot\System32\wsl.exe" -d ubuntu --user root -- bash -c "docker info"
+    [CmdletBinding()]
+    param()
+    $enforcer = 'F:\study\Platforms\windows\functions\Set-DockerHyperV.ps1'
+    if (-not (Test-Path -LiteralPath $enforcer -PathType Leaf)) { throw "Docker VMM enforcer not found: $enforcer" }
+    & $enforcer -Label 'DOCKER21 (Docker VMM max performance)' -Color 'Cyan' | Out-Host
+    if (-not $?) { throw 'DOCKER21 failed to enforce Docker VMM.' }
+    $global:LASTEXITCODE = 0
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

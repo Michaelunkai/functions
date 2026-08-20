@@ -28,8 +28,10 @@ if ($__2scNeedBootstrap) {
     Initialize-CodexProfileFunctions
 }
 function dkill4 {
-    $scriptPath = "F:\study\shells\powershell\scripts\dockerdesktop\FurgePurgeAllDataDocker\dkill.ps1"
-    & $scriptPath
+    $scriptPath = 'F:\study\Platforms\windows\functions\dkill.ps1'
+    if (-not (Test-Path -LiteralPath $scriptPath -PathType Leaf)) { throw "Canonical dkill script not found: $scriptPath" }
+    & $scriptPath @args
+    $global:LASTEXITCODE = [int]$LASTEXITCODE
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

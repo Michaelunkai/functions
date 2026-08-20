@@ -71,7 +71,7 @@ function Invoke-HermesDockerPreserveRedocker {
         return $false
     }
     function Remove-RedockerSafePath {
-        param([string]$Path,[switch]$PreserveWslData)
+        param([string]$Path,[switch]$PreserveWslData,[switch]$PreserveVmData)
         if([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)){ return }
         $resolved = $null
         try { $resolved = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath } catch { $resolved = $Path }
@@ -79,10 +79,12 @@ function Invoke-HermesDockerPreserveRedocker {
         if($resolved -notmatch '(?i)(\\Docker\\?|\\DockerDesktop\\?|\\Docker Desktop\\?|\\containerd\\?|\\\.docker\\?|docker-desktop|ext4\.vhdx|docker.*\.vhdx)'){ return }
         if($resolved -match '(?i)\.vhdx$'){ Write-RedockerSafeLine ("refusing to delete Docker virtual disk: {0}" -f $resolved) Yellow; return }
         Write-RedockerSafeLine ("purge {0}" -f $resolved) DarkCyan
-        $wslData = Join-Path $resolved 'wsl'
-        if($PreserveWslData -and (Test-Path -LiteralPath $wslData -PathType Container)){
-            Write-RedockerSafeLine ("preserving {0} (Docker WSL virtual disks)" -f $wslData) DarkCyan
-            foreach($child in @(Get-ChildItem -LiteralPath $resolved -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -ne 'wsl' })){
+        $preservedNames = New-Object System.Collections.Generic.List[string]
+        if($PreserveWslData -and (Test-Path -LiteralPath (Join-Path $resolved 'wsl') -PathType Container)){ [void]$preservedNames.Add('wsl') }
+        if($PreserveVmData -and (Test-Path -LiteralPath (Join-Path $resolved 'vm-data') -PathType Container)){ [void]$preservedNames.Add('vm-data') }
+        if($preservedNames.Count -gt 0){
+            Write-RedockerSafeLine ("preserving Docker virtual disk directories: {0}" -f (($preservedNames.ToArray()) -join ', ')) DarkCyan
+            foreach($child in @(Get-ChildItem -LiteralPath $resolved -Force -ErrorAction SilentlyContinue | Where-Object { $_.Name -notin $preservedNames.ToArray() })){
                 try { Remove-Item -LiteralPath $child.FullName -Recurse -Force -ErrorAction Stop } catch { try { Remove-Item -LiteralPath $child.FullName -Recurse -Force -ErrorAction SilentlyContinue } catch { } }
             }
             return
@@ -90,7 +92,7 @@ function Invoke-HermesDockerPreserveRedocker {
         try { Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction Stop } catch { try { Remove-Item -LiteralPath $resolved -Recurse -Force -ErrorAction SilentlyContinue } catch { } }
     }
     function Stop-RedockerSafeDocker {
-        $processNames = @('Docker Desktop','Docker Desktop Installer','com.docker.backend','com.docker.build','com.docker.dev-envs','com.docker.extensions','com.docker.proxy','com.docker.vpnkit','docker-agent','docker-sandbox','dockerd','docker','vpnkit','com.docker.service')
+        $processNames = @('Docker Desktop','Docker Desktop Installer','com.docker.backend','com.docker.build','com.docker.dev-envs','com.docker.extensions','com.docker.proxy','com.docker.sailor','com.docker.vpnkit','docker-agent','docker-sandbox','dockerd','docker','vpnkit','com.docker.service')
         foreach($name in $processNames){
             try { Get-Process -Name $name -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue } catch { }
         }
@@ -467,44 +469,83 @@ function Invoke-HermesDockerPreserveRedocker {
         $settingsJson = Join-Path $dockerRoaming 'settings.json'
         $daemonJson = Join-Path $dotDocker 'daemon.json'
         $windowsDaemonJson = Join-Path $dotDocker 'windows-daemon.json'
-        $settingsVersion = 44
+        $settingsVersion = 45
+        $full = $null
         if(Test-Path -LiteralPath $settingsStore){
             try {
-                $existing = Get-Content -LiteralPath $settingsStore -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+                $full = Get-Content -LiteralPath $settingsStore -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
                 $currentVersion = 0
-                try { $currentVersion = [int]$existing.SettingsVersion } catch { }
+                try { $currentVersion = [int]$full.SettingsVersion } catch { }
                 if($currentVersion -gt $settingsVersion){ $settingsVersion = $currentVersion }
             } catch { }
         }
-        $full = [ordered]@{
-            AutoStart = $false
-            DisplayedOnboarding = $true
-            EnableCLIHints = $true
-            EnableDockerAI = $true
-            EnableIntegrationWithDefaultWslDistro = $false
-            FilesharingDirectories = @('C:\','E:\','F:\')
-            InferenceCanUseGPUVariant = $true
-            LicenseTermsVersion = 2
-            MemoryMiB = 33792
-            OpenUIOnStartupDisabled = $true
-            SettingsVersion = $settingsVersion
-            SwapMiB = 3072
-            ThemeSource = 'dark'
-            UseBackgroundIndexing = $false
-            UseContainerdSnapshotter = $true
-            UseVirtualizationFramework = $false
-            WslEngineEnabled = $false
-        }
-        Save-RedockerSafeText -Path $settingsStore -Text ($full | ConvertTo-Json -Depth 5)
-        Write-RedockerSafeLine 'applied Docker Desktop settings: Hyper-V backend, 33792 MiB memory, 3072 MiB swap, C/E/F file sharing, no startup' Green
-        if(-not (Test-Path -LiteralPath $settingsJson -PathType Leaf)){
-            $desktop = [ordered]@{
-                WslEngineEnabled = $false
-                UseVirtualizationFramework = $false
-                EnableIntegrationWithDefaultWslDistro = $false
+        if(-not $full){
+            $full = [pscustomobject][ordered]@{
                 AutoStart = $false
+                DisplayedOnboarding = $true
+                EnableCLIHints = $true
+                EnableDockerAI = $true
+                EnableIntegrationWithDefaultWslDistro = $false
+                FilesharingDirectories = @($env:USERPROFILE)
+                InferenceCanUseGPUVariant = $true
+                LicenseTermsVersion = 2
+                MemoryMiB = 33792
+                OpenUIOnStartupDisabled = $true
+                SettingsVersion = $settingsVersion
+                SwapMiB = 3072
+                ThemeSource = 'dark'
+                UseBackgroundIndexing = $false
+                UseContainerdSnapshotter = $true
+                UseLibkrun = $true
+                UseResourceSaver = $false
+                UseVirtualizationFramework = $false
+                WslEngineEnabled = $false
             }
-            Save-RedockerSafeText -Path $settingsJson -Text ($desktop | ConvertTo-Json -Depth 3)
+        }
+
+        function Set-RedockerSetting {
+            param([Parameter(Mandatory)]$Settings,[Parameter(Mandatory)][string]$Name,$Value)
+            $property = $Settings.PSObject.Properties[$Name]
+            if($property){ $property.Value = $Value } else { $Settings | Add-Member -NotePropertyName $Name -NotePropertyValue $Value }
+        }
+        Set-RedockerSetting -Settings $full -Name 'AutoStart' -Value $false
+        Set-RedockerSetting -Settings $full -Name 'EnableIntegrationWithDefaultWslDistro' -Value $false
+        Set-RedockerSetting -Settings $full -Name 'MemoryMiB' -Value 33792
+        Set-RedockerSetting -Settings $full -Name 'OpenUIOnStartupDisabled' -Value $true
+        Set-RedockerSetting -Settings $full -Name 'SettingsVersion' -Value $settingsVersion
+        Set-RedockerSetting -Settings $full -Name 'SwapMiB' -Value 3072
+        Set-RedockerSetting -Settings $full -Name 'UseBackgroundIndexing' -Value $false
+        Set-RedockerSetting -Settings $full -Name 'UseContainerdSnapshotter' -Value $true
+        Set-RedockerSetting -Settings $full -Name 'AllowBetaFeatures' -Value $true
+        Set-RedockerSetting -Settings $full -Name 'UseLibkrun' -Value $true
+        Set-RedockerSetting -Settings $full -Name 'UseResourceSaver' -Value $false
+        Set-RedockerSetting -Settings $full -Name 'UseVirtualizationFramework' -Value $false
+        Set-RedockerSetting -Settings $full -Name 'WslEngineEnabled' -Value $false
+        $safeShares = @($full.FilesharingDirectories | Where-Object {
+            -not [string]::IsNullOrWhiteSpace([string]$_) -and
+            [string]$_ -notmatch '^[A-Za-z]:\\$' -and
+            (Test-Path -LiteralPath ([string]$_) -PathType Container)
+        } | Select-Object -Unique)
+        if($safeShares.Count -eq 0){
+            $safeShares = @(@($env:USERPROFILE,'C:\Temp','F:\study') | Where-Object {
+                -not [string]::IsNullOrWhiteSpace([string]$_) -and
+                (Test-Path -LiteralPath ([string]$_) -PathType Container)
+            } | Select-Object -Unique)
+        }
+        Set-RedockerSetting -Settings $full -Name 'FilesharingDirectories' -Value $safeShares
+        Save-RedockerSafeText -Path $settingsStore -Text ($full | ConvertTo-Json -Depth 5)
+        Write-RedockerSafeLine ("applied Docker Desktop settings: Docker VMM, 33792 MiB memory, Resource Saver off, {0} explicit file shares, no startup" -f $safeShares.Count) Green
+        if(Test-Path -LiteralPath $settingsJson -PathType Leaf){
+            try {
+                $desktop = Get-Content -LiteralPath $settingsJson -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+                Set-RedockerSetting -Settings $desktop -Name 'UseLibkrun' -Value $true
+                Set-RedockerSetting -Settings $desktop -Name 'WslEngineEnabled' -Value $false
+                Set-RedockerSetting -Settings $desktop -Name 'UseVirtualizationFramework' -Value $false
+                Set-RedockerSetting -Settings $desktop -Name 'EnableIntegrationWithDefaultWslDistro' -Value $false
+                Set-RedockerSetting -Settings $desktop -Name 'UseResourceSaver' -Value $false
+                Set-RedockerSetting -Settings $desktop -Name 'AutoStart' -Value $false
+                Save-RedockerSafeText -Path $settingsJson -Text ($desktop | ConvertTo-Json -Depth 5)
+            } catch { Write-RedockerSafeLine ("legacy settings.json update skipped: {0}" -f $_.Exception.Message) DarkYellow }
         }
         $daemon = [ordered]@{
             builder = [ordered]@{ gc = [ordered]@{ defaultKeepStorage = '20GB'; enabled = $true } }
@@ -565,16 +606,16 @@ function Invoke-HermesDockerPreserveRedocker {
         $purgePaths = @(
             [pscustomobject]@{ Path = (Join-Path ${env:ProgramFiles} 'Docker'); PreserveWslData = $false },
             [pscustomobject]@{ Path = (Join-Path ${env:ProgramFiles(x86)} 'Docker'); PreserveWslData = $false },
-            [pscustomobject]@{ Path = "$env:ProgramData\DockerDesktop"; PreserveWslData = $false },
+            [pscustomobject]@{ Path = "$env:ProgramData\DockerDesktop"; PreserveWslData = $false; PreserveVmData = $true },
             [pscustomobject]@{ Path = "$env:APPDATA\Docker"; PreserveWslData = $false },
             [pscustomobject]@{ Path = "$env:APPDATA\Docker Desktop"; PreserveWslData = $false },
             [pscustomobject]@{ Path = (Join-Path $env:USERPROFILE '.docker'); PreserveWslData = $false },
-            [pscustomobject]@{ Path = "$env:LOCALAPPDATA\Docker"; PreserveWslData = $true }
+            [pscustomobject]@{ Path = "$env:LOCALAPPDATA\Docker"; PreserveWslData = $true; PreserveVmData = $true }
         )
         for($index = 0; $index -lt $purgePaths.Count; $index++){
             $path = $purgePaths[$index].Path
             Write-RedockerSafeProgress -Activity 'redocker: purging Docker data' -Status $path -PercentComplete ([int](($index / [Math]::Max(1,$purgePaths.Count)) * 100))
-            Remove-RedockerSafePath -Path $path -PreserveWslData:$purgePaths[$index].PreserveWslData
+            Remove-RedockerSafePath -Path $path -PreserveWslData:$purgePaths[$index].PreserveWslData -PreserveVmData:$purgePaths[$index].PreserveVmData
         }
         Write-Progress -Id 847 -Activity 'redocker: purging Docker data' -Completed
         foreach($rk in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Docker Desktop','HKLM:\SOFTWARE\Docker Inc.')){
@@ -640,11 +681,6 @@ function Invoke-HermesDockerPreserveRedocker {
 
     Set-RedockerKnownSettings
 
-    foreach($svc in @('vmms','vmcompute','hns')){
-        try { Set-Service -Name $svc -StartupType Automatic -ErrorAction SilentlyContinue } catch { }
-        try { Start-Service -Name $svc -ErrorAction SilentlyContinue } catch { }
-    }
-    try { Start-Service -Name 'com.docker.service' -ErrorAction SilentlyContinue } catch { }
     if(Test-Path -LiteralPath $desktopExe){
         try { Start-Process -FilePath $desktopExe -ArgumentList @('--minimized') -WindowStyle Hidden | Out-Null; Write-RedockerSafeLine 'Docker Desktop launched' Green } catch { Write-RedockerSafeLine ("Docker Desktop launch failed: {0}" -f $_.Exception.Message) Yellow }
     }

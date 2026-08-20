@@ -30,39 +30,14 @@ if ($__2scNeedBootstrap) {
 function Restore-DKillFastSettingsSnapshot {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$SnapshotRoot)
-
-    if(-not (Test-Path -LiteralPath $SnapshotRoot -PathType Container)) {
-        Write-DKillFastLine ("DKILL_SETTINGS_RESTORE_FAIL snapshot not found: {0}" -f $SnapshotRoot) Red
-        return $false
-    }
-    $restored = 0
-    $failures = 0
-    try {
-        $files = @(Get-ChildItem -LiteralPath $SnapshotRoot -File -Recurse -Force -ErrorAction Stop)
-    } catch {
-        Write-DKillFastLine ("DKILL_SETTINGS_RESTORE_FAIL enumerate root={0}: {1}" -f $SnapshotRoot,$_.Exception.Message) Red
-        return $false
-    }
-    foreach($file in $files) {
-        try {
-            $relative = $file.FullName.Substring($SnapshotRoot.TrimEnd('\').Length).TrimStart('\')
-            if([string]::IsNullOrWhiteSpace($relative)) { throw 'empty snapshot relative path' }
-            $destination = Join-Path 'C:\' $relative
-            New-Item -ItemType Directory -Force -Path (Split-Path -Parent $destination) -ErrorAction Stop | Out-Null
-            Copy-Item -LiteralPath $file.FullName -Destination $destination -Force -ErrorAction Stop
-            $sourceHash = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256 -ErrorAction Stop).Hash
-            $destinationHash = (Get-FileHash -LiteralPath $destination -Algorithm SHA256 -ErrorAction Stop).Hash
-            if($sourceHash -ne $destinationHash) { throw 'SHA256 mismatch after restore copy' }
-            $restored++
-            Write-DKillFastLine ("DKILL_SETTINGS_RESTORE_OK {0}" -f $relative) DarkGray
-        } catch {
-            $failures++
-            Write-DKillFastLine ("DKILL_SETTINGS_RESTORE_FAIL source={0}: {1}" -f $file.FullName,$_.Exception.Message) Red
-        }
-    }
-    $succeeded = $failures -eq 0
-    Write-DKillFastLine ("DKILL_SETTINGS_RESTORE_{0} files={1} failures={2}" -f $(if($succeeded){'OK'}else{'INCOMPLETE'}),$restored,$failures) $(if($succeeded){'Green'}else{'Yellow'})
-    return $succeeded
+    Write-Warning ("Legacy Docker settings restore is retired to prevent WSL2 or Hyper-V resurrection. Snapshot was not copied: {0}" -f $SnapshotRoot)
+    $enforcer = 'F:\study\Containers\docker\backup-docker\repository-tools\SetDockerhyperv\Invoke-set-dockerhyperv.ps1'
+    if (-not (Test-Path -LiteralPath $enforcer -PathType Leaf)) { throw "Docker VMM enforcer not found: $enforcer" }
+    $result = & $enforcer -MemMB 33792 -Label 'DOCKER VMM RESTORE GUARD'
+    if ($LASTEXITCODE -ne 0 -or -not (Get-Process -Name 'com.docker.sailor' -ErrorAction SilentlyContinue)) { throw 'Docker VMM restore guard did not verify a live VMM engine.' }
+    $result | Out-Null
+    $global:LASTEXITCODE = 0
+    return $true
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

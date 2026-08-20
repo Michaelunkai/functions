@@ -77,7 +77,9 @@ GetMonitorAtPoint(x, y) {
 }
 
 PlaceGameWindowOnMonitor(hwnd, monitorNum) {
-    if (!DllCall("IsWindow", "Ptr", hwnd, "Int")) {
+    ; A hung game window (e.g. suspended by Ctrl+H) cannot be repositioned and
+    ; would block the synchronous Win* calls; skip it instead.
+    if (!DllCall("IsWindow", "Ptr", hwnd, "Int") || IsWindowHung(hwnd)) {
         return false
     }
 
@@ -90,19 +92,21 @@ PlaceGameWindowOnMonitor(hwnd, monitorNum) {
 
         if (isFullscreen) {
             DllCall("SetWindowPos", "Ptr", hwnd, "Ptr", 0, "Int", left, "Int", top
-                , "Int", width, "Int", height, "UInt", 0x0014) ; NOZORDER | NOACTIVATE
+                , "Int", width, "Int", height, "UInt", 0x0014 | 0x4000) ; NOZORDER | NOACTIVATE | ASYNCWINDOWPOS
         } else {
             if (isMaximized) {
-                WinRestore("ahk_id " hwnd)
+                AsyncWinRestore(hwnd)
+                Sleep(40)
             }
             WinGetPos(, , &windowWidth, &windowHeight, "ahk_id " hwnd)
             windowWidth := Min(windowWidth, width)
             windowHeight := Min(windowHeight, height)
             targetX := left + Max(0, (width - windowWidth) // 2)
             targetY := top + Max(0, (height - windowHeight) // 2)
-            WinMove(targetX, targetY, windowWidth, windowHeight, "ahk_id " hwnd)
+            AsyncWinMove(hwnd, targetX, targetY, windowWidth, windowHeight)
             if (isMaximized) {
-                WinMaximize("ahk_id " hwnd)
+                Sleep(40)
+                AsyncWinMaximize(hwnd)
             }
         }
         return GetWindowMonitor(hwnd) = monitorNum
@@ -231,7 +235,6 @@ UnregisterProcessControlHotkeys(*) {
 ProcessControlHotkeyMessage(wParam, lParam, msg, hwnd) {
     global PROCESS_PAUSE_HOTKEY_ID, PROCESS_RESUME_HOTKEY_ID
         , lastPauseHotkeyMessageTime, lastResumeHotkeyMessageTime
-    Critical("On")
     messageTime := DllCall("GetMessageTime", "UInt")
     if (wParam = PROCESS_PAUSE_HOTKEY_ID) {
         elapsed := (messageTime - lastPauseHotkeyMessageTime) & 0xFFFFFFFF
@@ -533,6 +536,11 @@ EnumerateWindowsByMonitor() {
                 if (wW < 50 || wH < 50)
                     continue
             }
+
+            ; A hung window (e.g. a game suspended by Ctrl+H) cannot be moved;
+            ; skip it so bulk swaps never block on synchronous Win* calls.
+            if IsWindowHung(hwnd)
+                continue
 
             monitorNum := GetWindowMonitor(hwnd)
             if windowsByMonitor.Has(monitorNum)
@@ -913,7 +921,9 @@ MoveAllWindowsToMonitor(targetMonitor) {
 }
 
 MoveWindowScaledBetweenMonitors(hwnd, sourceMonitor, targetMonitor) {
-    if (!hwnd || !WinExist("ahk_id " hwnd))
+    ; Hung windows (frozen games, suspended processes) cannot be moved and
+    ; block synchronous Win* commands; skip them instead of stalling the script.
+    if (!hwnd || !WinExist("ahk_id " hwnd) || IsWindowHung(hwnd))
         return false
 
     try {
@@ -924,7 +934,7 @@ MoveWindowScaledBetweenMonitors(hwnd, sourceMonitor, targetMonitor) {
         minMaxState := WinGetMinMax("ahk_id " hwnd)
         wasMinimized := minMaxState = -1
         if wasMinimized {
-            WinRestore("ahk_id " hwnd)
+            AsyncWinRestore(hwnd)
             Sleep(50)
             minMaxState := WinGetMinMax("ahk_id " hwnd)
         }
@@ -932,12 +942,12 @@ MoveWindowScaledBetweenMonitors(hwnd, sourceMonitor, targetMonitor) {
         wasFullscreen := IsWindowFullscreen(hwnd) && !wasMaximized
 
         if wasFullscreen {
-            WinRestore("ahk_id " hwnd)
+            AsyncWinRestore(hwnd)
             Sleep(80)
-            WinMove(tFullLeft, tFullTop, tFullRight - tFullLeft, tFullBottom - tFullTop, "ahk_id " hwnd)
+            AsyncWinMove(hwnd, tFullLeft, tFullTop, tFullRight - tFullLeft, tFullBottom - tFullTop)
         } else {
             if wasMaximized {
-                WinRestore("ahk_id " hwnd)
+                AsyncWinRestore(hwnd)
                 Sleep(40)
             }
 
@@ -952,17 +962,17 @@ MoveWindowScaledBetweenMonitors(hwnd, sourceMonitor, targetMonitor) {
             newY := tTop + Round((winY - sTop) * (targetHeight / sourceHeight))
             newX := Max(tLeft, Min(newX, tRight - newWidth))
             newY := Max(tTop, Min(newY, tBottom - newHeight))
-            WinMove(newX, newY, newWidth, newHeight, "ahk_id " hwnd)
+            AsyncWinMove(hwnd, newX, newY, newWidth, newHeight)
 
             if wasMaximized {
                 Sleep(40)
-                WinMaximize("ahk_id " hwnd)
+                AsyncWinMaximize(hwnd)
             }
         }
 
         if wasMinimized {
             Sleep(40)
-            WinMinimize("ahk_id " hwnd)
+            AsyncWinMinimize(hwnd)
         }
         return GetWindowMonitor(hwnd) = targetMonitor
     } catch {
@@ -1198,16 +1208,71 @@ WaitForMinimizedState(hwnd, shouldBeMinimized, timeoutMs := 350) {
     }
 }
 
+; ============================================================================
+; ASYNC WINDOW OPERATIONS
+; ============================================================================
+; A window owned by a frozen or hung process (e.g. a game suspended by Ctrl+H)
+; cannot process synchronous messages.  AHK's WinMove/WinMaximize/WinRestore
+; send those synchronously and BLOCK the entire script - every hotkey, timer
+; and the reload/exit message stops until the target responds, which for a
+; suspended game is forever.  These helpers deliver the same window-state
+; changes asynchronously (PostMessage / ShowWindowAsync / SWP_ASYNCWINDOWPOS),
+; so a hung window can never stall the shortcut runtime again.
+
+IsWindowHung(hwnd) {
+    return hwnd && DllCall("IsWindow", "Ptr", hwnd, "Int") && DllCall("IsHungAppWindow", "Ptr", hwnd, "Int")
+}
+
+AsyncWinRestore(hwnd) {
+    if (!hwnd || !DllCall("IsWindow", "Ptr", hwnd, "Int"))
+        return
+    DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 9) ; SW_RESTORE
+    PostMessage(0x0112, 0xF120, 0, , "ahk_id " hwnd)   ; WM_SYSCOMMAND, SC_RESTORE
+}
+
+AsyncWinMinimize(hwnd) {
+    if (!hwnd || !DllCall("IsWindow", "Ptr", hwnd, "Int"))
+        return
+    DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 6) ; SW_MINIMIZE
+    PostMessage(0x0112, 0xF020, 0, , "ahk_id " hwnd)   ; WM_SYSCOMMAND, SC_MINIMIZE
+}
+
+AsyncWinMaximize(hwnd) {
+    if (!hwnd || !DllCall("IsWindow", "Ptr", hwnd, "Int"))
+        return
+    DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 3) ; SW_MAXIMIZE
+    PostMessage(0x0112, 0xF030, 0, , "ahk_id " hwnd)   ; WM_SYSCOMMAND, SC_MAXIMIZE
+}
+
+AsyncWinMove(hwnd, x, y, w, h) {
+    if (!hwnd || !DllCall("IsWindow", "Ptr", hwnd, "Int"))
+        return
+    ; SWP_NOZORDER | SWP_NOACTIVATE | SWP_ASYNCWINDOWPOS: never blocks on the
+    ; target thread, so a frozen window cannot stall this script.
+    DllCall("SetWindowPos", "Ptr", hwnd, "Ptr", 0
+        , "Int", x, "Int", y, "Int", w, "Int", h
+        , "UInt", 0x0014 | 0x4000)
+}
+
+; SetForegroundWindow never blocks on the target thread.
+AsyncActivate(hwnd) {
+    if (!hwnd || !DllCall("IsWindow", "Ptr", hwnd, "Int"))
+        return
+    DllCall("SetForegroundWindow", "Ptr", hwnd)
+}
+
 ; Force minimize a window using multiple methods
 ; Parameters:
 ;   hwnd - Window handle to minimize
 ForceMinimize(hwnd) {
-    ; Start asynchronously, then use SW_FORCEMINIMIZE.  The synchronous force
-    ; call is specifically designed to minimize a window owned by another
-    ; thread and is required by some fullscreen games (including Yakuza 3).
+    ; Start asynchronously, then force-minimize.  ShowWindowAsync and
+    ; PostMessage never block, so a frozen/hung window (e.g. a game suspended
+    ; by Ctrl+H) cannot stall the script while it minimizes.
     DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 6) ; SW_MINIMIZE
     DllCall("PostMessage", "Ptr", hwnd, "UInt", 0x0112, "Ptr", 0xF020, "Ptr", 0)
-    DllCall("ShowWindow", "Ptr", hwnd, "Int", 11) ; SW_FORCEMINIMIZE
+    DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 11) ; SW_FORCEMINIMIZE
+    if IsWindowHung(hwnd)
+        return true  ; A hung window cannot confirm state; treat as minimized.
     return WaitForMinimizedState(hwnd, true)
 }
 
@@ -1310,16 +1375,17 @@ EnsureFullscreenAfterRestore(hwnd, placement) {
             ; fullscreen swap chain, which can otherwise turn black.
             DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 9) ; SW_RESTORE
             DllCall("OpenIcon", "Ptr", hwnd)
-            DllCall("ShowWindow", "Ptr", hwnd, "Int", 5) ; SW_SHOW
+            DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 5) ; SW_SHOW
             DllCall("SetWindowPos", "Ptr", hwnd, "Ptr", 0
                 , "Int", 0, "Int", 0, "Int", 0, "Int", 0
-                , "UInt", 0x0043) ; SHOW | NOMOVE | NOSIZE
+                , "UInt", 0x0043 | 0x4000) ; SHOW | NOMOVE | NOSIZE | ASYNCWINDOWPOS
             if (!fullscreenBounds) {
                 DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 3) ; SW_MAXIMIZE
-                DllCall("ShowWindow", "Ptr", hwnd, "Int", 3)
+                DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 3)
             }
             DllCall("BringWindowToTop", "Ptr", hwnd)
-            try WinActivate("ahk_id " hwnd)
+            if !IsWindowHung(hwnd)
+                try WinActivate("ahk_id " hwnd)
             DllCall("SetForegroundWindow", "Ptr", hwnd)
             nextRecoveryPulse := A_TickCount + 500
         }
@@ -1358,16 +1424,17 @@ RestoreFullscreenPulse(hwnd, fullscreenBounds := false) {
     }
     DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 9) ; SW_RESTORE
     DllCall("OpenIcon", "Ptr", hwnd)
-    DllCall("ShowWindow", "Ptr", hwnd, "Int", 5) ; SW_SHOW
+    DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 5) ; SW_SHOW
     DllCall("SetWindowPos", "Ptr", hwnd, "Ptr", 0
         , "Int", 0, "Int", 0, "Int", 0, "Int", 0
-        , "UInt", 0x0043) ; SHOW | NOMOVE | NOSIZE
+        , "UInt", 0x0043 | 0x4000) ; SHOW | NOMOVE | NOSIZE | ASYNCWINDOWPOS
     if (!fullscreenBounds) {
         DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 3) ; SW_MAXIMIZE
-        DllCall("ShowWindow", "Ptr", hwnd, "Int", 3)
+        DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 3)
     }
     DllCall("BringWindowToTop", "Ptr", hwnd)
-    try WinActivate("ahk_id " hwnd)
+    if !IsWindowHung(hwnd)
+        try WinActivate("ahk_id " hwnd)
     DllCall("SetForegroundWindow", "Ptr", hwnd)
     return true
 }
@@ -1390,7 +1457,8 @@ FinalizeFullscreenRecovery(hwnd, succeeded) {
 
 FullscreenRecoveryGuardTick(hwnd) {
     global fullscreenRecoveryGuards
-    Critical("On")
+    ; Deliberately NOT Critical: a hung game window must never be able to
+    ; freeze the whole script while this recovery timer runs.
     if (!fullscreenRecoveryGuards.Has(hwnd)) {
         return
     }
@@ -1610,7 +1678,9 @@ RestoreSuspendedProcess(pid, resourceState) {
 
 MaintainPausedProcessState() {
     global frozenProcesses
-    Critical("On")
+    ; Deliberately NOT Critical: this 250 ms timer must never block hotkeys
+    ; (a blocking call here would stall every shortcut).  The debounce guards
+    ; in the freeze/resume hotkeys already keep state transitions atomic.
     for _, processInfo in frozenProcesses {
         state := processInfo.HasProp("state") ? processInfo.state : "paused"
         if (state != "paused" || !ProcessExist(processInfo.pid)) {
@@ -1717,8 +1787,8 @@ RestoreOneWindow(hwnd, placement := 0, restoreGeometry := true) {
         ; sequence for that state.
         DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 9) ; SW_RESTORE
         DllCall("OpenIcon", "Ptr", hwnd)
-        DllCall("ShowWindow", "Ptr", hwnd, "Int", 5) ; SW_SHOW
-        DllCall("SetWindowPos", "Ptr", hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0043) ; SHOW | NOMOVE | NOSIZE
+        DllCall("ShowWindowAsync", "Ptr", hwnd, "Int", 5) ; SW_SHOW
+        DllCall("SetWindowPos", "Ptr", hwnd, "Ptr", 0, "Int", 0, "Int", 0, "Int", 0, "Int", 0, "UInt", 0x0043 | 0x4000) ; SHOW | NOMOVE | NOSIZE | ASYNCWINDOWPOS
 
         if (!WaitForMinimizedState(hwnd, false, 750)) {
             return false
@@ -1730,11 +1800,12 @@ RestoreOneWindow(hwnd, placement := 0, restoreGeometry := true) {
             DllCall("SetWindowPos", "Ptr", hwnd, "Ptr", 0
                 , "Int", placement.x, "Int", placement.y
                 , "Int", placement.w, "Int", placement.h
-                , "UInt", 0x0040) ; SWP_SHOWWINDOW
+                , "UInt", 0x0040 | 0x4000) ; SWP_SHOWWINDOW | ASYNCWINDOWPOS
         }
 
         DllCall("BringWindowToTop", "Ptr", hwnd)
-        WinActivate("ahk_id " hwnd)
+        if !IsWindowHung(hwnd)
+            WinActivate("ahk_id " hwnd)
         DllCall("SetForegroundWindow", "Ptr", hwnd)
 
         deadline := A_TickCount + 750
@@ -1909,13 +1980,20 @@ MoveActiveWindowToMonitorMaximized(targetMonitor, label := "") {
         return false
     }
 
+    if (IsWindowHung(hwnd)) {
+        ToolTip("Window is not responding and cannot be moved")
+        SetTimer(() => ToolTip(), -2000)
+        return false
+    }
+
     try {
         MonitorGet(targetMonitor, &tLeft, &tTop, &tRight, &tBottom)
-        WinRestore("ahk_id " hwnd)
+        AsyncWinRestore(hwnd)
         Sleep(100)
-        WinMove(tLeft + 10, tTop + 10, , , "ahk_id " hwnd)
+        WinGetPos(, , &curW, &curH, "ahk_id " hwnd)
+        AsyncWinMove(hwnd, tLeft + 10, tTop + 10, curW, curH)
         Sleep(50)
-        WinMaximize("ahk_id " hwnd)
+        AsyncWinMaximize(hwnd)
         suffix := (label != "") ? label : ("Monitor " targetMonitor)
         ToolTip("Moved maximized to " suffix)
         SetTimer(() => ToolTip(), -1500)
@@ -1958,10 +2036,16 @@ ForceActiveWindowSmall() {
     centerX := mLeft + ((mRight - mLeft - smallW) // 2)
     centerY := mTop + ((mBottom - mTop - smallH) // 2)
 
+    if (IsWindowHung(hwnd)) {
+        ToolTip("Window is not responding and cannot be resized")
+        SetTimer(() => ToolTip(), -2000)
+        return false
+    }
+
     try {
-        WinRestore("ahk_id " hwnd)
+        AsyncWinRestore(hwnd)
         Sleep(50)
-        WinMove(centerX, centerY, smallW, smallH, "ahk_id " hwnd)
+        AsyncWinMove(hwnd, centerX, centerY, smallW, smallH)
         ToolTip("Window set to large restored (" smallW "x" smallH ")")
         SetTimer(() => ToolTip(), -1500)
         return true
@@ -2019,19 +2103,15 @@ CheckSpaceLongPress() {
 ; Uses the connected physical-monitor pair and ignores persistent virtual displays
 ^1::
 {
-    LogFreezeAction("DBG Ctrl+1 ENTER")
     try {
         hwnd := WinGetID("A")
-        LogFreezeAction("DBG Ctrl+1 got hwnd=" hwnd)
     } catch as err {
-        LogFreezeAction("DBG Ctrl+1 WinGetID ERROR: " err.Message)
         ToolTip("Error: Could not get active window")
         SetTimer(() => ToolTip(), -2000)
         return
     }
 
     if (!hwnd) {
-        LogFreezeAction("DBG Ctrl+1 no active window")
         ToolTip("No active window to move")
         SetTimer(() => ToolTip(), -1500)
         return
@@ -2040,16 +2120,13 @@ CheckSpaceLongPress() {
     ; Determine current monitor
     try {
         currentMonitor := GetWindowMonitor(hwnd)
-        LogFreezeAction("DBG Ctrl+1 monitor=" currentMonitor)
     } catch as err {
-        LogFreezeAction("DBG Ctrl+1 GetWindowMonitor ERROR: " err.Message)
         ToolTip("Error detecting current monitor: " err.Message)
         SetTimer(() => ToolTip(), -2000)
         return
     }
 
     targetMonitor := GetOtherPhysicalMonitor(currentMonitor)
-    LogFreezeAction("DBG Ctrl+1 hwnd=" hwnd " current=" currentMonitor " target=" targetMonitor " pair=" GetPhysicalMonitorPair()["count"])
     if !targetMonitor {
         ToolTip("Only 1 connected physical monitor detected")
         SetTimer(() => ToolTip(), -1800)
@@ -2065,9 +2142,17 @@ CheckSpaceLongPress() {
         return
     }
 
+    ; A hung window (e.g. a game frozen by Ctrl+H) cannot be moved and would
+    ; block the synchronous Win* calls, so abort cleanly instead.
+    if (IsWindowHung(hwnd)) {
+        ToolTip("Window is not responding and cannot be moved")
+        SetTimer(() => ToolTip(), -2000)
+        return
+    }
+
     ; Restore window first (if maximized or minimized)
     try {
-        WinRestore("ahk_id " hwnd)
+        AsyncWinRestore(hwnd)
         Sleep(100)  ; Allow time for restore to complete
     } catch as err {
         ToolTip("Error restoring window: " err.Message)
@@ -2077,9 +2162,10 @@ CheckSpaceLongPress() {
 
     ; Move to target monitor then maximize (true maximized state on target monitor)
     try {
-        WinMove(tLeft + 10, tTop + 10, , , "ahk_id " hwnd)  ; Nudge onto target monitor
+        WinGetPos(, , &curW, &curH, "ahk_id " hwnd)
+        AsyncWinMove(hwnd, tLeft + 10, tTop + 10, curW, curH)  ; Nudge onto target monitor
         Sleep(50)
-        WinMaximize("ahk_id " hwnd)
+        AsyncWinMaximize(hwnd)
         ToolTip("Moved maximized to Monitor " targetMonitor)
         SetTimer(() => ToolTip(), -1500)
     } catch as err {
@@ -2097,7 +2183,6 @@ CheckSpaceLongPress() {
     pair := GetPhysicalMonitorPair()
     primaryMon := pair["primary"]
     secondaryMon := pair["secondary"]
-    LogFreezeAction("DBG Ctrl+SC029 pair=" pair["count"] " primary=" primaryMon " secondary=" secondaryMon)
     if !primaryMon || !secondaryMon {
         ToolTip("Only 1 connected physical monitor detected")
         SetTimer(() => ToolTip(), -1800)
@@ -2521,23 +2606,35 @@ OpenGameLibraryManager()
 ; F10 x6 tap - Emergency preserve-state suspend for frozen PC recovery
 ; Uses the same Windows power API path as: rundll32.exe powrprof.dll,SetSuspendState 0,1,0
 ; Before suspend, leave only keyboard wake enabled so wake is limited to Space/keyboard or the PC power button.
+; Runs a powercfg query with a hard deadline so a hung powercfg can never
+; block the script.  The poll loop uses Sleep, so other hotkeys keep firing.
+RunPowerConfigQuery(shell, query, deadline) {
+    exec := shell.Exec(A_ComSpec ' /c powercfg ' query)
+    while (!exec.Status && A_TickCount < deadline)
+        Sleep(50)
+    if (exec.Status != 1)
+        return ""  ; Timed out: do not block on StdOut.ReadAll().
+    return exec.StdOut.ReadAll()
+}
+
 ConfigureF10WakeSources()
 {
     shell := ComObject("WScript.Shell")
+    deadline := A_TickCount + 15000  ; bound the whole wake-source pass
 
-    programmable := shell.Exec(A_ComSpec ' /c powercfg /devicequery wake_programmable')
-    for _, device in StrSplit(Trim(programmable.StdOut.ReadAll(), "`r`n"), "`n", "`r") {
+    programmable := RunPowerConfigQuery(shell, "/devicequery wake_programmable", deadline)
+    for _, device in StrSplit(Trim(programmable, "`r`n"), "`n", "`r") {
         device := Trim(device)
         if (device != "" && InStr(device, "Keyboard")) {
-            RunWait(A_ComSpec ' /c powercfg /deviceenablewake "' device '"', , "Hide")
+            Run(A_ComSpec ' /c powercfg /deviceenablewake "' device '"', , "Hide")
         }
     }
 
-    armed := shell.Exec(A_ComSpec ' /c powercfg /devicequery wake_armed')
-    for _, device in StrSplit(Trim(armed.StdOut.ReadAll(), "`r`n"), "`n", "`r") {
+    armed := RunPowerConfigQuery(shell, "/devicequery wake_armed", deadline)
+    for _, device in StrSplit(Trim(armed, "`r`n"), "`n", "`r") {
         device := Trim(device)
         if (device != "" && !InStr(device, "Keyboard")) {
-            RunWait(A_ComSpec ' /c powercfg /devicedisablewake "' device '"', , "Hide")
+            Run(A_ComSpec ' /c powercfg /devicedisablewake "' device '"', , "Hide")
         }
     }
 }

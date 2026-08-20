@@ -28,11 +28,37 @@ if ($__2scNeedBootstrap) {
     Initialize-CodexProfileFunctions
 }
 function Invoke-MmenuDockerLogin {
-        $tokenFile=Join-Path $progressRoot ('docker-login-'+[Guid]::NewGuid().ToString('N')+'.txt')
-        try { [IO.File]::WriteAllText($tokenFile,'dckr_pat_5YhMryH0VaoFFmEw6GmvvHaHvKI',[Text.Encoding]::ASCII); $commandLine='type '+(Quote-MmenuCmdArg $tokenFile)+' | '+(Quote-MmenuCmdArg $dockerExe)+' login docker.io -u michadockermisha --password-stdin'; $code=Invoke-MmenuCmdProgress -Label 'login' -CommandLine $commandLine; if($code -ne 0){throw "docker login exited $code"}; return $true }
-        catch { Write-Warning "mmenu: docker login failed: $($_.Exception.Message)"; return $false }
-        finally { Remove-Item -LiteralPath $tokenFile -Force -ErrorAction SilentlyContinue }
+    [CmdletBinding()]
+    param()
+    $helper = 'C:\Program Files\Docker\Docker\resources\bin\docker-credential-desktop.exe'
+    if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) {
+        Write-Warning "mmenu: Docker credential helper not found: $helper"
+        return $false
     }
+    $info = New-Object Diagnostics.ProcessStartInfo
+    $info.FileName = $helper
+    $info.Arguments = 'list'
+    $info.UseShellExecute = $false
+    $info.CreateNoWindow = $true
+    $info.RedirectStandardOutput = $true
+    $info.RedirectStandardError = $true
+    $process = [Diagnostics.Process]::Start($info)
+    if (-not $process.WaitForExit(3000)) {
+        try { $process.Kill() } catch { }
+        Write-Warning 'mmenu: Docker credential lookup timed out.'
+        return $false
+    }
+    if ($process.ExitCode -ne 0) { return $false }
+    try {
+        $credentials = $process.StandardOutput.ReadToEnd() | ConvertFrom-Json -ErrorAction Stop
+        return @($credentials.PSObject.Properties | Where-Object {
+            $_.Name -in @('https://index.docker.io/v1/', 'https://dhi.io', 'index.docker.io')
+        }).Count -gt 0
+    } catch {
+        Write-Warning ("mmenu: Docker credential lookup failed: {0}" -f $_.Exception.Message)
+        return $false
+    }
+}
 
 if ($MyInvocation.InvocationName -ne '.') {
     & 'Invoke-MmenuDockerLogin' @args

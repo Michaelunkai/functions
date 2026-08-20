@@ -51,11 +51,11 @@ if ($MyInvocation.InvocationName -ne '.') {
 #      data points at the app)
 #   7. remove user + machine environment variables and PATH entries
 #   8. remove Start Menu / Desktop / Taskbar shortcuts and pins
-#   9. remove MRU / recent-file entries that reference the app
-#  10. filesystem obliteration of every name-matching leftover on C: (roots:
-#      C:\, C:\Temp, Windows\Temp, Windows\Tasks, System32\Tasks, Prefetch,
-#      USERPROFILE, ProgramData, Program Files x64/x86, Public) - junction
-#      safe, parallel collector, live scanned/matched/deleted counters
+#   9. remove MRU / recent-file entries that reference the app    #  10. filesystem obliteration of every name-matching leftover on C: (roots:
+    #      C:\, C:\Temp, Windows\Temp, Windows\Tasks, System32\Tasks, Prefetch,
+    #      USERPROFILE, ProgramData, Program Files x64/x86, Public) - junction
+    #      safe, parallel collector (cap 3 roots at once), live
+    #      scanned/matched/deleted counters
 #  11. final round: re-kill, release handles (restart Explorer only if a
 #      leftover is genuinely locked by it), retry every blocked item
 # Rules:
@@ -777,6 +777,7 @@ function Get-UniPatterns {
 # ---------------------------------------------------------------------------
 $script:UniStats = @{ Processes = 0; Services = 0; Tasks = 0; Firewall = 0; RegKeys = 0; RegValues = 0; EnvVars = 0; Shortcuts = 0; Files = 0; Dirs = 0 }
 $script:UniFailed = New-Object System.Collections.Generic.List[string]
+$script:UniRegSweepFound = $false
 
 # ---------------------------------------------------------------------------
 # 1. kill every related process (name / path / command line / window title)
@@ -977,6 +978,38 @@ function Remove-UniRegistryKey {
     }
 }
 
+# remove one registry value. An empty value name means the key's DEFAULT value
+# (e.g. per-app audio PolicyConfig references), which PowerShell's
+# Remove-ItemProperty refuses with a parameter-binding error that
+# -ErrorAction cannot silence - so empty names go through the .NET API instead.
+function Remove-UniRegistryValue {
+    param([string]$ProviderPath, [string]$ValueName)
+    if (-not [string]::IsNullOrEmpty($ValueName)) {
+        Remove-ItemProperty -LiteralPath $ProviderPath -Name $ValueName -ErrorAction SilentlyContinue
+        return
+    }
+    try {
+        $p = $ProviderPath
+        if ($p.StartsWith('Registry::', [System.StringComparison]::OrdinalIgnoreCase)) { $p = $p.Substring(10) }
+        $hiveName = ''
+        $sub = ''
+        if ($p -match '^([A-Za-z]+):\\(.*)$') { $hiveName = $matches[1]; $sub = $matches[2] }
+        elseif ($p -match '^([A-Za-z]+)\\(.*)$') { $hiveName = $matches[1]; $sub = $matches[2] }
+        $hive = $null
+        if ($hiveName -eq 'HKCU') { $hive = [Microsoft.Win32.Registry]::CurrentUser }
+        elseif ($hiveName -eq 'HKLM') { $hive = [Microsoft.Win32.Registry]::LocalMachine }
+        elseif ($hiveName -eq 'HKCR') { $hive = [Microsoft.Win32.Registry]::ClassesRoot }
+        elseif ($hiveName -eq 'HKU') { $hive = [Microsoft.Win32.Registry]::Users }
+        if ($hive -and $sub) {
+            $key = $hive.OpenSubKey($sub, $true)
+            if ($key) {
+                try { $key.DeleteValue('', $false) } catch { }
+                $key.Close()
+            }
+        }
+    } catch { }
+}
+
 function Invoke-UniInstallerKeys {
     param($ReExact)
     foreach ($root in @(
@@ -1032,10 +1065,11 @@ function Invoke-UniInstallerKeys {
         foreach ($vn in @($item.GetValueNames())) {
             $data = $item.GetValue($vn)
             if ($ReExact.IsMatch($vn) -or ($data -and $ReExact.IsMatch([string]$data))) {
-                Remove-ItemProperty -LiteralPath $root -Name $vn -ErrorAction SilentlyContinue
+                $vnShow = if ([string]::IsNullOrEmpty($vn)) { '(default)' } else { $vn }
+                Remove-UniRegistryValue -ProviderPath $root -ValueName $vn
                 $script:UniStats.RegValues++
                 Clear-UniLine
-                Write-Host ("  run entry removed: {0} :: {1}" -f $root, $vn) -ForegroundColor Green
+                Write-Host ("  run entry removed: {0} :: {1}" -f $root, $vnShow) -ForegroundColor Green
             }
         }
     }
@@ -1076,6 +1110,7 @@ function Invoke-UniRegistrySweep {
         Write-Host "  registry sweep: nothing matched." -ForegroundColor Green
         return
     }
+    $script:UniRegSweepFound = $true
     $i = 0
     foreach ($item in $items) {
         $i++
@@ -1091,11 +1126,12 @@ function Invoke-UniRegistrySweep {
             if ($sep -lt 0) { continue }
             $rp = 'Registry::' + $item.Substring(2, $sep - 2)
             $vn = $item.Substring($sep + 1)
-            Update-UniLine ("[{0}] registry sweep [{1}/{2}]: value {3} :: {4}" -f (Get-UniElapsed), $i, $items.Count, $item.Substring(2, $sep - 2), $vn)
-            Remove-ItemProperty -LiteralPath $rp -Name $vn -ErrorAction SilentlyContinue
+            $vnShow = if ([string]::IsNullOrEmpty($vn)) { '(default)' } else { $vn }
+            Update-UniLine ("[{0}] registry sweep [{1}/{2}]: value {3} :: {4}" -f (Get-UniElapsed), $i, $items.Count, $item.Substring(2, $sep - 2), $vnShow)
+            Remove-UniRegistryValue -ProviderPath $rp -ValueName $vn
             $script:UniStats.RegValues++
             Clear-UniLine
-            Write-Host ("  registry value removed: {0} :: {1}" -f $item.Substring(2, $sep - 2), $vn) -ForegroundColor DarkGreen
+            Write-Host ("  registry value removed: {0} :: {1}" -f $item.Substring(2, $sep - 2), $vnShow) -ForegroundColor DarkGreen
         }
     }
     Clear-UniLine
@@ -1212,10 +1248,11 @@ function Invoke-UniMru {
             if ($data -is [byte[]]) { $text = [System.Text.Encoding]::Unicode.GetString($data) }
             elseif ($data) { $text = [string]$data }
             if ($text -and $ReExact.IsMatch($text)) {
-                Remove-ItemProperty -LiteralPath $root -Name $vn -ErrorAction SilentlyContinue
+                $vnShow = if ([string]::IsNullOrEmpty($vn)) { '(default)' } else { $vn }
+                Remove-UniRegistryValue -ProviderPath $root -ValueName $vn
                 $script:UniStats.RegValues++
                 Clear-UniLine
-                Write-Host ("  MRU entry removed: {0} :: {1}" -f $root, $vn) -ForegroundColor DarkGreen
+                Write-Host ("  MRU entry removed: {0} :: {1}" -f $root, $vnShow) -ForegroundColor DarkGreen
             }
         }
     }
@@ -1327,7 +1364,6 @@ function Invoke-UniFileSweep {
     $script:UniRootSpecs = @($script:UniRootSpecs | Where-Object {
         $_.Path -and $_.Path.StartsWith($sd, [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $_.Path -PathType Container)
     })
-
     $script:UniDenyPaths = @()
     if ($env:ProgramFiles) {
         $script:UniDenyPaths += (Join-Path $env:ProgramFiles 'WindowsApps')
@@ -1353,33 +1389,47 @@ function Invoke-UniFileSweep {
     }
     $script:UniProtected = $protected
 
-    foreach ($rs in $script:UniRootSpecs) {
+    # launch root scans in parallel waves (cap 3) so the big roots overlap
+    # instead of adding up - combined live counters while they run
+    Ensure-UniSweepCollect
+    if (-not $script:UniCollectOk) {
         Clear-UniLine
-        Write-Host ("  scanning {0} ..." -f $rs.Path) -ForegroundColor Cyan
-        $task = $null
-        Ensure-UniSweepCollect
-        Update-UniLine ("[{0}] preparing scanner ..." -f (Get-UniElapsed))
-        if ($script:UniCollectOk) {
+        Write-Host "  filesystem collector unavailable - skipping sweep." -ForegroundColor Yellow
+        return
+    }
+    [UniSweepCollectV3]::ResetCounters()
+    $rootQueue = @($script:UniRootSpecs)
+    $running = @()
+    $completed = @()
+    $maxConcurrent = 3
+    while ($rootQueue.Count -gt 0 -or $running.Count -gt 0) {
+        while ($rootQueue.Count -gt 0 -and $running.Count -lt $maxConcurrent) {
+            $rs = $rootQueue[0]
+            $rootQueue = @($rootQueue | Select-Object -Skip 1)
             try {
-                [UniSweepCollectV3]::ResetCounters()
                 $task = [UniSweepCollectV3]::CollectAsync($rs.Path, $rs.Mode, $ExactPat, $LoosePat, $script:UniDenyPaths, $script:UniProtected, @($rs.RootDeny))
-            } catch { $task = $null }
+                if ($task) { $running += @{ Path = $rs.Path; Mode = $rs.Mode; Task = $task } }
+            } catch { }
         }
-        if (-not $task) {
-            Write-Host ("  collector unavailable - manual walk of {0}" -f $rs.Path) -ForegroundColor Yellow
-            continue
+        if ($running.Count -eq 0) { break }
+        $sc = 0; $mt = 0
+        try { $sc = [UniSweepCollectV3]::Scanned; $mt = [UniSweepCollectV3]::Matched } catch { }
+        Update-UniLine ("[{0}] scanning roots in parallel: entries {1:N0} · matched {2} · active {3} ..." -f (Get-UniElapsed), $sc, $mt, $running.Count)
+        Start-Sleep -Milliseconds 100
+        $still = @()
+        foreach ($r in $running) {
+            if ($r.Task.IsCompleted) { $completed += $r } else { $still += $r }
         }
-        while (-not $task.IsCompleted) {
-            $sc = 0; $mt = 0
-            try { $sc = [UniSweepCollectV3]::Scanned; $mt = [UniSweepCollectV3]::Matched } catch { }
-            Update-UniLine ("[{0}] scanning {1} ... entries {2:N0} · matched {3}" -f (Get-UniElapsed), $rs.Path, $sc, $mt)
-            Start-Sleep -Milliseconds 100
-        }
+        $running = $still
+    }
+    Clear-UniLine
+    Write-Host ("  scanned {0} root(s): {1}" -f $completed.Count, (@($completed | ForEach-Object { $_.Path }) -join ', ')) -ForegroundColor Cyan
+    foreach ($t in $completed) {
         $cands = @()
-        try { $cands = @($task.Result) } catch { }
+        try { $cands = @($t.Task.Result) } catch { }
         if ($cands.Count -eq 0) {
             Clear-UniLine
-            Write-Host ("  nothing matched under {0}." -f $rs.Path) -ForegroundColor DarkGray
+            Write-Host ("  nothing matched under {0}." -f $t.Path) -ForegroundColor DarkGray
             continue
         }
         $i = 0
@@ -1407,7 +1457,7 @@ function Invoke-UniFileSweep {
 # 11. final round: re-kill, release handles, retry blocked items + re-scan nuclear roots
 # ---------------------------------------------------------------------------
 function Invoke-UniFinal {
-    param($ReExact, $ExactPat, $LoosePat, $RootSpecs, $DenyPaths, $Protected)
+    param($ReExact, $ReLoose, $ExactPat, $LoosePat, $RootSpecs, $DenyPaths, $Protected)
     Invoke-UniKillProcesses -ReExact $ReExact
     
     # Re-scan nuclear mode roots (Mode N) AND user profile for any recreated items after process kill
@@ -1431,7 +1481,12 @@ function Invoke-UniFinal {
                 } catch { $task = $null }
             }
             if ($task) {
-                while (-not $task.IsCompleted) { Start-Sleep -Milliseconds 50 }
+                while (-not $task.IsCompleted) {
+                    $sc = 0; $mt = 0
+                    try { $sc = [UniSweepCollectV3]::Scanned; $mt = [UniSweepCollectV3]::Matched } catch { }
+                    Update-UniLine ("[{0}] re-scanning {1} ... entries {2:N0} · matched {3}" -f (Get-UniElapsed), $root, $sc, $mt)
+                    Start-Sleep -Milliseconds 100
+                }
                 $cands = @()
                 try { $cands = @($task.Result) } catch { }
                 foreach ($c in $cands) {
@@ -1447,7 +1502,57 @@ function Invoke-UniFinal {
             }
         }
     }
-    
+
+    # final registry re-sweep: only runs when the first sweep matched something
+    # (so clean runs pay nothing). Catches values that failed to delete the first
+    # time or were re-created by processes killed in this final round, e.g.
+    # per-app audio PolicyConfig default-value references.
+    if ($script:UniRegSweepFound -or $script:UniFailed.Count -gt 0) {
+        Clear-UniLine
+        Write-Host '  re-scanning registry for recreated values ...' -ForegroundColor Cyan
+        $regTask = $null
+        Ensure-UniRegCollect
+        if ($script:UniRegOk) {
+            try {
+                [UniRegCollectV3]::ResetCounters()
+                $regTask = [UniRegCollectV3]::CollectAsync($ReExact.ToString(), $ReLoose.ToString(), @('HKLM\SOFTWARE\Microsoft', 'HKLM\SOFTWARE\WOW6432Node\Microsoft', 'HKCU\Software\Microsoft'))
+            } catch { $regTask = $null }
+        }
+        if ($regTask) {
+            while (-not $regTask.IsCompleted) {
+                $sc = 0; $mt = 0
+                try { $sc = [UniRegCollectV3]::Scanned; $mt = [UniRegCollectV3]::Matched } catch { }
+                Update-UniLine ("[{0}] registry re-sweep: keys {1:N0} scanned · {2} matched ..." -f (Get-UniElapsed), $sc, $mt)
+                Start-Sleep -Milliseconds 100
+            }
+            $ritems = @()
+            try { $ritems = @($regTask.Result) } catch { }
+            foreach ($item in $ritems) {
+                if ($item.StartsWith('K:')) {
+                    $rp = 'Registry::' + $item.Substring(2)
+                    Update-UniLine ("[{0}] registry re-sweep: key {1}" -f (Get-UniElapsed), $item.Substring(2))
+                    Remove-UniRegistryKey -ProviderPath $rp
+                    $script:UniStats.RegKeys++
+                    Clear-UniLine
+                    Write-Host ("  registry key removed (final): {0}" -f $item.Substring(2)) -ForegroundColor Green
+                } else {
+                    $sep = $item.IndexOf([char]1)
+                    if ($sep -lt 0) { continue }
+                    $rp = 'Registry::' + $item.Substring(2, $sep - 2)
+                    $vn = $item.Substring($sep + 1)
+                    $vnShow = if ([string]::IsNullOrEmpty($vn)) { '(default)' } else { $vn }
+                    Update-UniLine ("[{0}] registry re-sweep: value {1} :: {2}" -f (Get-UniElapsed), $item.Substring(2, $sep - 2), $vnShow)
+                    Remove-UniRegistryValue -ProviderPath $rp -ValueName $vn
+                    $script:UniStats.RegValues++
+                    Clear-UniLine
+                    Write-Host ("  registry value removed (final): {0} :: {1}" -f $item.Substring(2, $sep - 2), $vnShow) -ForegroundColor DarkGreen
+                }
+            }
+            Clear-UniLine
+            Write-Host ("  registry re-sweep done: {0} leftover(s) found and removed." -f $ritems.Count) -ForegroundColor Green
+        }
+    }
+
     if ($script:UniFailed.Count -eq 0) { return }
     $retry = @($script:UniFailed)
     $script:UniFailed = New-Object System.Collections.Generic.List[string]
@@ -1578,7 +1683,7 @@ function uni {
     Write-UniPhase 'Filesystem obliteration'
     Invoke-UniFileSweep -ExactPat $pat.Exact -LoosePat $pat.Loose -ExplicitPaths @($paths)
     Write-UniPhase 'Final cleanup round'
-    Invoke-UniFinal -ReExact $ReExact -ExactPat $pat.Exact -LoosePat $pat.Loose -RootSpecs $script:UniRootSpecs -DenyPaths $script:UniDenyPaths -Protected $script:UniProtected
+    Invoke-UniFinal -ReExact $ReExact -ReLoose $ReLoose -ExactPat $pat.Exact -LoosePat $pat.Loose -RootSpecs $script:UniRootSpecs -DenyPaths $script:UniDenyPaths -Protected $script:UniProtected
 
     if (-not $script:UniIsElevated -and $PSCommandPath -and $script:UniFailed.Count -gt 0) {
         $needElev = $false

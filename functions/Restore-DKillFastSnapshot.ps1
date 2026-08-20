@@ -30,11 +30,14 @@ if ($__2scNeedBootstrap) {
 function Restore-DKillFastSnapshot {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$SnapshotRoot)
-    if(-not(Test-Path -LiteralPath $SnapshotRoot -PathType Container)){Write-DKillFastLine ("DKILL_SNAPSHOT_RESTORE_FAIL root not found: {0}" -f $SnapshotRoot) Red;return $false}
-    $restored=0;$failures=0
-    try{$entries=@(Get-ChildItem -LiteralPath $SnapshotRoot -Force -ErrorAction Stop)}catch{Write-DKillFastLine ("DKILL_SNAPSHOT_RESTORE_FAIL enumerate: {0}" -f $_.Exception.Message) Red;return $false}
-    foreach($entry in $entries){$relative=$entry.Name-replace'_','\';if($relative-match'^(Users\\[^\\]+\\\.docker)$'){$destination='C:\'+$relative}elseif($relative-match'^(Users\\[^\\]+\\AppData\\Roaming\\Docker)$'){$destination='C:\'+$relative}elseif($relative-match'^(Users\\[^\\]+\\AppData\\Roaming\\Docker Desktop)$'){$destination='C:\'+$relative}else{continue};try{New-Item -ItemType Directory -Force -Path(Split-Path -Parent $destination)-ErrorAction Stop|Out-Null;Copy-Item -LiteralPath $entry.FullName -Destination $destination -Recurse -Force -ErrorAction Stop;if(-not(Test-Path -LiteralPath $destination)){throw 'restore was not verified'};$restored++;Write-DKillFastLine ("DKILL_SNAPSHOT_RESTORE_OK {0}" -f $destination) DarkGray}catch{$failures++;Write-DKillFastLine ("DKILL_SNAPSHOT_RESTORE_FAIL destination={0}: {1}" -f $destination,$_.Exception.Message) Red}}
-    $succeeded=$failures-eq0;Write-DKillFastLine ("DKILL_SNAPSHOT_RESTORE_{0} restored={1} failures={2}" -f $(if($succeeded){'OK'}else{'INCOMPLETE'}),$restored,$failures) $(if($succeeded){'Green'}else{'Yellow'});return $succeeded
+    Write-Warning ("Legacy Docker snapshot restore is retired to prevent WSL2 or Hyper-V resurrection. Snapshot was not copied: {0}" -f $SnapshotRoot)
+    $enforcer = 'F:\study\Containers\docker\backup-docker\repository-tools\SetDockerhyperv\Invoke-set-dockerhyperv.ps1'
+    if (-not (Test-Path -LiteralPath $enforcer -PathType Leaf)) { throw "Docker VMM enforcer not found: $enforcer" }
+    $result = & $enforcer -MemMB 33792 -Label 'DOCKER VMM RESTORE GUARD'
+    if ($LASTEXITCODE -ne 0 -or -not (Get-Process -Name 'com.docker.sailor' -ErrorAction SilentlyContinue)) { throw 'Docker VMM restore guard did not verify a live VMM engine.' }
+    $result | Out-Null
+    $global:LASTEXITCODE = 0
+    return $true
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

@@ -1,0 +1,20 @@
+[
+  {
+    "Folder": "qBittorrentSearchPluginsWiki",
+    "Slug": "qbittorrentsearchpluginswiki",
+    "TargetPath": "F:\\backup\\windowsapps\\installed\\qBittorrentSearchPluginsWiki",
+    "Protected": false,
+    "Kind": "Content",
+    "Path": "Home.md",
+    "Process": null
+  },
+  {
+    "Folder": "GappExactPathProof",
+    "Slug": "gappexactpathproof",
+    "TargetPath": "C:\\Users\\micha\\GappExactPathProof",
+    "Protected": false,
+    "Kind": "Content",
+    "Path": "root.txt",
+    "Process": null
+  }
+]

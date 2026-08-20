@@ -99,7 +99,7 @@ function nvioc {
     }
 
     if (-not $nvidiaApiKey -or [string]::IsNullOrWhiteSpace($nvidiaApiKey)) {
-        throw "NVIDIA_API_KEY not found. Set env var, ensure key file at F:\backup\windowsapps\credentials\nvidia\api.txt, or run 'opencode auth login' with nvidia provider."
+        throw "NVIDIA_API_KEY not found. Set env var, ensure key file at F:\backup\windowsapps\credentials\nvidia\api-keys.txt, or run 'opencode auth login' with nvidia provider."
     }
 
     # Set NVIDIA API key in environment for opencode's built-in nvidia provider
@@ -125,6 +125,10 @@ function nvioc {
     $env:OPENCODE_PERMISSION_TODO = 'allow'
     $env:OPENCODE_PERMISSION_QUESTION = 'allow'
 
+    # Pin OpenCode's shell discovery to native Windows PowerShell 5.1. This
+    # prevents Git Bash/WSL from pre-expanding PowerShell syntax such as $_.
+    $env:SHELL = "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe"
+
     # ═══════════════════════════════════════════════════════════════════
     # MODEL DEFINITIONS (verified Aug 18 2026 via NVIDIA NIM API)
     # Ranked by CAPABILITY first (best model is the DEFAULT), with the
@@ -147,12 +151,23 @@ function nvioc {
     # 4. DeepSeek V4 Flash  284B MoE, 1M ctx, fast coding
     # 5. Inkling             256-expert MoE, 1M ctx, multimodal
     # ═══════════════════════════════════════════════════════════════════
+    # Capability order used by nvi through nvi15 and by -Check fallback.
     $modelOrder = @(
+        'nvidia-nim/thinkingmachines/inkling',
         'nvidia-nim/nvidia/nemotron-3-ultra-550b-a55b',
-        'nvidia-nim/z-ai/glm-5.2',
-        'nvidia-nim/nvidia/nemotron-3-super-120b-a12b',
         'nvidia-nim/deepseek-ai/deepseek-v4-flash-0731',
-        'nvidia-nim/thinkingmachines/inkling'
+        'nvidia-nim/minimaxai/minimax-m3',
+        'nvidia-nim/google/gemma-4-31b-it',
+        'nvidia-nim/stepfun-ai/step-3.7-flash',
+        'nvidia-nim/nvidia/nemotron-3-super-120b-a12b',
+        'nvidia-nim/nvidia/llama-3.3-nemotron-super-49b-v1.5',
+        'nvidia-nim/poolside/laguna-xs-2.1',
+        'nvidia-nim/openai/gpt-oss-120b',
+        'nvidia-nim/meta/llama-3.3-70b-instruct',
+        'nvidia-nim/meta/llama-3.1-70b-instruct',
+        'nvidia-nim/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning',
+        'nvidia-nim/nvidia/nemotron-3.5-lightning-30b-a3b',
+        'nvidia-nim/nvidia/nemotron-3-nano-30b-a3b'
     )
 
     # Human-readable labels for progress output
@@ -162,13 +177,24 @@ function nvioc {
         'nvidia-nim/nvidia/nemotron-3-super-120b-a12b'   = 'Nemotron 3 Super (120B, strong general)'
         'nvidia-nim/deepseek-ai/deepseek-v4-flash-0731' = 'DeepSeek V4 Flash (284B MoE, fast coding)'
         'nvidia-nim/thinkingmachines/inkling'            = 'Inkling (multimodal, text+image+audio)'
+        'nvidia-nim/minimaxai/minimax-m3'                = 'MiniMax M3 (428B MoE, multimodal, 1M context)'
+        'nvidia-nim/google/gemma-4-31b-it'                = 'Gemma 4 31B IT (reasoning, coding, multimodal)'
+        'nvidia-nim/stepfun-ai/step-3.7-flash'            = 'Step 3.7 Flash (198B MoE, coding, multimodal)'
+        'nvidia-nim/nvidia/llama-3.3-nemotron-super-49b-v1.5' = 'Llama 3.3 Nemotron Super 49B v1.5'
+        'nvidia-nim/poolside/laguna-xs-2.1'               = 'Poolside Laguna XS 2.1 (agentic coding)'
+        'nvidia-nim/openai/gpt-oss-120b'                  = 'GPT-OSS 120B (OpenAI open)'
+        'nvidia-nim/meta/llama-3.3-70b-instruct'           = 'Llama 3.3 70B Instruct'
+        'nvidia-nim/meta/llama-3.1-70b-instruct'           = 'Llama 3.1 70B Instruct'
+        'nvidia-nim/nvidia/nemotron-3-nano-omni-30b-a3b-reasoning' = 'Nemotron Nano Omni 30B Reasoning'
+        'nvidia-nim/nvidia/nemotron-3.5-lightning-30b-a3b' = 'Nemotron 3.5 Lightning 30B'
+        'nvidia-nim/nvidia/nemotron-3-nano-30b-a3b'       = 'Nemotron 3 Nano 30B'
     }
 
-    # DEFAULT: the absolute best-capable model (Nemotron 3 Ultra 550B).
-    # The TUI opens almost instantly with it unless -Check is passed; the
-    # fast pre-flight probe below re-verifies it and falls back to the
-    # best model that is actually answering if it got throttled.
-    $defaultModel = $modelOrder[0]
+    # DEFAULT: Nemotron 3 Super (120B) — 50x faster than Ultra (550B).
+    # Ultra: ~36s response. Super: ~0.6s response. Both strong general.
+    # The TUI opens almost instantly unless -Check is passed; the
+    # fast pre-flight probe below re-verifies and falls back if throttled.
+    $defaultModel = 'nvidia-nim/nvidia/nemotron-3-super-120b-a12b'
 
     # ═══════════════════════════════════════════════════════════════════
     # PARSE COMMAND-LINE ARGUMENTS
@@ -343,13 +369,43 @@ function nvioc {
 
     function Write-ModelHealthCache {
         param([object]$Cache)
+        $cacheMutex = New-Object Threading.Mutex($false, 'Local\NviocModelHealthCacheV1')
+        $cacheLockTaken = $false
+        $temporaryPath = $null
         try {
+            try {
+                $cacheLockTaken = $cacheMutex.WaitOne(1000)
+            } catch [Threading.AbandonedMutexException] {
+                $cacheLockTaken = $true
+            }
+            if (-not $cacheLockTaken) { return }
             $dir = Split-Path -Parent $healthCachePath
             if (-not (Test-Path -LiteralPath $dir -PathType Container)) {
                 New-Item -ItemType Directory -Force -Path $dir | Out-Null
             }
-            $Cache | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath $healthCachePath -Encoding UTF8
+            $temporaryPath = "$healthCachePath.tmp.$PID.$([guid]::NewGuid().ToString('N'))"
+            $json = $Cache | ConvertTo-Json -Depth 4
+            [IO.File]::WriteAllText(
+                $temporaryPath,
+                ($json + "`r`n"),
+                (New-Object Text.UTF8Encoding($false))
+            )
+            if ([IO.File]::Exists($healthCachePath)) {
+                [IO.File]::Replace($temporaryPath, $healthCachePath, $null, $true)
+            } else {
+                [IO.File]::Move($temporaryPath, $healthCachePath)
+            }
+            $temporaryPath = $null
         } catch { }
+        finally {
+            if ($temporaryPath -and [IO.File]::Exists($temporaryPath)) {
+                [IO.File]::Delete($temporaryPath)
+            }
+            if ($cacheLockTaken) {
+                [void]$cacheMutex.ReleaseMutex()
+            }
+            $cacheMutex.Dispose()
+        }
     }
 
     function Test-ModelCached {
@@ -416,80 +472,105 @@ function nvioc {
     }
 
     function Backup-OpenCodeSessions {
-        # Consistent snapshot of the session database (SQLite WAL-safe via
-        # python's backup API) so a wipe of the install dir or a corrupted
-        # DB can never cost the user a daytime session. Runs BEFORE launch
-        # and is deliberately fast (~8 MB DB, well under a second).
+        # The database can be several gigabytes. Start one low-priority,
+        # SQLite-consistent backup worker and never block the TUI launch.
         $dbPath = Join-Path $env:USERPROFILE '.local\share\opencode\opencode.db'
         if (-not (Test-Path -LiteralPath $dbPath -PathType Leaf)) { return }
         $backupDir = 'F:\backup\opencode-sessions'
+        $helper = 'F:\study\Platforms\windows\functions\backup-opencode-sessions.py'
+        $marker = Join-Path $backupDir '.opencode-backup.active'
+        $receipt = Join-Path $backupDir 'opencode-backup-receipt.json'
         try {
             if (-not (Test-Path -LiteralPath $backupDir -PathType Container)) {
                 New-Item -ItemType Directory -Force -Path $backupDir | Out-Null
             }
-            $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-            $backupPath = Join-Path $backupDir "opencode_$stamp.db"
-            # Resolve the python EXE explicitly: Get-Command may return a
-            # profile FUNCTION whose .Source is the module name, not the
-            # interpreter path. Prefer the Application type; fall back to
-            # 'py' (Windows launcher) if no python.exe is found.
-            # Skip the WindowsApps execution-alias (its .Source joins two
-            # paths and breaks invocation). Prefer a real interpreter.
-            $pyExe = $null
-            $pyCandidates = @()
-            foreach ($pyCmd in (Get-Command python.exe -CommandType Application -ErrorAction SilentlyContinue)) {
-                if ($pyCmd.Source -notmatch 'WindowsApps') { $pyCandidates += $pyCmd.Source }
+            if (-not (Test-Path -LiteralPath $helper -PathType Leaf)) {
+                Write-Host "OC_PROGRESS stage=sessions-backup-helper-missing path=$helper"
+                return
             }
-            if ($pyCandidates.Count -gt 0) { $pyExe = $pyCandidates[0] }
-            if (-not $pyExe) {
-                foreach ($pyCmd in (Get-Command py -CommandType Application -ErrorAction SilentlyContinue)) {
-                    if ($pyCmd.Source -notmatch 'WindowsApps') { $pyCandidates += $pyCmd.Source }
+            if (Test-Path -LiteralPath $receipt -PathType Leaf) {
+                try {
+                    $receiptState = Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json
+                    $receiptAge = ([DateTime]::UtcNow - (Get-Item -LiteralPath $receipt).LastWriteTimeUtc).TotalSeconds
+                    if ($receiptAge -lt 900 -and $receiptState.status -in @('completed', 'recent_backup')) {
+                        return
+                    }
+                } catch { }
+            }
+            if (Test-Path -LiteralPath $marker -PathType Leaf) {
+                $markerAge = ([DateTime]::UtcNow - (Get-Item -LiteralPath $marker).LastWriteTimeUtc).TotalSeconds
+                $markerPid = 0
+                try { $markerPid = [int](Get-Content -LiteralPath $marker -Raw).Trim() } catch { }
+                if (($markerPid -gt 0 -and (Get-Process -Id $markerPid -ErrorAction SilentlyContinue)) -or $markerAge -lt 60) {
+                    return
                 }
-                if ($pyCandidates.Count -gt 0) { $pyExe = $pyCandidates[0] }
+                Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
             }
-            if (-not $pyExe) { return }
-            $pyScript = "import sqlite3,sys;src=sqlite3.connect(r'$dbPath');dst=sqlite3.connect(r'$backupPath');src.backup(dst);dst.close();src.close()"
-            & $pyExe -c $pyScript 2>$null
-            if (Test-Path -LiteralPath $backupPath -PathType Leaf) {
-                # Keep only the 20 most recent snapshots
-                Get-ChildItem -LiteralPath $backupDir -Filter 'opencode_*.db' |
-                    Sort-Object LastWriteTime -Descending |
-                    Select-Object -Skip 20 |
-                    Remove-Item -Force -ErrorAction SilentlyContinue
-                Write-Host "OC_PROGRESS stage=sessions-backed-up path=$backupPath"
+            $markerStream = $null
+            try {
+                $markerStream = [IO.File]::Open(
+                    $marker,
+                    [IO.FileMode]::CreateNew,
+                    [IO.FileAccess]::Write,
+                    [IO.FileShare]::Read
+                )
+            } catch [IO.IOException] {
+                return
+            } finally {
+                if ($markerStream) { $markerStream.Dispose() }
             }
+            $pyExe = $null
+            foreach ($pythonCandidate in @(
+                'C:\Users\micha\AppData\Local\Programs\Python\Python312\python.exe',
+                'C:\Users\micha\AppData\Local\Programs\Python\Python311\python.exe'
+            )) {
+                if (Test-Path -LiteralPath $pythonCandidate -PathType Leaf) {
+                    $pyExe = $pythonCandidate
+                    break
+                }
+            }
+            if (-not $pyExe) {
+                foreach ($pyCmd in (Get-Command python.exe -CommandType Application -ErrorAction SilentlyContinue)) {
+                    if ($pyCmd.Source -notmatch 'WindowsApps') {
+                        $pyExe = $pyCmd.Source
+                        break
+                    }
+                }
+            }
+            if (-not $pyExe) {
+                Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
+                Write-Host 'OC_PROGRESS stage=sessions-backup-skip msg=no-real-python.exe'
+                return
+            }
+            $backupProcess = Start-Process -FilePath $pyExe -ArgumentList @(
+                $helper,
+                '--source', $dbPath,
+                '--destination', $backupDir,
+                '--marker', $marker,
+                '--minimum-interval-seconds', '900',
+                '--retain', '20'
+            ) -WindowStyle Hidden -PassThru -ErrorAction Stop
+            Write-Host "OC_PROGRESS stage=sessions-backup-started pid=$($backupProcess.Id)"
+            $backupProcess.Dispose()
         } catch {
+            Remove-Item -LiteralPath $marker -Force -ErrorAction SilentlyContinue
             Write-Host "OC_PROGRESS stage=sessions-backup-skip msg=$($_.Exception.Message)"
         }
     }
 
     function Clear-StaleOpenCode {
-        # Kill orphaned opencode TUI processes BEFORE launching. A crashed
-        # or aborted TUI can linger as an orphan retrying requests in a
-        # loop, which burns the shared NVIDIA rate limit and causes 429s
-        # for the real session. Only processes whose parent is gone are
-        # killed - an active TUI (with a live parent) is never touched.
-        try {
-            $procs = Get-Process -Name 'opencode' -ErrorAction SilentlyContinue
-            foreach ($p in $procs) {
-                $parentPid = 0
-                try {
-                    $parentPid = (Get-CimInstance Win32_Process -Filter "ProcessId=$($p.Id)" -ErrorAction SilentlyContinue).ParentProcessId
-                } catch { }
-                if ($parentPid -gt 0) {
-                    $parentAlive = Get-Process -Id $parentPid -ErrorAction SilentlyContinue
-                    if (-not $parentAlive) {
-                        Write-Host "OC_PROGRESS stage=stale-opencode-killed pid=$($p.Id) (orphan retry loop)"
-                        Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
-                    }
-                }
-            }
-        } catch { }
+        # Parent lifetimes are not reliable ownership evidence: Windows
+        # Terminal handoffs and concurrent short-lived shells can leave a
+        # healthy OpenCode process parentless. Preserve every session and
+        # let explicit user cancellation plus proxy disconnect handling
+        # release upstream work.
+        $sessionCount = @(Get-Process -Name 'opencode' -ErrorAction SilentlyContinue).Count
+        Write-Host "OC_PROGRESS stage=session-preservation active=$sessionCount"
     }
 
     # =====================================================================
     # NVIDIA RATE-LIMIT PROXY (with API key rotation)
-    # A zero-dependency Node.js proxy on localhost:3456 that:
+    # A zero-dependency Node.js proxy on localhost:3460 that:
     #   1. Intercepts 429/503/529 and retries BEFORE OpenCode sees them
     #   2. ROTATES between multiple API keys to maximize rate limit headroom
     #   3. Per-key cooldown: a 429'd key is skipped for 60s
@@ -499,8 +580,8 @@ function nvioc {
     # Add more free keys from https://org.ngc.nvidia.com/setup/api-keys
     # =====================================================================
     $proxyScript = Join-Path $env:USERPROFILE '.config\opencode\nvidia-proxy.cjs'
-    $proxyKeysFile = Join-Path $env:USERPROFILE '.config\opencode\nvidia-api-keys.txt'
-    $proxyPort = 3456
+    $proxyKeysFile = 'F:\backup\windowsapps\credentials\nvidia\api-keys.txt'
+    $proxyPort = 3460
     $proxyBaseUrl = "http://127.0.0.1:$proxyPort/v1"
 
     function Sync-NvidiaApiKeys {
@@ -520,11 +601,16 @@ function nvioc {
         if ($env:NVIDIA_API_KEY -and $env:NVIDIA_API_KEY -match 'nvapi-') {
             $knownKeys[$env:NVIDIA_API_KEY.Trim()] = 'env'
         }
-        # Source 3: legacy key file
-        $legacyKeyFile = 'F:\backup\windowsapps\credentials\nvidia\api.txt'
-        if (Test-Path -LiteralPath $legacyKeyFile -PathType Leaf) {
-            $fk = (Get-Content -LiteralPath $legacyKeyFile -Raw).Trim()
-            if ($fk -match 'nvapi-') { $knownKeys[$fk] = 'file' }
+        # Source 3: legacy key files (individual api.txt, api2.txt, api3.txt)
+        $legacyKeyDir = 'F:\backup\windowsapps\credentials\nvidia'
+        if (Test-Path -LiteralPath $legacyKeyDir -PathType Container) {
+            foreach ($lkf in @('api.txt', 'api2.txt', 'api3.txt')) {
+                $lkfPath = Join-Path $legacyKeyDir $lkf
+                if (Test-Path -LiteralPath $lkfPath -PathType Leaf) {
+                    $fk = (Get-Content -LiteralPath $lkfPath -Raw).Trim()
+                    if ($fk -match 'nvapi-') { $knownKeys[$fk] = "legacy-$lkf" }
+                }
+            }
         }
         # Source 4: opencode auth.json
         $authFile = Join-Path $env:USERPROFILE '.local\share\opencode\auth.json'
@@ -595,17 +681,52 @@ function nvioc {
             Write-Host "OC_PROGRESS stage=proxy-missing path=$proxyScript"
             return $false
         }
-        Sync-NvidiaApiKeys
+        $startupMutex = New-Object Threading.Mutex($false, 'Local\NviocNvidiaProxyStartupV1')
+        $startupLockTaken = $false
         try {
+            try {
+                $startupLockTaken = $startupMutex.WaitOne(0)
+            } catch [Threading.AbandonedMutexException] {
+                $startupLockTaken = $true
+            }
+            if (-not $startupLockTaken) {
+                $followerDeadline = (Get-Date).AddSeconds(8)
+                while ((Get-Date) -lt $followerDeadline) {
+                    Start-Sleep -Milliseconds 100
+                    if (Get-NvidiaProxyHealth) { return $true }
+                }
+                Write-Host "OC_PROGRESS stage=proxy-start-wait-timeout port=$proxyPort"
+                return $false
+            }
+            $health = Get-NvidiaProxyHealth
+            if ($health) { return $true }
+            Sync-NvidiaApiKeys
             $nodeExe = $null
-            foreach ($c in (Get-Command node.exe -CommandType Application -ErrorAction SilentlyContinue)) {
-                if ($c.Source -notmatch 'WindowsApps') { $nodeExe = $c.Source; break }
+            # Resolve node.exe even when it is not on PATH (the default
+            # Node.js install directory is frequently missing from PATH).
+            $nodeCandidates = @(
+                (Join-Path ${env:ProgramFiles} 'nodejs\node.exe'),
+                (Join-Path ${env:ProgramFiles(x86)} 'nodejs\node.exe'),
+                (Join-Path ${env:ProgramFiles} 'nodejs\nodejs.exe'),
+                (Join-Path ${env:ProgramFiles(x86)} 'nodejs\nodejs.exe')
+            )
+            foreach ($nodePath in $nodeCandidates) {
+                if ($nodePath -and (Test-Path -LiteralPath $nodePath -PathType Leaf)) {
+                    $nodeExe = $nodePath
+                    break
+                }
+            }
+            if (-not $nodeExe) {
+                foreach ($c in (Get-Command node.exe -CommandType Application -ErrorAction SilentlyContinue)) {
+                    if ($c.Source -notmatch 'WindowsApps') { $nodeExe = $c.Source; break }
+                }
             }
             if (-not $nodeExe) { $nodeExe = 'node' }
-            Start-Process -FilePath $nodeExe -ArgumentList "`"$proxyScript`" --port $proxyPort --keys `"$proxyKeysFile`"" -WindowStyle Hidden -ErrorAction Stop
+            $proxyProcess = Start-Process -FilePath $nodeExe -ArgumentList "`"$proxyScript`" --port $proxyPort --keys `"$proxyKeysFile`"" -WindowStyle Hidden -PassThru -ErrorAction Stop
+            $proxyProcess.Dispose()
             $deadline = (Get-Date).AddSeconds(8)
             while ((Get-Date) -lt $deadline) {
-                Start-Sleep -Milliseconds 500
+                Start-Sleep -Milliseconds 100
                 $h = Get-NvidiaProxyHealth
                 if ($h) {
                     Write-Host "OC_PROGRESS stage=proxy-started port=$proxyPort keys=$($h.keys)"
@@ -617,6 +738,11 @@ function nvioc {
         } catch {
             Write-Host "OC_PROGRESS stage=proxy-start-error msg=$($_.Exception.Message)"
             return $false
+        } finally {
+            if ($startupLockTaken) {
+                [void]$startupMutex.ReleaseMutex()
+            }
+            $startupMutex.Dispose()
         }
     }
 
@@ -700,87 +826,84 @@ function nvioc {
             Write-Host "OC_PROGRESS stage=model-selected model=$finalModelArg label=$finalLabel"
         }
     } else {
-        # INSTANT PATH with anti-429 pre-flight.
-        # 1) Kill orphaned opencode retry-loops (they burn the shared quota).
-        # 2) Probe the chosen model: if it answers, launch it immediately.
-        # 3) If the chosen model is 429-rate-limited:
-        #      - Explicit -m request: WAIT for the throttle to clear (NVIDIA
-        #        free-tier windows are typically ~60s) and retry, so the
-        #        model you asked for (e.g. GLM-5.2) actually gets used.
-        #      - Default model: fall through to the next working model.
-        # 4) Never open the TUI on a model that is throttled right now.
+        # INSTANT PATH: skip preflight when proxy handles 429s.
+        # The proxy rotates keys, retries with backoff, and NEVER passes 429s
+        # to OpenCode. Probing wastes rate-limit quota and causes the very 429s
+        # we want to avoid. When the proxy is running, just launch immediately.
         Clear-StaleOpenCode
         Backup-OpenCodeSessions
 
-        # Step 1: the chosen model, cache-aware (instant if fresh).
-        $launchModel = $null
-        $probe = Test-ModelCached -ModelId $finalModelArg -ApiKey $nvidiaApiKey
-        if ($probe.ok) {
-            $launchModel = $finalModelArg
-            Write-Host "OC_PROGRESS stage=preflight-ok model=$finalModelArg label=$finalLabel source=$($probe.source)"
+        # Ensure proxy is running
+        $proxyRunning = Ensure-NvidiaProxy
+        if ($proxyRunning) {
+            Write-Host "OC_PROGRESS stage=proxy-active model=$finalModelArg (proxy handles 429s, skipping preflight)"
+            $finalModelArg = $finalModelArg
+            $finalLabel = $modelLabels[$finalModelArg]
+            if (-not $finalLabel) { $finalLabel = $finalModelArg }
+            Write-Host "OC_PROGRESS stage=instant-launch model=$finalModelArg label=$finalLabel"
         } else {
-            Write-Host "OC_PROGRESS stage=preflight-skip model=$finalModelArg status=$($probe.status) source=$($probe.source) (rate-limited or unavailable)"
-        }
+            # Proxy not running — fall back to preflight probes
+            Write-Host "OC_PROGRESS stage=proxy-not-running (falling back to preflight probes)"
+            # Step 1: the chosen model, cache-aware (instant if fresh).
+            $launchModel = $null
+            $probe = Test-ModelCached -ModelId $finalModelArg -ApiKey $nvidiaApiKey
+            if ($probe.ok) {
+                $launchModel = $finalModelArg
+                Write-Host "OC_PROGRESS stage=preflight-ok model=$finalModelArg label=$finalLabel source=$($probe.source)"
+            } else {
+                Write-Host "OC_PROGRESS stage=preflight-skip model=$finalModelArg status=$($probe.status) source=$($probe.source) (rate-limited or unavailable)"
+            }
 
-        if (-not $launchModel -and $hasModelFlag) {
-            # User explicitly asked for this model. Wait for the throttle
-            # window to clear (bounded so we never hang forever), then
-            # launch with it. NVIDIA free-tier 429s typically reset within
-            # ~60 seconds and return no retry-after header. Cache-aware:
-            # a fresh 429 is honored without burning a probe each cycle.
-            Write-Host "OC_PROGRESS stage=preflight-wait model=$finalModelArg (waiting for rate limit to clear, up to 90s)"
-            $deadline = (Get-Date).AddSeconds(90)
-            $attempt = 0
-            while ((Get-Date) -lt $deadline) {
-                Start-Sleep -Seconds 10
-                $attempt++
-                $probe = Test-ModelCached -ModelId $finalModelArg -ApiKey $nvidiaApiKey -OkTtlSec 5 -ThrottledRetrySec 5
-                if ($probe.ok) {
-                    Write-Host "OC_PROGRESS stage=preflight-ok model=$finalModelArg label=$finalLabel (after wait)"
-                    $launchModel = $finalModelArg
-                    break
-                } else {
-                    Write-Host "OC_PROGRESS stage=preflight-wait-retry model=$finalModelArg status=$($probe.status) attempt=$attempt"
+            if (-not $launchModel -and $hasModelFlag) {
+                Write-Host "OC_PROGRESS stage=preflight-wait model=$finalModelArg (waiting for rate limit to clear, up to 90s)"
+                $deadline = (Get-Date).AddSeconds(90)
+                $attempt = 0
+                while ((Get-Date) -lt $deadline) {
+                    Start-Sleep -Seconds 10
+                    $attempt++
+                    $probe = Test-ModelCached -ModelId $finalModelArg -ApiKey $nvidiaApiKey -OkTtlSec 5 -ThrottledRetrySec 5
+                    if ($probe.ok) {
+                        Write-Host "OC_PROGRESS stage=preflight-ok model=$finalModelArg label=$finalLabel (after wait)"
+                        $launchModel = $finalModelArg
+                        break
+                    } else {
+                        Write-Host "OC_PROGRESS stage=preflight-wait-retry model=$finalModelArg status=$($probe.status) attempt=$attempt"
+                    }
+                }
+                if (-not $launchModel) {
+                    Write-Host "OC_PROGRESS stage=preflight-wait-expired model=$finalModelArg (still rate-limited after 90s)"
                 }
             }
+
             if (-not $launchModel) {
-                Write-Host "OC_PROGRESS stage=preflight-wait-expired model=$finalModelArg (still rate-limited after 90s)"
-            }
-        }
-
-        if (-not $launchModel) {
-            # Chosen model throttled/absent: fall back through EVERY
-            # configured model in capability order to the best one that
-            # is answering RIGHT NOW - no exceptions, all models tried.
-            foreach ($testId in $modelOrder) {
-                if ($testId -eq $finalModelArg) { continue }
-                Write-Host "OC_PROGRESS stage=preflight-probe model=$testId"
-                $probe = Test-ModelCached -ModelId $testId -ApiKey $nvidiaApiKey
-                if ($probe.ok) {
-                    $launchModel = $testId
-                    $okLabel = $modelLabels[$testId]
-                    if (-not $okLabel) { $okLabel = $testId }
-                    Write-Host "OC_PROGRESS stage=preflight-ok model=$testId label=$okLabel source=$($probe.source)"
-                    break
-                } else {
-                    Write-Host "OC_PROGRESS stage=preflight-skip model=$testId status=$($probe.status) source=$($probe.source) (rate-limited or unavailable)"
+                foreach ($testId in $modelOrder) {
+                    if ($testId -eq $finalModelArg) { continue }
+                    Write-Host "OC_PROGRESS stage=preflight-probe model=$testId"
+                    $probe = Test-ModelCached -ModelId $testId -ApiKey $nvidiaApiKey
+                    if ($probe.ok) {
+                        $launchModel = $testId
+                        $okLabel = $modelLabels[$testId]
+                        if (-not $okLabel) { $okLabel = $testId }
+                        Write-Host "OC_PROGRESS stage=preflight-ok model=$testId label=$okLabel source=$($probe.source)"
+                        break
+                    } else {
+                        Write-Host "OC_PROGRESS stage=preflight-skip model=$testId status=$($probe.status) source=$($probe.source) (rate-limited or unavailable)"
+                    }
                 }
             }
-        }
 
-        if (-not $launchModel) {
-            # Everything throttled right now - fall back to the requested
-            # model anyway; opencode will surface a clearer retry message.
-            Write-Host "OC_PROGRESS stage=all-rate-limited using=$finalModelArg"
-            $launchModel = $finalModelArg
+            if (-not $launchModel) {
+                Write-Host "OC_PROGRESS stage=all-rate-limited using=$finalModelArg"
+                $launchModel = $finalModelArg
+            }
+            if ($launchModel -ne $finalModelArg) {
+                Write-Host "OC_PROGRESS stage=auto-fallback from=$finalModelArg to=$launchModel"
+            }
+            $finalModelArg = $launchModel
+            $finalLabel = $modelLabels[$finalModelArg]
+            if (-not $finalLabel) { $finalLabel = $finalModelArg }
+            Write-Host "OC_PROGRESS stage=instant-launch model=$finalModelArg label=$finalLabel"
         }
-        if ($launchModel -ne $finalModelArg) {
-            Write-Host "OC_PROGRESS stage=auto-fallback from=$finalModelArg to=$launchModel"
-        }
-        $finalModelArg = $launchModel
-        $finalLabel = $modelLabels[$finalModelArg]
-        if (-not $finalLabel) { $finalLabel = $finalModelArg }
-        Write-Host "OC_PROGRESS stage=instant-launch model=$finalModelArg label=$finalLabel"
     }
 
     # ═══════════════════════════════════════════════════════════════════
@@ -834,7 +957,7 @@ function nvioc {
     # to create a SEPARATE provider that doesn't merge with the built-in
     # nvidia provider from models.dev catalog.
     #
-    # baseURL routes through the local rate-limit proxy (localhost:3456)
+    # baseURL routes through the local rate-limit proxy (localhost:3460)
     # so NVIDIA 429/503/529 responses are retried with exponential
     # backoff BEFORE OpenCode ever sees them.  If the proxy is not
     # running, this falls back transparently to the direct NVIDIA URL.
@@ -843,14 +966,16 @@ function nvioc {
     #   modalities  — tells OC what input/output types are supported
     #   attachment  — false = OC will NEVER try to send images to this model
     #   tool_call   — true  = model supports function/tool calling
-    #   temperature — default sampling temperature
+    #   temperature — boolean capability flag (true = model supports temperature)
     #   limit       — context + output token limits
     # ═══════════════════════════════════════════════════════════════════
 
     # Start the proxy if it is not already running. If it fails to start,
     # fall back to the direct NVIDIA URL so OC still works (just without
     # the 429-retry shield).
-    $proxyRunning = Ensure-NvidiaProxy
+    if ($null -eq $proxyRunning) {
+        $proxyRunning = Ensure-NvidiaProxy
+    }
     if ($proxyRunning) {
         $effectiveBase = $proxyBaseUrl
         Write-Host "OC_PROGRESS stage=proxy-active url=$effectiveBase"
@@ -873,15 +998,15 @@ function nvioc {
                 modalities   = @{ input = @('text'); output = @('text') }
                 attachment   = $false
                 tool_call    = $true
-                temperature  = 0.6
-                limit        = @{ context = 131072; output = 16384 }
+                temperature  = $true
+                limit        = @{ context = 1048576; output = 16384 }
             }
             'z-ai/glm-5.2' = @{
                 name         = 'GLM-5.2 (753B MoE, best coding)'
                 modalities   = @{ input = @('text'); output = @('text') }
                 attachment   = $false
                 tool_call    = $true
-                temperature  = 0.6
+                temperature  = $true
                 limit        = @{ context = 1048576; output = 32768 }
             }
             'nvidia/nemotron-3-super-120b-a12b' = @{
@@ -889,7 +1014,7 @@ function nvioc {
                 modalities   = @{ input = @('text'); output = @('text') }
                 attachment   = $false
                 tool_call    = $true
-                temperature  = 0.6
+                temperature  = $true
                 limit        = @{ context = 131072; output = 16384 }
             }
             'deepseek-ai/deepseek-v4-flash-0731' = @{
@@ -897,7 +1022,7 @@ function nvioc {
                 modalities   = @{ input = @('text'); output = @('text') }
                 attachment   = $false
                 tool_call    = $true
-                temperature  = 0.6
+                temperature  = $true
                 limit        = @{ context = 1048576; output = 32768 }
             }
             'thinkingmachines/inkling' = @{
@@ -905,66 +1030,274 @@ function nvioc {
                 modalities   = @{ input = @('text'); output = @('text') }
                 attachment   = $false
                 tool_call    = $true
-                temperature  = 0.6
+                temperature  = $true
                 limit        = @{ context = 1048576; output = 32768 }
+            }
+            'minimaxai/minimax-m3' = @{
+                name         = 'MiniMax M3 (428B MoE, multimodal, 1M context)'
+                modalities   = @{ input = @('text', 'image'); output = @('text') }
+                attachment   = $true
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 1048576; output = 8192 }
+            }
+            'google/gemma-4-31b-it' = @{
+                name         = 'Gemma 4 31B IT (reasoning, coding, multimodal)'
+                modalities   = @{ input = @('text', 'image'); output = @('text') }
+                attachment   = $true
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 262144; output = 16384 }
+            }
+            'stepfun-ai/step-3.7-flash' = @{
+                name         = 'Step 3.7 Flash (198B MoE, coding, multimodal)'
+                modalities   = @{ input = @('text', 'image'); output = @('text') }
+                attachment   = $true
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 262144; output = 16384 }
+            }
+            'nvidia/llama-3.3-nemotron-super-49b-v1.5' = @{
+                name         = 'Llama 3.3 Nemotron Super 49B v1.5'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 131072; output = 65536 }
+            }
+            'poolside/laguna-xs-2.1' = @{
+                name         = 'Poolside Laguna XS 2.1 (agentic coding)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 262144; output = 8192 }
+            }
+            'meta/llama-3.1-70b-instruct' = @{
+                name         = 'Llama 3.1 70B (Best open general)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 131072; output = 16384 }
+            }
+            'meta/llama-3.3-70b-instruct' = @{
+                name         = 'Llama 3.3 70B Instruct'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 131072; output = 16384 }
+            }
+            'openai/gpt-oss-120b' = @{
+                name         = 'GPT-OSS 120B (OpenAI open)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 131072; output = 16384 }
+            }
+            'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning' = @{
+                name         = 'Nemotron Omni 30B (Multimodal + Reasoning)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 131072; output = 16384 }
+            }
+            'nvidia/nemotron-3.5-lightning-30b-a3b' = @{
+                name         = 'Nemotron Lightning 30B (Fastest)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 131072; output = 16384 }
+            }
+            'nvidia/nemotron-3-nano-30b-a3b' = @{
+                name         = 'Nemotron Nano 30B (Efficient)'
+                modalities   = @{ input = @('text'); output = @('text') }
+                attachment   = $false
+                tool_call    = $true
+                temperature  = $true
+                limit        = @{ context = 131072; output = 16384 }
             }
         }
     }
 
-    foreach ($configPath in $configPaths) {
+    function Test-NviocProviderConfigCurrent {
+        param(
+            [object]$Config,
+            [string]$BaseUrl,
+            [string[]]$ModelIds
+        )
+        if (-not $Config -or -not $Config.provider) { return $false }
+        foreach ($providerName in @('nvidia-nim', 'nvidia')) {
+            $providerProperty = $Config.provider.PSObject.Properties[$providerName]
+            if (-not $providerProperty) { return $false }
+            $provider = $providerProperty.Value
+            if (-not $provider.options -or [string]$provider.options.baseURL -ne $BaseUrl -or -not $provider.models) {
+                return $false
+            }
+            foreach ($modelId in $ModelIds) {
+                if (-not $provider.models.PSObject.Properties[$modelId]) {
+                    return $false
+                }
+            }
+        }
+        return $true
+    }
+
+    function Write-NviocJsonFileAtomic {
+        param(
+            [string]$Path,
+            [object]$Value
+        )
+        $operationId = "$PID.$([guid]::NewGuid().ToString('N'))"
+        $temporaryPath = "$Path.tmp.$operationId"
+        $replacementBackupPath = "$Path.replace-backup.$operationId"
+        try {
+            $json = $Value | ConvertTo-Json -Depth 10
+            [IO.File]::WriteAllText(
+                $temporaryPath,
+                ($json + "`r`n"),
+                (New-Object Text.UTF8Encoding($false))
+            )
+            if ([IO.File]::Exists($Path)) {
+                [IO.File]::Replace($temporaryPath, $Path, $replacementBackupPath, $true)
+                [IO.File]::Delete($replacementBackupPath)
+            } else {
+                [IO.File]::Move($temporaryPath, $Path)
+            }
+            $temporaryPath = $null
+        } finally {
+            if ($temporaryPath -and [IO.File]::Exists($temporaryPath)) {
+                [IO.File]::Delete($temporaryPath)
+            }
+            if ($replacementBackupPath -and [IO.File]::Exists($replacementBackupPath)) {
+                [IO.File]::Delete($replacementBackupPath)
+            }
+        }
+    }
+
+    $expectedModelIds = [string[]]@($nvidiaProviderConfig.models.Keys)
+    $configNeedsUpdate = $false
+    foreach ($configProbePath in $configPaths) {
+        if (-not (Test-Path -LiteralPath $configProbePath -PathType Leaf)) {
+            $configNeedsUpdate = $true
+            break
+        }
+        try {
+            $configProbe = Get-Content -LiteralPath $configProbePath -Raw | ConvertFrom-Json
+            if (-not (Test-NviocProviderConfigCurrent -Config $configProbe -BaseUrl $effectiveBase -ModelIds $expectedModelIds)) {
+                $configNeedsUpdate = $true
+                break
+            }
+        } catch {
+            $configNeedsUpdate = $true
+            break
+        }
+    }
+
+    $configMutex = New-Object Threading.Mutex($false, 'Local\NviocOpenCodeConfigV1')
+    $configLockTaken = $false
+    if ($configNeedsUpdate) {
+        try {
+            $configLockTaken = $configMutex.WaitOne(5000)
+        } catch [Threading.AbandonedMutexException] {
+            $configLockTaken = $true
+        }
+        if (-not $configLockTaken) {
+            Write-Host 'OC_PROGRESS stage=config-lock-timeout'
+            $configNeedsUpdate = $false
+        }
+    }
+
+    try {
+        if (-not $configNeedsUpdate) {
+            Write-Host "OC_PROGRESS stage=config-current model=$finalModelArg"
+        } else {
+            foreach ($configPath in $configPaths) {
         $configDir = Split-Path -Parent $configPath
         if (-not (Test-Path -LiteralPath $configDir -PathType Container)) {
             New-Item -ItemType Directory -Force -Path $configDir | Out-Null
         }
 
-        if (-not (Test-Path -LiteralPath $configPath -PathType Leaf)) {
-            # Brand new config
-            $config = @{
-                '$schema'    = 'https://opencode.ai/config.json'
-                model        = $finalModelArg
-                permission   = $permissionConfig
-                instructions = @($instructionsRel)
-                agent        = $agentConfig
-                provider     = @{ 'nvidia-nim' = $nvidiaProviderConfig }
-            }
-            $config | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $configPath -Encoding UTF8
-            Write-Host "OC_PROGRESS stage=config-created path=$configPath model=$finalModelArg"
-        } else {
-            # Existing config: read, merge, write back preserving user settings
+        # nvioc only owns the nvidia-nim provider block. Everything else
+        # (model, agent, permission, instructions, other providers, plugins)
+        # belongs to the user and to `oc`, so it is preserved verbatim and
+        # never overwritten. The chosen model is passed explicitly via '-m'
+        # at launch, so no top-level "model" key is written here — that is
+        # what previously made nvioc and oc fight over the shared config.
+        $existing = $null
+        if (Test-Path -LiteralPath $configPath -PathType Leaf) {
             try {
-                $rawJson = Get-Content -LiteralPath $configPath -Raw
-                $existing = $null
-                try {
-                    $existing = $rawJson | ConvertFrom-Json
-                } catch {
-                    Write-Host "OC_PROGRESS stage=config-parse-error path=$configPath msg=$($_.Exception.Message)"
-                }
-
-                # Build merged config preserving existing fields
-                $merged = @{
-                    '$schema'    = 'https://opencode.ai/config.json'
-                    model        = $finalModelArg
-                    permission   = $permissionConfig
-                    instructions = @($instructionsRel)
-                    agent        = $agentConfig
-                    provider     = @{ 'nvidia-nim' = $nvidiaProviderConfig }
-                }
-
-                # Preserve plugin array from existing config if present
-                if ($existing -and $existing.plugin) {
-                    $pluginArray = @()
-                    foreach ($p in $existing.plugin) {
-                        $pluginArray += $p
-                    }
-                    $merged['plugin'] = $pluginArray
-                }
-
-                $merged | ConvertTo-Json -Depth 10 | Set-Content -LiteralPath $configPath -Encoding UTF8
-                Write-Host "OC_PROGRESS stage=config-updated path=$configPath model=$finalModelArg"
+                $existing = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
             } catch {
-                Write-Host "OC_PROGRESS stage=config-write-error path=$configPath msg=$($_.Exception.Message)"
+                Write-Host "OC_PROGRESS stage=config-parse-error path=$configPath msg=$($_.Exception.Message)"
+                continue
             }
         }
+
+        if (Test-NviocProviderConfigCurrent -Config $existing -BaseUrl $effectiveBase -ModelIds $expectedModelIds) {
+            continue
+        }
+
+        try {
+            $merged = @{}
+            if ($existing) {
+                foreach ($prop in $existing.PSObject.Properties) {
+                    $merged[$prop.Name] = $prop.Value
+                }
+            }
+
+            $merged['$schema'] = 'https://opencode.ai/config.json'
+
+            # Merge the nvidia-nim provider AND override the built-in nvidia
+            # provider to route through the proxy. Without this, switching
+            # models in the TUI resolves to the built-in nvidia provider
+            # which goes DIRECT to NVIDIA, bypassing the proxy entirely.
+            $providers = @{}
+            if ($existing -and $existing.provider) {
+                foreach ($p in $existing.provider.PSObject.Properties) {
+                    $providers[$p.Name] = $p.Value
+                }
+            }
+            $providers['nvidia-nim'] = $nvidiaProviderConfig
+            # Override built-in 'nvidia' provider to use same proxy + models
+            $providers['nvidia'] = @{
+                npm     = '@ai-sdk/openai-compatible'
+                name    = 'NVIDIA NIM (via proxy)'
+                env     = @('NVIDIA_API_KEY')
+                options = @{
+                    baseURL = $effectiveBase
+                    apiKey  = $nvidiaApiKey
+                }
+                models  = $nvidiaProviderConfig.models
+            }
+            $merged['provider'] = $providers
+            # Keep agent tool calls in the native Windows shell. Wrapping
+            # PowerShell in Bash corrupts variables such as $_ before execution.
+            $merged['shell'] = 'powershell'
+
+            # Seed the nvioc defaults only on a brand-new config.
+            if (-not $existing) {
+                $merged['permission'] = $permissionConfig
+                $merged['instructions'] = @($instructionsRel)
+                $merged['agent'] = $agentConfig
+            }
+
+            Write-NviocJsonFileAtomic -Path $configPath -Value $merged
+            Write-Host "OC_PROGRESS stage=config-updated path=$configPath model=$finalModelArg"
+        } catch {
+            Write-Host "OC_PROGRESS stage=config-write-error path=$configPath msg=$($_.Exception.Message)"
+        }
+    }
+        }
+    } finally {
+        if ($configLockTaken) {
+            [void]$configMutex.ReleaseMutex()
+        }
+        $configMutex.Dispose()
     }
 
     # ═══════════════════════════════════════════════════════════════════
@@ -986,7 +1319,7 @@ These rules apply to ALL opencode sessions.
 - After creating or modifying ANY file, you MUST run/test it to verify it works
 
 ### Rule 2: ALWAYS output the full path when done
-- Format: FULL PATH: C:\path\to\file
+- Format: FULL PATH: C:/path/to/file
 
 ### Rule 3: NEVER create generic garbage
 - Always create REAL, WORKING code with proper error handling
@@ -998,6 +1331,9 @@ These rules apply to ALL opencode sessions.
 - All scripts MUST work in PowerShell 5.1
 - Avoid PS6+ features like pipe-pipe, question-question, AsHashtable
 - Use try/catch blocks instead of single-pipe error handling
+- This host is Windows. Run PowerShell commands directly in the shell tool.
+- NEVER wrap PowerShell with bash, /usr/bin/bash, sh, wsl, or powershell -Command.
+- Use semicolons instead of &&. Preserve PowerShell variables such as `$_` literally.
 
 ### Rule 6: NEVER STOP until the task is achieved
 - Never stop working before the user's request is fully and verifiably achieved, no matter how complex or how long it takes.
@@ -1044,11 +1380,12 @@ else except an explicit manual stop by the user (Ctrl+C / Esc / "stop").
 
 1. ALWAYS test what you create: after creating or modifying ANY file, run or test it to prove it works.
    If it doesn't work, fix it - never leave broken code behind.
-2. ALWAYS report the full path of every file you create or modify. Format: FULL PATH: C:\path\to\file
+2. ALWAYS report the full path of every file you create or modify. Format: FULL PATH: C:/path/to/file
 3. NEVER create generic garbage: produce real, complete, working code with proper error handling.
 4. ALWAYS show real-time progress: state what you are doing at each step before doing it.
 5. PowerShell 5 compatibility: on Windows, scripts MUST work in Windows PowerShell 5.1 - no ??, no &&,
-   no AsHashtable; use try/catch blocks.
+   no AsHashtable; use try/catch blocks. Run PowerShell directly; never nest it inside bash, sh, WSL,
+   or powershell -Command because nested shells corrupt `$_` and quoting. Use semicolons instead of &&.
 6. Never leave broken or half-finished work. If something cannot be completed, say exactly what is
    blocking it - after exhausting every workaround.
 
@@ -1086,11 +1423,37 @@ how it was verified.
 
     function Test-NviocOpenCodeWorks {
         param([string]$Path)
-        # Fast sanity probe: a real version string means the binary actually
-        # runs (shims can exist while pointing at a deleted/moved exe).
+        $receiptPath = "$Path.verified.json"
         try {
-            $out = (& $Path '--version' 2>$null) -join " "
-            if ($LASTEXITCODE -eq 0 -and $out -match '\d+\.\d+\.\d+') { return $true }
+            if (Test-Path -LiteralPath $receiptPath -PathType Leaf) {
+                $receipt = Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
+                $file = Get-Item -LiteralPath $Path
+                if ([long]$receipt.length -eq $file.Length -and
+                    [long]$receipt.lastWriteTimeUtcTicks -eq $file.LastWriteTimeUtc.Ticks -and
+                    [string]$receipt.identity -eq 'opencode models') {
+                    return $true
+                }
+            }
+        } catch { }
+
+        # Bun itself also returns a semantic version, so verify an OpenCode-only
+        # command signature before trusting a native executable or shim.
+        try {
+            $version = (& $Path '--version' 2>$null) -join " "
+            if ($LASTEXITCODE -ne 0 -or $version -notmatch '^\s*\d+\.\d+\.\d+\s*$') { return $false }
+            $help = ((& $Path 'models' '--help' 2>&1) -join "`n") -replace "`e\[[0-9;]*m", ''
+            if ($help -match '(?m)^\s*opencode\s+models\b') {
+                try {
+                    $file = Get-Item -LiteralPath $Path
+                    [pscustomobject]@{
+                        length = $file.Length
+                        lastWriteTimeUtcTicks = $file.LastWriteTimeUtc.Ticks
+                        version = $version.Trim()
+                        identity = 'opencode models'
+                    } | ConvertTo-Json | Set-Content -LiteralPath $receiptPath -Encoding UTF8
+                } catch { }
+                return $true
+            }
         } catch { }
         return $false
     }

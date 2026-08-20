@@ -30,61 +30,9 @@ if ($__2scNeedBootstrap) {
 function Stop-DKillDockerProcesses {
     [CmdletBinding()]
     param()
-
-    $names = @('Docker Desktop','Docker Desktop Installer','com.docker.backend','com.docker.proxy','com.docker.service','docker-agent','docker-sandbox','dockerd','docker','vpnkit')
-    $failures = @()
-    $stopped = 0
-    $dockerCli = Join-Path $env:ProgramFiles 'Docker\Docker\DockerCli.exe'
-
-    Write-Progress -Activity 'Docker process stop' -Status 'Requesting Docker Desktop shutdown' -PercentComplete 15
-    if(Test-Path -LiteralPath $dockerCli) {
-        try {
-            & $dockerCli -Shutdown 2>&1 | Out-Null
-            if($LASTEXITCODE -ne 0) { throw "DockerCli exit=$LASTEXITCODE" }
-            Write-DKillFastLine 'DKILL_PROCESS_STOP_OK DockerCli shutdown requested' DarkCyan
-        } catch {
-            $failures += $_.Exception.Message
-            Write-DKillFastLine ("DKILL_PROCESS_STOP_WARN DockerCli shutdown failed: {0}" -f $_.Exception.Message) Yellow
-        }
-    }
-
-    Write-Progress -Activity 'Docker process stop' -Status 'Stopping Docker processes' -PercentComplete 45
-    foreach($name in $names) {
-        $processes = @(Get-Process -Name $name -ErrorAction SilentlyContinue)
-        foreach($process in $processes) {
-            try {
-                Stop-Process -Id $process.Id -Force -ErrorAction Stop
-                $stopped++
-                Write-DKillFastLine ("DKILL_PROCESS_STOP_OK name={0} pid={1}" -f $process.ProcessName,$process.Id) DarkCyan
-            } catch {
-                $failures += $_.Exception.Message
-                Write-DKillFastLine ("DKILL_PROCESS_STOP_FAIL name={0} pid={1}: {2}" -f $process.ProcessName,$process.Id,$_.Exception.Message) Red
-            }
-        }
-    }
-
-    Write-Progress -Activity 'Docker process stop' -Status 'Stopping Docker service' -PercentComplete 70
-    try {
-        $service = Get-Service -Name 'com.docker.service' -ErrorAction SilentlyContinue
-        if($service -and $service.Status -ne 'Stopped') {
-            Stop-Service -Name 'com.docker.service' -Force -ErrorAction Stop
-            Write-DKillFastLine 'DKILL_PROCESS_STOP_OK service com.docker.service stopped' DarkCyan
-        }
-    } catch {
-        $failures += $_.Exception.Message
-        Write-DKillFastLine ("DKILL_PROCESS_STOP_FAIL service com.docker.service: {0}" -f $_.Exception.Message) Red
-    }
-
-    Start-Sleep -Milliseconds 800
-    Write-Progress -Activity 'Docker process stop' -Status 'Verifying Docker process stop' -PercentComplete 90
-    $remaining = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $names -contains $_.ProcessName } | Select-Object -ExpandProperty ProcessName -Unique)
-    Write-Progress -Activity 'Docker process stop' -Completed
-    if($remaining.Count -eq 0 -and $failures.Count -eq 0) {
-        Write-DKillFastLine ("DKILL_PROCESS_STOP_OK stopped={0} remaining=0" -f $stopped) Green
-        return $true
-    }
-    Write-DKillFastLine ("DKILL_PROCESS_STOP_INCOMPLETE stopped={0} failures={1} remaining={2}" -f $stopped,$failures.Count,($remaining -join ',')) Yellow
-    return $false
+    Write-Host 'Legacy stop helper is protected: using bounded preserving Docker VMM recovery.' -ForegroundColor Cyan
+    & 'F:\study\Platforms\windows\functions\dkill.ps1'
+    [pscustomobject]@{Succeeded=($LASTEXITCODE -eq 0);Failures=@()}
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

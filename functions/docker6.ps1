@@ -28,12 +28,13 @@ if ($__2scNeedBootstrap) {
     Initialize-CodexProfileFunctions
 }
 function docker6 {
-    & "$env:SystemRoot\System32\wsl.exe" -d ubuntu --user root -- bash -c "echo '[wsl2]
-memory=2.5GB
-processors=2
-swap=2GB' > /mnt/c/Users/micha/.wslconfig ; echo 'Applied Docker WSL2 config: 2.5GB RAM, 2 CPUs, 2GB swap'"
-    & "$env:SystemRoot\System32\wsl.exe" --shutdown
-    & "$env:SystemRoot\System32\wsl.exe" -d ubuntu --user root -- bash -c "docker info"
+    [CmdletBinding()]
+    param()
+    $enforcer = 'F:\study\Platforms\windows\functions\Set-DockerHyperV.ps1'
+    if (-not (Test-Path -LiteralPath $enforcer -PathType Leaf)) { throw "Docker VMM enforcer not found: $enforcer" }
+    & $enforcer -Label 'DOCKER6 (Docker VMM max performance)' -Color 'Cyan' | Out-Host
+    if (-not $?) { throw 'DOCKER6 failed to enforce Docker VMM.' }
+    $global:LASTEXITCODE = 0
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

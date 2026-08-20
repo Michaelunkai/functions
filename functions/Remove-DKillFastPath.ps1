@@ -28,34 +28,12 @@ if ($__2scNeedBootstrap) {
     Initialize-CodexProfileFunctions
 }
 function Remove-DKillFastPath {
-        param([string]$Path)
-        if([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)){ return }
-        $resolved = $null
-        try { $resolved = (Resolve-Path -LiteralPath $Path -ErrorAction Stop).ProviderPath } catch { $resolved = $Path }
-        if($resolved -notmatch '^(?i)C:\\'){ return }
-        if($resolved -notmatch '(?i)(\\Docker\\?|\\Docker Desktop\\?|\\DockerDesktop\\?|\\containerd\\?|\\Windows\\Containers\\?|docker-desktop|ext4\.vhdx|\.avhdx$|docker.*\.vhdx)'){ return }
-        $size = 0L
-        try {
-            $itemForSize = Get-Item -LiteralPath $resolved -Force -ErrorAction SilentlyContinue
-            if($itemForSize -and -not $itemForSize.PSIsContainer){ $size = [int64]$itemForSize.Length }
-        } catch { $size = 0L }
-        Write-DKillFastLine ("delete {0} ({1})" -f $resolved,(Format-DKillFastBytes $size)) DarkCyan
-        if($PSCmdlet.ShouldProcess($resolved,'delete Docker-owned C-drive data/cache')){
-            [void](Invoke-DKillFastBoundedRemove -Path $resolved)
-        }
-        if(-not (Test-Path -LiteralPath $resolved)){
-            $script:DKillFastDeletedBytes += [int64]$size
-        } elseif(-not $WhatIfPreference) {
-            $remainingSize = if((Get-DKillFastRemainingMilliseconds) -gt 1500){ Get-DKillFastPathBytes -Path $resolved } else { -1L }
-            if($remainingSize -gt 0){
-                Write-DKillFastLine ("blocked still exists: {0} ({1})" -f $resolved,(Format-DKillFastBytes $remainingSize)) Yellow
-            } elseif($remainingSize -lt 0) {
-                Write-DKillFastLine ("blocked still exists: {0} (size scan skipped to preserve readiness deadline)" -f $resolved) Yellow
-            } else {
-                Write-DKillFastLine ("empty live folder remains/recreated: {0}" -f $resolved) DarkGray
-            }
-        }
-    }
+    [CmdletBinding()]
+    param([string]$Path)
+    Write-Warning ("Remove-DKillFastPath is retired and cannot delete data. Preserved path: {0}. Use dkill for a bounded Docker VMM restart; an intentional full wipe requires dkill -FactoryReset -ConfirmFactoryReset ERASE-ALL-DOCKER-DATA." -f $Path)
+    $global:LASTEXITCODE = 2
+    return $false
+}
 
 if ($MyInvocation.InvocationName -ne '.') {
     & 'Remove-DKillFastPath' @args

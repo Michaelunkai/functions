@@ -29,64 +29,20 @@ if ($__2scNeedBootstrap) {
 }
 function Invoke-DKillFastBoundedRemove {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][string]$Path)
-
-    if([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path)) {
-        Write-DKillFastLine ("DKILL_REMOVE_INFO target already absent: {0}" -f $Path) DarkCyan
-        return $true
-    }
-    $remaining = Get-DKillFastRemainingMilliseconds
-    $isDockerVhd = $Path -match '(?i)\\DockerDesktop\\vm-data(\\DockerDesktop\.vhdx)?$'
-    if((-not $isDockerVhd) -and $remaining -lt 4200) {
-        Write-DKillFastLine ("DKILL_REMOVE_SKIP insufficient remaining time for {0}: {1}ms" -f $Path,$remaining) Yellow
+    param([Parameter(Mandatory)][string]$Path,[string]$ConfirmFactoryReset='')
+    $isDockerOwned = $Path -match '(?i)DockerDesktop|Docker Desktop|docker-desktop|ext4\.vhdx|docker.*\.vhdx'
+    if (-not $isDockerOwned) {
+        Write-Warning "Retired Docker cleanup helper performed no deletion: $Path"
+        $global:LASTEXITCODE = 2
         return $false
     }
-
-    Write-Progress -Activity 'Docker cleanup' -Status ("Preparing {0}" -f $Path) -PercentComplete 20
-    if($isDockerVhd) {
-        try {
-            $lockReceipt = Invoke-DKillFastReleaseDockerVhdLocks -Milliseconds ([Math]::Min(2400,[Math]::Max(500,$remaining - 2200)))
-            if(-not $lockReceipt.Succeeded) {
-                Write-DKillFastLine ("DKILL_REMOVE_WARN lock release incomplete for {0}" -f $Path) Yellow
-            }
-        } catch {
-            Write-DKillFastLine ("DKILL_REMOVE_WARN lock release failed for {0}: {1}" -f $Path,$_.Exception.Message) Yellow
-        }
-    }
-
-    if($isDockerVhd -and (Test-Path -LiteralPath $Path)) {
-        Write-Progress -Activity 'Docker cleanup' -Status ("Repairing ownership for {0}" -f $Path) -PercentComplete 45
-        try {
-            $item = Get-Item -LiteralPath $Path -Force -ErrorAction Stop
-            $takeown = Join-Path $env:SystemRoot 'System32\takeown.exe'
-            $icacls = Join-Path $env:SystemRoot 'System32\icacls.exe'
-            if(Test-Path -LiteralPath $takeown) {
-                if($item.PSIsContainer) { & $takeown /F $Path /A /R /D Y 2>&1 | Out-Null } else { & $takeown /F $Path /A 2>&1 | Out-Null }
-                if($LASTEXITCODE -gt 1) { throw "takeown exit=$LASTEXITCODE" }
-            }
-            if(Test-Path -LiteralPath $icacls) {
-                if($item.PSIsContainer) { & $icacls $Path /grant 'Administrators:(OI)(CI)F' /T /C 2>&1 | Out-Null } else { & $icacls $Path /grant 'Administrators:F' /C 2>&1 | Out-Null }
-                if($LASTEXITCODE -ne 0) { throw "icacls exit=$LASTEXITCODE" }
-            }
-            & attrib -R -S -H $Path /S /D 2>&1 | Out-Null
-            Write-DKillFastLine ("DKILL_REMOVE_OK ownership prepared for {0}" -f $Path) DarkCyan
-        } catch {
-            Write-DKillFastLine ("DKILL_REMOVE_WARN ownership repair failed for {0}: {1}" -f $Path,$_.Exception.Message) Yellow
-        }
-    }
-
-    Write-Progress -Activity 'Docker cleanup' -Status ("Deleting {0}" -f $Path) -PercentComplete 75
-    try {
-        $removed = Remove-DKillPath -Path $Path
-        if(-not $removed -or (Test-Path -LiteralPath $Path)) { throw 'deletion was not verified' }
-        Write-DKillFastLine ("DKILL_REMOVE_OK deleted {0}" -f $Path) Green
-        return $true
-    } catch {
-        Write-DKillFastLine ("DKILL_REMOVE_FAIL target={0}: {1}" -f $Path,$_.Exception.Message) Red
+    if ($ConfirmFactoryReset -cne 'ERASE-ALL-DOCKER-DATA') {
+        Write-Warning 'Docker-owned deletion is blocked. Use -ConfirmFactoryReset ERASE-ALL-DOCKER-DATA for the canonical factory reset.'
+        $global:LASTEXITCODE = 2
         return $false
-    } finally {
-        Write-Progress -Activity 'Docker cleanup' -Completed
     }
+    & 'F:\study\Platforms\windows\functions\dkill.ps1' -FactoryReset -ConfirmFactoryReset $ConfirmFactoryReset -NoRestart
+    return ($LASTEXITCODE -eq 0)
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

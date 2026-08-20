@@ -1,26 +1,25 @@
 #Requires -Version 5.0
 <#
 .SYNOPSIS
-    dkill - COMPLETE automatic Docker wipe.
+    dkill - fast destructive Docker reset that returns only when the VMM and tray are ready.
 
 .DESCRIPTION
-    Deletes EVERYTHING related to Docker: every Docker process, the privileged
-    helper service, Docker WSL distros, the wedged DockerDesktopVM (via Hyper-V Stop/Remove-VM),
-    the 74GB+ Hyper-V disk, all Docker data/cache/config directories, temp files
-    and Docker registry keys. Fully automatic - no prompts, no popups, no windows.
-    Every external operation is time-bounded, so this script can NEVER hang.
+    The default operation deletes Docker engine data, including the live Docker
+    VMM disk under LocalAppData, then recreates Docker on the canonical VMM
+    backend and waits for the daemon and Docker Desktop tray frontend. Docker
+    Hub credentials and the minimum settings needed to restore the VMM are
+    retained so push works afterward without onboarding or license prompts.
 
-    After the wipe it restarts Docker Desktop on a fresh disk and waits (bounded)
-    until the daemon answers, then verifies `docker version` and `docker ps`.
-    The result: Docker is ready to use immediately, as if freshly installed.
-
-    Two small config files are preserved to avoid re-onboarding/re-login popups:
-      %APPDATA%\Docker\settings-store.json      (first-run wizard state)
-      %APPDATA%\Docker\login-info.json          (Docker Hub login)
-      ~\.docker\config.json                      (CLI credentials/config)
+    Use -Preserve for a bounded non-destructive VMM restart.
 
 .PARAMETER NoRestart
-    Wipe only; do NOT start Docker Desktop at the end.
+    Stop only; do not start Docker Desktop at the end.
+
+.PARAMETER Preserve
+    Restart or stop Docker without deleting engine data.
+
+.PARAMETER FactoryReset
+    Compatibility switch. Destructive reset is now the default.
 
 .PARAMETER SelfTest
     Print diagnostics and exit without changing anything.
@@ -28,7 +27,12 @@
 [CmdletBinding()]
 param(
     [switch]$NoRestart,
-    [switch]$SelfTest
+    [switch]$Preserve,
+    [switch]$FactoryReset,
+    [string]$ConfirmFactoryReset = '',
+    [switch]$SelfTest,
+    [Parameter(DontShow = $true)]
+    [switch]$Worker
 )
 
 $ErrorActionPreference = 'SilentlyContinue'
@@ -83,12 +87,17 @@ function Invoke-Bounded {
 }
 
 function Test-DaemonReady {
-    param([string]$DockerExe, [int]$Milliseconds = 5000)
+    param([string]$DockerExe, [int]$Milliseconds = 1000)
     if ([string]::IsNullOrWhiteSpace($DockerExe) -or -not (Test-Path -LiteralPath $DockerExe)) { return $false }
+    if (-not (Test-Path -LiteralPath '\\.\pipe\dockerDesktopLinuxEngine')) { return $false }
     $r = Invoke-Bounded -FilePath $DockerExe -ArgumentList @('version', '--format', '{{.Server.Version}}') -Milliseconds $Milliseconds
     if ($r.TimedOut -or $r.ExitCode -ne 0 -or [string]::IsNullOrWhiteSpace($r.Stdout)) { return $false }
     if ($r.Stderr -match '(?i)failed to connect|daemon is not running|error during connect|cannot find') { return $false }
     return $true
+}
+
+function Test-DockerFrontendReady {
+    return (@(Get-Process -Name 'Docker Desktop' -ErrorAction SilentlyContinue).Count -gt 0)
 }
 
 function Find-DockerExe {
@@ -101,114 +110,98 @@ function Find-DockerExe {
     return $null
 }
 
+function Set-DockerVmmSettings {
+    $settingsPath = Join-Path $env:APPDATA 'Docker\settings-store.json'
+    $parent = Split-Path -Parent $settingsPath
+    New-Item -ItemType Directory -Path $parent -Force -ErrorAction Stop | Out-Null
+    $settings = $null
+    if (Test-Path -LiteralPath $settingsPath -PathType Leaf) {
+        try { $settings = Get-Content -LiteralPath $settingsPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop } catch { }
+    }
+    if (-not $settings) {
+        $settings = [pscustomobject][ordered]@{
+            AutoStart = $false
+            DisplayedOnboarding = $true
+            EnableIntegrationWithDefaultWslDistro = $false
+            FilesharingDirectories = @($env:USERPROFILE)
+            MemoryMiB = 33792
+            OpenUIOnStartupDisabled = $true
+            SettingsVersion = 45
+        }
+    }
+    function Set-DockerVmmProperty {
+        param([Parameter(Mandatory)]$Object, [Parameter(Mandatory)][string]$Name, $Value)
+        $property = $Object.PSObject.Properties[$Name]
+        if ($property) { $property.Value = $Value } else { $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value }
+    }
+    Set-DockerVmmProperty -Object $settings -Name 'AllowBetaFeatures' -Value $true
+    Set-DockerVmmProperty -Object $settings -Name 'LicenseTermsVersion' -Value 2
+    Set-DockerVmmProperty -Object $settings -Name 'DisplayedOnboarding' -Value $true
+    Set-DockerVmmProperty -Object $settings -Name 'MemoryMiB' -Value 33792
+    Set-DockerVmmProperty -Object $settings -Name 'UseLibkrun' -Value $true
+    Set-DockerVmmProperty -Object $settings -Name 'UseResourceSaver' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'UseVirtualizationFramework' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'WslEngineEnabled' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'UseContainerdSnapshotter' -Value $true
+    Set-DockerVmmProperty -Object $settings -Name 'EnableIntegrationWithDefaultWslDistro' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'AutoStart' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'OpenUIOnStartupDisabled' -Value $true
+    Set-DockerVmmProperty -Object $settings -Name 'ShowInstallScreen' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'DisplayRestartDialog' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'ShowAnnouncementNotifications' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'ShowGeneralNotifications' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'ShowPromotionalNotifications' -Value $false
+    Set-DockerVmmProperty -Object $settings -Name 'ShowSurveyNotifications' -Value $false
+    $shares = @(@($settings.FilesharingDirectories) + @($env:USERPROFILE, 'C:\Temp', 'F:\study') | Where-Object {
+        -not [string]::IsNullOrWhiteSpace([string]$_) -and
+        [string]$_ -notmatch '^[A-Za-z]:\\$' -and
+        (Test-Path -LiteralPath ([string]$_) -PathType Container)
+    } | Select-Object -Unique)
+    Set-DockerVmmProperty -Object $settings -Name 'FilesharingDirectories' -Value $shares
+    $temporary = Join-Path $parent ('.settings-store.' + [guid]::NewGuid().ToString('N') + '.tmp')
+    try {
+        [IO.File]::WriteAllText($temporary, ($settings | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
+        Move-Item -LiteralPath $temporary -Destination $settingsPath -Force -ErrorAction Stop
+    } finally {
+        if (Test-Path -LiteralPath $temporary) { Remove-Item -LiteralPath $temporary -Force -ErrorAction SilentlyContinue }
+    }
+    Write-DLine ("Docker VMM settings enforced; explicit shares={0}" -f $shares.Count) 'Green'
+}
+
+function Test-DockerVmmConfigured {
+    $settingsPath = Join-Path $env:APPDATA 'Docker\settings-store.json'
+    if (-not (Test-Path -LiteralPath $settingsPath -PathType Leaf)) { return $false }
+    try {
+        $settings = Get-Content -LiteralPath $settingsPath -Raw -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+        return [bool]$settings.UseLibkrun -and -not [bool]$settings.WslEngineEnabled -and -not [bool]$settings.UseVirtualizationFramework
+    } catch { return $false }
+}
+
 function Stop-AllDocker {
-    # 1) Kill every Docker process with NATIVE kills. taskkill.exe is unreliable
-    #    on this machine (it hangs or returns nothing mid-tree), so we use
-    #    Get-Process + Kill() directly. We loop until no docker processes remain:
-    #    Docker Desktop's crash-recovery keeps relaunching the backend otherwise,
-    #    which re-creates the VM and re-locks the VHDX mid-wipe.
-    $dockerNames = @('Docker Desktop', 'Docker Desktop Installer', 'com.docker.backend', 'com.docker.proxy', 'com.docker.service', 'com.docker.build', 'com.docker.dev-envs', 'com.docker.cli', 'com.docker.vpnkit', 'docker', 'dockerd', 'vpnkit', 'docker-agent', 'docker-sandbox', 'containerd')
-    $killPattern = '^(Docker Desktop|com\.docker|dockerd|containerd|vpnkit|docker-agent|docker-sandbox)'
-    for ($round = 1; $round -le 4; $round++) {
-        foreach ($name in $dockerNames) {
-            $procs = @(Get-Process -Name $name -ErrorAction SilentlyContinue)
-            foreach ($proc in $procs) {
-                try { $proc.Kill(); $proc.WaitForExit(6000) | Out-Null } catch { }
-            }
-        }
-        Start-Sleep -Milliseconds 600
-        $remaining = @(Get-Process -ErrorAction SilentlyContinue | Where-Object { $_.ProcessName -match $killPattern })
-        if (-not $remaining) { break }
-    }
-    Start-Sleep -Seconds 2
-    # 2) Stop the privileged helper service (restarted before Docker Desktop relaunches).
-    $sc = Join-Path $env:SystemRoot 'System32\sc.exe'
-    foreach ($serviceName in @('com.docker.service', 'docker')) {
-        if (Test-Path -LiteralPath $sc) {
-            $null = Invoke-Bounded -FilePath $sc -ArgumentList @('stop', $serviceName) -Milliseconds 5000
-        }
-    }
-    # 3) Tear down the Docker Desktop Hyper-V VM and its PERSISTENT definition.
-    #    DockerDesktopVM's .vmcx/.vmrs/.vmgs live in
-    #    C:\ProgramData\Microsoft\Windows\Hyper-V\Virtual Machines and vmms
-    #    re-registers the VM (and its vmwp.exe worker re-locks the VHDX) until
-    #    the definition is REMOVED. hcsdiag does NOT stop a Hyper-V VM, which is
-    #    why the VHDX stayed locked before. Proven release chain (in order):
-    #      a. Stop-VM -Force -TurnOff     (WMI RequestStateChange=3 fallback)
-    #      b. Remove-VM -Force            (WMI DestroySystem fallback)
-    #      c. kill the ghost vmwp worker
-    #      d. verify Get-VM no longer lists it
-    $vmIds = @()
-    $dockerVms = @(Get-VM -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'DockerDesktopVM' -or $_.Name -match '(?i)^docker' })
-    foreach ($vm in $dockerVms) { if ($vm.Id) { $vmIds += [string]$vm.Id } }
-    # Belt-and-braces: also catch any VM whose disk is the Docker vhdx.
-    foreach ($vm in @(Get-VM -ErrorAction SilentlyContinue)) {
-        if ($vm.Id -and ($vm.Id -notin $vmIds)) {
-            $disks = @($vm | Get-VMHardDiskDrive -ErrorAction SilentlyContinue)
-            if (@($disks | Where-Object { $_.Path -match '(?i)DockerDesktop\.vhdx' }).Count -gt 0) { $vmIds += [string]$vm.Id }
-        }
-    }
-    foreach ($vmId in ($vmIds | Select-Object -Unique)) {
-        Write-DLine ("releasing Docker VM {0}" -f $vmId) 'Yellow'
-        # a) Stop the VM (turn it off, force). Hyper-V cmdlet first, WMI fallback.
-        try {
-            Get-VM -Id $vmId -ErrorAction Stop | Stop-VM -Force -TurnOff -Confirm:$false -ErrorAction Stop
-            Write-DLine '  Stop-VM ok' 'Green'
-        } catch { }
-        try {
-            $ciVm = Get-CimInstance -Namespace 'root\virtualization\v2' -ClassName 'Msvm_ComputerSystem' -ErrorAction Stop | Where-Object { [string]$_.Name -eq $vmId } | Select-Object -First 1
-            if ($ciVm -and [int]$ciVm.EnabledState -ne 3) {
-                $null = Invoke-CimMethod -InputObject $ciVm -MethodName RequestStateChange -Arguments @{ RequestedState = 3 } -ErrorAction SilentlyContinue
-            }
-        } catch { }
-        Start-Sleep -Seconds 2
-        # b) Remove the VM AND its definition files. Hyper-V cmdlet first, WMI fallback.
-        try {
-            Get-VM -Id $vmId -ErrorAction Stop | Remove-VM -Force -Confirm:$false -ErrorAction Stop
-            Write-DLine '  Remove-VM ok' 'Green'
-        } catch { }
-        try {
-            $vmMgmt = Get-CimInstance -Namespace 'root\virtualization\v2' -ClassName 'Msvm_VirtualSystemManagementService' -ErrorAction Stop
-            $target = Get-CimInstance -Namespace 'root\virtualization\v2' -ClassName 'Msvm_ComputerSystem' -ErrorAction SilentlyContinue | Where-Object { [string]$_.Name -eq $vmId } | Select-Object -First 1
-            if ($target) {
-                $result = Invoke-CimMethod -InputObject $vmMgmt -MethodName DestroySystem -Arguments @{ AffectedSystem = $target } -ErrorAction SilentlyContinue
-                if ($result -and [int]$result.ReturnValue -in @(0, 4096)) { Write-DLine ("  DestroySystem ok (return={0})" -f $result.ReturnValue) 'Green' }
-            }
-        } catch { }
-        Start-Sleep -Seconds 2
-        # c) If the ghost persists, its vmwp.exe worker holds the VHDX - kill it
-        #    natively. The worker's command line contains the VM GUID, so the WSL
-        #    VM's worker and any real user VM's worker are never touched. The CIM
-        #    lookup is bounded via a background job (WMI can hang on this box).
-        if (Get-VM -Id $vmId -ErrorAction SilentlyContinue) {
-            Write-DLine ("  ghost persists - killing its vmwp worker (GUID {0})" -f $vmId) 'Yellow'
-            $workerJob = Start-Job -ScriptBlock {
-                param($guid)
-                @(Get-CimInstance Win32_Process -Filter "Name='vmwp.exe'" -ErrorAction SilentlyContinue | Where-Object { $_.CommandLine -match $guid } | Select-Object -ExpandProperty ProcessId)
-            } -ArgumentList $vmId
-            $workerPids = @()
-            if (Wait-Job $workerJob -Timeout 12) { $workerPids = @(Receive-Job $workerJob) }
-            Remove-Job $workerJob -Force -ErrorAction SilentlyContinue
-            foreach ($workerPid in $workerPids) {
-                $wp = Get-Process -Id $workerPid -ErrorAction SilentlyContinue
-                if ($wp) {
-                    try { $wp.Kill(); $wp.WaitForExit(6000) | Out-Null; Write-DLine ("  killed vmwp pid={0}" -f $workerPid) 'Yellow' } catch { }
-                }
-            }
-            Start-Sleep -Seconds 2
-        }
-    }
-    # Final verification (bounded - never hangs).
-    $stillPresent = $false
-    $deadline = (Get-Date).AddSeconds(10)
+    # Docker VMM is process-backed. Stop only its user-mode runtime and keep the
+    # privileged helper warm for the fresh launch. Hyper-V/WMI inventory is both
+    # irrelevant to VMM and can block indefinitely when the provider is unhealthy.
+    $dockerNames = @('Docker Desktop', 'Docker Desktop Installer', 'com.docker.backend', 'com.docker.proxy', 'com.docker.sailor', 'com.docker.build', 'com.docker.dev-envs', 'com.docker.cli', 'com.docker.vpnkit', 'docker', 'dockerd', 'vpnkit', 'docker-agent', 'docker-sandbox', 'containerd')
+    $deadline = [DateTime]::UtcNow.AddMilliseconds(1200)
     do {
-        $stillPresent = $false
-        $checkVms = @(Get-VM -ErrorAction SilentlyContinue | Where-Object { $_.Name -eq 'DockerDesktopVM' -or $_.Name -match '(?i)^docker' })
-        if ($checkVms.Count -gt 0) { $stillPresent = $true }
-        if (-not $stillPresent) { break }
-        Start-Sleep -Milliseconds 1000
-    } while ((Get-Date) -lt $deadline)
-    if ($stillPresent) { Write-DLine 'WARN Docker Hyper-V VM did not fully disappear; VHDX may stay locked' 'DarkYellow' }
+        $remaining = @()
+        foreach ($name in $dockerNames) {
+            foreach ($proc in @(Get-Process -Name $name -ErrorAction SilentlyContinue)) {
+                $remaining += $proc
+                try { $proc.Kill() } catch { }
+            }
+        }
+        if ($remaining.Count -eq 0) { break }
+        Start-Sleep -Milliseconds 80
+    } while ([DateTime]::UtcNow -lt $deadline)
+    $remaining = @(
+        foreach ($name in $dockerNames) {
+            Get-Process -Name $name -ErrorAction SilentlyContinue
+        }
+    )
+    if ($remaining.Count -gt 0) {
+        Write-DLine ("WARN {0} Docker process(es) still exiting; VHD deletion will verify the lock" -f $remaining.Count) 'DarkYellow'
+    }
 }
 
 function Remove-DockerPath {
@@ -270,21 +263,41 @@ function Start-PrivateService {
     return $false
 }
 
+function Start-DockerVmmWithTray {
+    $backendExe = Join-Path ${env:ProgramFiles} 'Docker\Docker\resources\com.docker.backend.exe'
+    $desktopExe = Join-Path ${env:ProgramFiles} 'Docker\Docker\Docker Desktop.exe'
+    if (-not (Test-Path -LiteralPath $backendExe -PathType Leaf) -or -not (Test-Path -LiteralPath $desktopExe -PathType Leaf)) {
+        Write-DLine 'ERROR Docker VMM backend or Docker Desktop tray executable was not found' 'Red'
+        return $false
+    }
+    try {
+        # Docker Desktop must own startup. A backend created with
+        # -with-frontend=false rejects a later tray attachment and makes the
+        # Desktop process exit even though the daemon remains healthy.
+        Start-Process -FilePath $desktopExe | Out-Null
+        Write-DLine 'Docker VMM and system-tray frontend launched unattended' 'Cyan'
+        return $true
+    } catch {
+        Write-DLine ("ERROR Docker VMM/tray launch failed: {0}" -f $_.Exception.Message) 'Red'
+        return $false
+    }
+}
+
 function Wait-ForDaemon {
     param([string]$DockerExe, [int]$Seconds = 120)
     $deadline = (Get-Date).AddSeconds([Math]::Max(5, $Seconds))
     $lastPct = -1
     while ((Get-Date) -lt $deadline) {
-        if (Test-DaemonReady -DockerExe $DockerExe -Milliseconds 2000) { return $true }
+        if (Test-DaemonReady -DockerExe $DockerExe -Milliseconds 500) { return $true }
         $remaining = [int][Math]::Max(0, ($deadline - (Get-Date)).TotalSeconds)
         $pct = [Math]::Min(99, [int]((1 - ($remaining / [Math]::Max(1, $Seconds))) * 100))
         if ($pct -ne $lastPct) {
             Write-DLine ("waiting for Docker daemon... {0}% ({1}s remaining)" -f $pct, $remaining) 'DarkCyan'
             $lastPct = $pct
         }
-        Start-Sleep -Milliseconds 500
+        Start-Sleep -Milliseconds 100
     }
-    return (Test-DaemonReady -DockerExe $DockerExe -Milliseconds 2000)
+    return (Test-DaemonReady -DockerExe $DockerExe -Milliseconds 1000)
 }
 
 # ---------------------------------------------------------------------------
@@ -293,46 +306,124 @@ function Wait-ForDaemon {
 if ($SelfTest) {
     Write-DLine ("elevated={0}" -f (Test-DAdmin)) 'Cyan'
     Write-DLine ("docker.exe={0}" -f (Find-DockerExe)) 'Cyan'
+    Write-DLine ("default_mode={0}" -f $(if ($Preserve) { 'PRESERVING_VMM_RESTART' } else { 'DESTRUCTIVE_VMM_RESET' })) 'Cyan'
+    Write-DLine ("docker_vmm_configured={0}" -f (Test-DockerVmmConfigured)) 'Cyan'
     $dockerExe = Find-DockerExe
     if ($dockerExe) { Write-DLine ("daemon_ready={0}" -f (Test-DaemonReady -DockerExe $dockerExe -Milliseconds 4000)) 'Cyan' }
+    Write-DLine ("tray_frontend_ready={0}" -f (Test-DockerFrontendReady)) 'Cyan'
     Write-DLine 'SELFTEST_OK' 'Green'
     exit 0
 }
 
-# ---------------------------------------------------------------------------
-# Elevation guard: relaunch elevated (single UAC prompt, nothing else ever asks).
-# ---------------------------------------------------------------------------
-if (-not (Test-DAdmin)) {
+# Run operational work in a detached child. The reset therefore continues even
+# when its terminal is closed or Ctrl+C interrupts the waiting wrapper.
+if (-not $Worker) {
+    $outer = [System.Diagnostics.Stopwatch]::StartNew()
+    $outerStartedUtc = [DateTime]::UtcNow
+    $powerShellExe = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $outFile = Join-Path 'C:\Temp' ('dkill-worker-' + [guid]::NewGuid().ToString('N') + '.out')
+    $errFile = [IO.Path]::ChangeExtension($outFile, '.err')
+    $childArguments = @('-NoLogo', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', ('"{0}"' -f $PSCommandPath), '-Worker')
+    if ($Preserve) { $childArguments += '-Preserve' }
+    if ($NoRestart) { $childArguments += '-NoRestart' }
+    if ($FactoryReset) { $childArguments += '-FactoryReset' }
+    if (-not [string]::IsNullOrWhiteSpace($ConfirmFactoryReset)) { $childArguments += @('-ConfirmFactoryReset', $ConfirmFactoryReset) }
     try {
-        $psi = New-Object System.Diagnostics.ProcessStartInfo
-        $psi.FileName = (Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe')
-        $psi.Arguments = '-NoProfile -ExecutionPolicy Bypass -File "' + $PSCommandPath + '"' + $(if ($NoRestart) { ' -NoRestart' } else { '' })
-        $psi.Verb = 'RunAs'
-        $psi.UseShellExecute = $true
-        [System.Diagnostics.Process]::Start($psi) | Out-Null
-        exit 0
-    } catch {
-        Write-DLine 'ELEVATION_REQUIRED: run this script from an elevated PowerShell' 'Red'
-        exit 1
+        $child = Start-Process -FilePath $powerShellExe -ArgumentList $childArguments -WindowStyle Hidden -PassThru -RedirectStandardOutput $outFile -RedirectStandardError $errFile -ErrorAction Stop
+        if (-not $child.WaitForExit(60000)) {
+            throw 'Detached Docker reset exceeded its 60-second recovery ceiling; it remains active in the background.'
+        }
+        $child.WaitForExit()
+        if (Test-Path -LiteralPath $outFile) {
+            $captured = Get-Content -LiteralPath $outFile -Raw -ErrorAction SilentlyContinue
+            if (-not [string]::IsNullOrWhiteSpace($captured)) { Write-Host $captured.TrimEnd() }
+        }
+        if (Test-Path -LiteralPath $errFile) {
+            $capturedError = Get-Content -LiteralPath $errFile -Raw -ErrorAction SilentlyContinue
+            if (-not [string]::IsNullOrWhiteSpace($capturedError)) { Write-Error $capturedError.TrimEnd() }
+        }
+        $childExitCode = $null
+        try { $childExitCode = [int]$child.ExitCode } catch { }
+        $dockerExe = Find-DockerExe
+        if ($NoRestart) {
+            $postconditionPassed = -not (Test-DaemonReady -DockerExe $dockerExe -Milliseconds 500) -and -not (Test-DockerFrontendReady)
+        } else {
+            $postconditionPassed = (Test-DaemonReady -DockerExe $dockerExe -Milliseconds 1000) -and (Test-DockerVmmConfigured) -and (Test-DockerFrontendReady)
+            if (-not $Preserve) {
+                $freshDisk = Get-Item -LiteralPath (Join-Path $env:LOCALAPPDATA 'Docker\vm-data\DockerDesktop.vhdx') -Force -ErrorAction SilentlyContinue
+                $postconditionPassed = $postconditionPassed -and $freshDisk -and $freshDisk.CreationTimeUtc -ge $outerStartedUtc.AddSeconds(-2)
+            }
+        }
+        if ($null -eq $childExitCode) {
+            # ShellExecute elevation can omit ExitCode even after WaitForExit. The
+            # fresh live postcondition is stronger than that missing metadata.
+            $childExitCode = if ($postconditionPassed) { 0 } else { 1 }
+        } elseif (-not $postconditionPassed) {
+            $childExitCode = 1
+        }
+        $outer.Stop()
+        $elapsed = [math]::Round($outer.Elapsed.TotalSeconds, 2)
+        Write-DLine ("END_TO_END elapsed={0}s child_exit={1} postcondition={2}" -f $elapsed, $childExitCode, $postconditionPassed) $(if ($childExitCode -eq 0 -and ($Preserve -or $elapsed -lt 10)) { 'Green' } else { 'Red' })
+        if ($childExitCode -ne 0) { throw "Docker reset worker failed live postcondition verification (exit=$childExitCode)." }
+        if (-not $Preserve -and $elapsed -ge 10) { throw "Docker reset completed but missed the strict under-10-second target ($elapsed seconds)." }
+        return
+    } finally {
+        foreach ($file in @($outFile, $errFile)) { Remove-Item -LiteralPath $file -Force -ErrorAction SilentlyContinue }
     }
 }
 
+if ($Preserve -and $FactoryReset) {
+    Write-DLine 'Choose either -Preserve or the destructive reset, not both.' 'Red'
+    exit 2
+}
+
+if ($Preserve) {
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    Write-DLine '=== DKILL: PRESERVING DOCKER VMM RESTART START ===' 'Yellow'
+    Set-DockerVmmSettings
+    $dockerExe = Find-DockerExe
+    if (-not $dockerExe) {
+        Write-DLine 'docker.exe not found; Docker Desktop may not be installed' 'Red'
+        exit 1
+    }
+    Stop-AllDocker
+    if ($NoRestart) {
+        Write-DLine 'Docker VMM stopped; Docker data and VMM settings preserved' 'Green'
+        exit 0
+    }
+    if (-not (Start-DockerVmmWithTray)) { exit 1 }
+    if (-not (Wait-ForDaemon -DockerExe $dockerExe -Seconds 20)) {
+        Write-DLine 'Docker daemon did not become ready after the bounded VMM restart' 'Red'
+        exit 1
+    }
+    if (-not (Test-DockerVmmConfigured) -or -not (Get-Process -Name 'com.docker.sailor' -ErrorAction SilentlyContinue) -or -not (Test-DockerFrontendReady)) {
+        Write-DLine 'Docker answered, but the Docker VMM runtime was not active' 'Red'
+        exit 1
+    }
+    $sw.Stop()
+    Write-DLine ("=== DKILL VMM RESTART COMPLETE in {0}s; daemon and tray ready; data preserved ===" -f [math]::Round($sw.Elapsed.TotalSeconds, 2)) 'Green'
+    exit 0
+}
+
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
+$resetStartedUtc = [DateTime]::UtcNow
+$freeBytesBefore = [IO.DriveInfo]::new('C').AvailableFreeSpace
+$script:DKillSucceeded = $true
 Write-DLine '=== DKILL: COMPLETE AUTOMATIC DOCKER WIPE START ===' 'Yellow'
 
-# Pause the 1-minute watchdog while we wipe (re-enabled at the end), END any
-# already-running instance (a mid-cycle run keeps relaunching Docker Desktop and
-# re-creating the VM during the wipe), and drop its lock so it stays out.
+# Keep the retired legacy watchdog out of the VMM wipe. These calls are kept to
+# 500 ms each so an unhealthy Task Scheduler service cannot break the deadline.
 $schtasks = Join-Path $env:SystemRoot 'System32\schtasks.exe'
+$script:WatchdogWasEnabled = $false
 if (Test-Path -LiteralPath $schtasks) {
-    $null = Invoke-Bounded -FilePath $schtasks -ArgumentList @('/Change', '/TN', $script:WatchdogTask, '/DISABLE') -Milliseconds 10000
-    $null = Invoke-Bounded -FilePath $schtasks -ArgumentList @('/End', '/TN', $script:WatchdogTask) -Milliseconds 8000
+    $null = Invoke-Bounded -FilePath $schtasks -ArgumentList @('/Change', '/TN', $script:WatchdogTask, '/DISABLE') -Milliseconds 500
+    $null = Invoke-Bounded -FilePath $schtasks -ArgumentList @('/End', '/TN', $script:WatchdogTask) -Milliseconds 500
     Write-DLine 'DockerDesktopWatchdog paused for the wipe' 'Cyan'
 }
 try { Remove-Item -LiteralPath 'C:\Temp\Docker-WSL-HealthFix.lock' -Force -ErrorAction SilentlyContinue } catch { }
 
 # 1) Kill everything.
-Write-DLine 'killing every Docker process and service (incl. privileged helper)' 'Yellow'
+Write-DLine 'stopping Docker VMM processes; privileged helper stays warm' 'Yellow'
 Stop-AllDocker
 
 # 2) Delete every Docker data location.
@@ -360,49 +451,46 @@ $targets = @(
     (Join-Path $env:USERPROFILE '.docker-desktop')
 )
 
-# Free the big Hyper-V disk FIRST and report exactly how much space came back.
-# Remove-VM releases the handle, but vmms can take a beat to drop it - retry
-# (bounded, so it can never hang) until the 71GB file is actually gone.
-$vhdx = Join-Path $env:ProgramData 'DockerDesktop\vm-data\DockerDesktop.vhdx'
-if (Test-Path -LiteralPath $vhdx -PathType Leaf) {
-    Write-DLine 'deleting Docker Hyper-V VHDX (the big one)' 'Yellow'
-    $vhdxBefore = (Get-Item -LiteralPath $vhdx -Force -ErrorAction SilentlyContinue).Length
+# Free every known Docker engine disk first. Docker VMM uses the LocalAppData
+# path; the ProgramData and WSL paths are included only to remove stale data.
+$vhdPaths = @(
+    (Join-Path $env:LOCALAPPDATA 'Docker\vm-data\DockerDesktop.vhdx'),
+    (Join-Path $env:ProgramData 'DockerDesktop\vm-data\DockerDesktop.vhdx'),
+    (Join-Path $env:LOCALAPPDATA 'Docker\wsl\data\ext4.vhdx'),
+    (Join-Path $env:LOCALAPPDATA 'Docker\wsl\disk\docker_data.vhdx')
+) | Select-Object -Unique
+$oldVhdRecords = @()
+foreach ($vhdx in $vhdPaths) {
+    if (-not (Test-Path -LiteralPath $vhdx -PathType Leaf)) { continue }
+    $oldVhd = Get-Item -LiteralPath $vhdx -Force -ErrorAction SilentlyContinue
+    if ($oldVhd) {
+        $oldVhdRecords += [pscustomobject]@{ Path = $vhdx; Length = [int64]$oldVhd.Length; CreatedUtc = $oldVhd.CreationTimeUtc }
+    }
+    Write-DLine ("deleting Docker engine VHDX: {0}" -f $vhdx) 'Yellow'
     $vhdxGone = $false
-    $vhdxDeadline = (Get-Date).AddSeconds(12)
+    $vhdxDeadline = (Get-Date).AddSeconds(20)
     do {
         $null = Remove-DockerPath -Path $vhdx
         if (-not (Test-Path -LiteralPath $vhdx)) { $vhdxGone = $true; break }
-        Start-Sleep -Milliseconds 1000
+        Start-Sleep -Milliseconds 500
     } while ((Get-Date) -lt $vhdxDeadline)
     if ($vhdxGone) {
-        Write-DLine ("VHDX deleted - reclaimed {0:N2} GB" -f ($vhdxBefore / 1GB)) 'Green'
+        Write-DLine ("VHDX deleted - released {0:N2} GB" -f ($(if ($oldVhd) { $oldVhd.Length } else { 0 }) / 1GB)) 'Green'
     } else {
-        Write-DLine ("WARN VHDX still locked - {0:N2} GB not freed" -f ($vhdxBefore / 1GB)) 'Red'
+        $script:DKillSucceeded = $false
+        Write-DLine ("ERROR VHDX still locked: {0}" -f $vhdx) 'Red'
     }
 }
 
 foreach ($t in $targets) {
-    if (Test-Path -LiteralPath $t) { $null = Remove-DockerPath -Path $t }
-}
-
-# WSL docker distro registrations (data already removed with %LOCALAPPDATA%\Docker).
-$wsl = Join-Path $env:SystemRoot 'System32\wsl.exe'
-if (Test-Path -LiteralPath $wsl) {
-    foreach ($distro in @('docker-desktop', 'docker-desktop-data')) {
-        $null = Invoke-Bounded -FilePath $wsl -ArgumentList @('--unregister', $distro) -Milliseconds 8000
+    if (Test-Path -LiteralPath $t) {
+        if (-not (Remove-DockerPath -Path $t)) { $script:DKillSucceeded = $false }
     }
 }
 
 # Temp files.
 foreach ($pattern in @((Join-Path $env:windir 'Temp\*docker*'), (Join-Path $env:LOCALAPPDATA 'Temp\*docker*'))) {
     Get-ChildItem -Path $pattern -ErrorAction SilentlyContinue | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force -ErrorAction SilentlyContinue }
-}
-
-# Registry keys used by Docker Desktop.
-foreach ($key in @('HKCU:\Software\Docker Inc.', 'HKCU:\Software\Docker')) {
-    if (Test-Path -LiteralPath $key) {
-        try { Remove-Item -LiteralPath $key -Recurse -Force -ErrorAction SilentlyContinue; Write-DLine ("deleted registry {0}" -f $key) 'Green' } catch { }
-    }
 }
 
 # Re-create preserved config so Docker starts without onboarding/login popups.
@@ -418,18 +506,15 @@ foreach ($p in $preserve) {
         } catch { }
     }
 }
+Set-DockerVmmSettings
 try { Remove-Item -LiteralPath $holdDir -Recurse -Force -ErrorAction SilentlyContinue } catch { }
 
-Write-DLine 'ALL DOCKER DATA DELETED' 'Green'
+Write-DLine 'ALL DOCKER ENGINE DATA DELETED; credentials retained for authenticated push' 'Green'
 
 # 3) Bring Docker back on fresh data - ready to use, no delays.
 if (-not $NoRestart) {
-    Write-DLine 'starting fresh Docker Desktop' 'Yellow'
-    $null = Start-PrivateService
-    $desktopExe = Join-Path ${env:ProgramFiles} 'Docker\Docker\Docker Desktop.exe'
-    if (Test-Path -LiteralPath $desktopExe) {
-        try { Start-Process -FilePath $desktopExe -ArgumentList '--minimize' -WindowStyle Hidden | Out-Null } catch { Write-DLine ("WARN start failed: {0}" -f $_.Exception.Message) 'Yellow' }
-    }
+    Write-DLine 'starting fresh Docker VMM' 'Yellow'
+    $null = Start-DockerVmmWithTray
     $dockerExe = Find-DockerExe
     if ($dockerExe) {
         # First wait is short; if the engine is stuck, run one full force cycle
@@ -438,32 +523,58 @@ if (-not $NoRestart) {
         if (-not $becameReady) {
             Write-DLine 'daemon slow to start - running a force cycle' 'Yellow'
             Stop-AllDocker
-            $null = Start-PrivateService
-            if (Test-Path -LiteralPath $desktopExe) {
-                try { Start-Process -FilePath $desktopExe -ArgumentList '--minimize' -WindowStyle Hidden | Out-Null } catch { }
-            }
+            $null = Start-DockerVmmWithTray
             $becameReady = Wait-ForDaemon -DockerExe $dockerExe -Seconds 80
         }
         if (Test-DaemonReady -DockerExe $dockerExe -Milliseconds 5000) {
             $version = Invoke-Bounded -FilePath $dockerExe -ArgumentList @('version', '--format', '{{.Server.Version}}') -Milliseconds 5000
             $psResult = Invoke-Bounded -FilePath $dockerExe -ArgumentList @('ps', '--format', '{{.ID}}') -Milliseconds 5000
             $containerCount = if ($psResult.ExitCode -eq 0) { @($psResult.Stdout -split "[`r`n]+" | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }).Count } else { -1 }
-            Write-DLine ("READY - Docker is running fresh. Server version: {0}; containers: {1}" -f $(if ($version.Stdout) { $version.Stdout } else { 'unknown' }), $containerCount) 'Green'
+            Write-DLine ("READY - Docker daemon and system tray are running fresh. Server version: {0}; containers: {1}" -f $(if ($version.Stdout) { $version.Stdout } else { 'unknown' }), $containerCount) 'Green'
         } else {
-            Write-DLine 'WARN daemon not responding after restart; run the DockerDesktopWatchdog or dockerfix to bring it up' 'Yellow'
+            $script:DKillSucceeded = $false
+            Write-DLine 'ERROR daemon not responding after the bounded fresh start' 'Red'
         }
     } else {
-        Write-DLine 'WARN docker.exe not found; Docker Desktop may not be installed' 'Yellow'
+        $script:DKillSucceeded = $false
+        Write-DLine 'ERROR docker.exe not found; Docker Desktop may not be installed' 'Red'
+    }
+    if (-not (Test-DockerVmmConfigured) -or -not (Get-Process -Name 'com.docker.sailor' -ErrorAction SilentlyContinue)) {
+        $script:DKillSucceeded = $false
+        Write-DLine 'ERROR fresh daemon is not running on Docker VMM' 'Red'
+    }
+    if (-not (Test-DockerFrontendReady)) {
+        $script:DKillSucceeded = $false
+        Write-DLine 'ERROR Docker daemon is ready but the system-tray frontend is missing' 'Red'
+    } else {
+        Write-DLine 'Docker system-tray frontend verified ready' 'Green'
+    }
+    $freshVhdPath = Join-Path $env:LOCALAPPDATA 'Docker\vm-data\DockerDesktop.vhdx'
+    $freshVhd = Get-Item -LiteralPath $freshVhdPath -Force -ErrorAction SilentlyContinue
+    if (-not $freshVhd -or $freshVhd.CreationTimeUtc -lt $resetStartedUtc.AddSeconds(-2)) {
+        $script:DKillSucceeded = $false
+        Write-DLine 'ERROR a newly created Docker VMM disk was not verified' 'Red'
+    } else {
+        Write-DLine ("fresh VMM disk verified: {0:N2} GB, created {1:o}" -f ($freshVhd.Length / 1GB), $freshVhd.CreationTimeUtc) 'Green'
     }
 } else {
     Write-DLine 'NoRestart mode: wipe complete, Docker Desktop NOT started' 'Cyan'
 }
 
-# Re-enable the 1-minute watchdog.
+# The old WSL/Hyper-V watchdog remains retired; normal Docker commands use the
+# bounded VMM-aware wrapper when recovery is actually needed.
 if (Test-Path -LiteralPath $schtasks) {
-    $null = Invoke-Bounded -FilePath $schtasks -ArgumentList @('/Change', '/TN', $script:WatchdogTask, '/ENABLE') -Milliseconds 10000
-    Write-DLine 'DockerDesktopWatchdog re-enabled' 'Cyan'
+    $null = Invoke-Bounded -FilePath $schtasks -ArgumentList @('/Change', '/TN', $script:WatchdogTask, '/DISABLE') -Milliseconds 500
+    Write-DLine 'DockerDesktopWatchdog left disabled' 'Cyan'
 }
 
 $sw.Stop()
+$freeBytesAfter = [IO.DriveInfo]::new('C').AvailableFreeSpace
+$netFreedGiB = ($freeBytesAfter - $freeBytesBefore) / 1GB
+Write-DLine ("C drive net free-space change: {0:N2} GB" -f $netFreedGiB) $(if ($netFreedGiB -ge 0) { 'Green' } else { 'Yellow' })
+if (-not $script:DKillSucceeded) {
+    Write-DLine ("=== DKILL FAILED after {0}s ===" -f [math]::Round($sw.Elapsed.TotalSeconds, 2)) 'Red'
+    exit 1
+}
 Write-DLine ("=== DKILL COMPLETE in {0}s ===" -f [math]::Round($sw.Elapsed.TotalSeconds, 2)) 'Green'
+exit 0

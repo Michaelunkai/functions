@@ -30,55 +30,9 @@ if ($__2scNeedBootstrap) {
 function Remove-DKillPath {
     [CmdletBinding()]
     param([string]$Path)
-
-    if ([string]::IsNullOrWhiteSpace($Path)) {
-        Write-DKillLine 'delete skipped: empty path'
-        return $true
-    }
-    if (-not (Test-Path -LiteralPath $Path)) {
-        Write-DKillLine ("delete skipped: already absent {0}" -f $Path)
-        return $true
-    }
-
-    $size = Get-DKillPathBytes -Path $Path
-    Write-DKillLine ("deleting {0} ({1})" -f $Path, (Format-DKillBytes $size))
-    try {
-        Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
-    }
-    catch {
-        Write-DKillLine ("primary delete failed for {0}: {1}" -f $Path, $_.Exception.Message)
-    }
-
-    if (Test-Path -LiteralPath $Path) {
-        $empty = Join-Path $env:TEMP ('dkill-empty-' + [guid]::NewGuid().ToString('N'))
-        try {
-            New-Item -ItemType Directory -Force -Path $empty -ErrorAction Stop | Out-Null
-            $robocopy = Join-Path $env:SystemRoot 'System32\robocopy.exe'
-            if (-not (Test-Path -LiteralPath $robocopy -PathType Leaf)) {
-                throw "robocopy.exe was not found: $robocopy"
-            }
-            & $robocopy $empty $Path /MIR /R:0 /W:0 /NFL /NDL /NJH /NJS /NP
-            if ($LASTEXITCODE -gt 7) {
-                throw "robocopy mirror reset failed with exit code $LASTEXITCODE"
-            }
-            Remove-Item -LiteralPath $Path -Recurse -Force -ErrorAction Stop
-        }
-        catch {
-            Write-DKillLine ("fallback delete failed for {0}: {1}" -f $Path, $_.Exception.Message)
-        }
-        finally {
-            try { Remove-Item -LiteralPath $empty -Recurse -Force -ErrorAction Stop } catch { Write-DKillLine ("temporary cleanup failed for {0}: {1}" -f $empty, $_.Exception.Message) }
-        }
-    }
-
-    if (Test-Path -LiteralPath $Path) {
-        Write-DKillLine ("blocked: still exists: {0}" -f $Path)
-        return $false
-    }
-
-    $script:DKillDeletedBytes += $size
-    Write-DKillLine ("delete verified: {0}" -f $Path)
-    return $true
+    Write-Warning ("Remove-DKillPath is retired and cannot delete data. Preserved path: {0}. Use dkill for a bounded Docker VMM restart; an intentional full wipe requires dkill -FactoryReset -ConfirmFactoryReset ERASE-ALL-DOCKER-DATA." -f $Path)
+    $global:LASTEXITCODE = 2
+    return $false
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

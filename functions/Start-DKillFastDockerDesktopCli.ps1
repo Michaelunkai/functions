@@ -30,12 +30,10 @@ if ($__2scNeedBootstrap) {
 function Start-DKillFastDockerDesktopCli {
     [CmdletBinding()]
     param([Parameter(Mandatory)][string]$DockerExe)
-    if([string]::IsNullOrWhiteSpace($DockerExe) -or -not (Test-Path -LiteralPath $DockerExe)){Write-DKillFastLine ("DKILL_DESKTOP_START_FAIL Docker CLI not found: {0}" -f $DockerExe) Red;return $false}
-    Write-Progress -Activity 'Docker launch' -Status 'Starting Docker Desktop through CLI' -PercentComplete 45
-    $process=$null
-    try {$psi=New-Object Diagnostics.ProcessStartInfo;$psi.FileName=$DockerExe;$psi.Arguments='desktop start --detach';$psi.UseShellExecute=$false;$psi.CreateNoWindow=$true;$process=[Diagnostics.Process]::Start($psi);if(-not $process){throw 'process start returned null'};if($process.WaitForExit(350)-and $process.ExitCode-ne0){throw "docker desktop start exit=$($process.ExitCode)"};Write-DKillFastLine ("DKILL_DESKTOP_START_OK pid={0}" -f $process.Id) Green;return $true}
-    catch {Write-DKillFastLine ("DKILL_DESKTOP_START_FAIL {0}" -f $_.Exception.Message) Red;return $false}
-    finally {Write-Progress -Activity 'Docker launch' -Completed;if($process){try{$process.Dispose()}catch{Write-DKillFastLine ("DKILL_DESKTOP_START_WARN dispose failed: {0}" -f $_.Exception.Message) Yellow}}}
+    $recovery = 'F:\study\Platforms\windows\functions\dkill.ps1'
+    if (-not (Test-Path -LiteralPath $recovery -PathType Leaf)) { throw "Canonical Docker VMM recovery not found: $recovery" }
+    & $recovery -Preserve
+    return [bool]($LASTEXITCODE -eq 0 -and (Get-Process -Name 'com.docker.sailor' -ErrorAction SilentlyContinue))
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

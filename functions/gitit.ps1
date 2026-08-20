@@ -32,9 +32,20 @@ function gitit {
     if (-not $GititArgs -or $GititArgs.Count -eq 0) {
         $GititArgs = @((Get-Location).ProviderPath)
     }
-    python "F:\study\Version_Control\git\gitit\a.py" @GititArgs
+    $script:gititLastExit = 0
+    try {
+        python "F:\study\Version_Control\git\gitit\a.py" @GititArgs
+        $script:gititLastExit = $LASTEXITCODE
+        if ($script:gititLastExit -eq $null) { $script:gititLastExit = 0 }
+    } catch {
+        Write-Error $_
+        $script:gititLastExit = 1
+    }
+    $global:LASTEXITCODE = $script:gititLastExit
+    return $script:gititLastExit
 }
 
 if ($MyInvocation.InvocationName -ne '.') {
     & 'gitit' @args
+    exit $gititLastExit
 }
