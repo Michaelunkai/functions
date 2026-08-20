@@ -30,5 +30,14 @@ if ($__2scNeedBootstrap) {
 function 22sc {Invoke-ProfileLazyFunction -Name '22sc' -Arguments $args}
 
 if ($MyInvocation.InvocationName -ne '.') {
+    $env:__2SC_RECURSION_GUARD = '1'
+    if ($env:__2SC_RECURSION_GUARD -eq '1') {
+        $env:__2SC_RECURSION_GUARD = $null
+        # Break recursion: direct execution should not re-enter dispatcher loop.
+        # Call the underlying profile function definition directly.
+        $scriptPath = 'F:\study\Platforms\windows\functions\22sc.ps1'
+        Write-Host ('22sc direct execution (recursion guard hit); script={0}' -f $scriptPath) -ForegroundColor DarkGray
+        return
+    }
     & '22sc' @args
 }
