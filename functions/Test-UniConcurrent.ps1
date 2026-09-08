@@ -66,16 +66,17 @@ try {
     $waitMessages = @($workersState | ForEach-Object { ([regex]::Matches([string]$_.Output, 'Another Uni run is active; waiting for it to finish')).Count } | Measure-Object -Sum).Sum
     $failFast = @($workersState | Where-Object { [string]$_.Output -match 'Another Uni run is active; this invocation did not mutate anything|INCOMPLETE: Another Uni run is active' }).Count
     $stderrCount = @($workersState | Where-Object { -not [string]::IsNullOrWhiteSpace([string]$_.Error) }).Count
-    $remaining = Test-Path -LiteralPath $ownedRoot -PathType Any
+    $remainingTargets = @($targets | Where-Object { Test-Path -LiteralPath $_ -PathType Any })
 
     Write-Output ('QUEUE_WORKERS={0}' -f $Workers)
     Write-Output ('QUEUE_EXIT_CODES={0}' -f ($exitCodes -join ','))
     Write-Output ('QUEUE_WAIT_MESSAGES={0}' -f [int]$waitMessages)
     Write-Output ('QUEUE_FAIL_FAST={0}' -f $failFast)
-    Write-Output ('QUEUE_TARGET_PRESENT={0}' -f $remaining)
+    Write-Output ('QUEUE_TARGET_PRESENT={0}' -f [bool]$remainingTargets.Count)
+    Write-Output ('QUEUE_TARGET_COUNT={0}' -f $remainingTargets.Count)
     Write-Output ('QUEUE_STDERR_NONEMPTY={0}' -f $stderrCount)
 
-    if(@($exitCodes | Where-Object { $_ -ne 0 }).Count -or $waitMessages -lt ($Workers - 1) -or $failFast -or $stderrCount -or $remaining){
+    if(@($exitCodes | Where-Object { $_ -ne 0 }).Count -or $waitMessages -lt ($Workers - 1) -or $failFast -or $stderrCount -or $remainingTargets.Count){
         throw 'Concurrent Uni queue regression failed.'
     }
 }
