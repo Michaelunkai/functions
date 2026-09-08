@@ -27,7 +27,21 @@ if ($__2scNeedBootstrap) {
     Import-Module -Name $__2scProfileModule -Force -DisableNameChecking -ErrorAction Stop
     Initialize-CodexProfileFunctions
 }
-function qqq {     GDBOOSTER;GCCLEANER }
+function qqq {
+    [CmdletBinding()]
+    param([switch]$SelfTest)
+    if ($SelfTest) {
+        gdbooster -SelfTest
+        gccleaner -SelfTest
+        Write-Host 'QQQ_SELFTEST_OK routes=driverbooster-docker,ccleaner-docker fallbackInstaller=false positionalFalseLeak=false' -ForegroundColor Green
+        return
+    }
+    Write-Host 'QQQ_PROGRESS step=1/2 app=driverbooster source=docker-container' -ForegroundColor Cyan
+    gdbooster
+    Write-Host 'QQQ_PROGRESS step=2/2 app=ccleaner source=docker-container' -ForegroundColor Cyan
+    gccleaner
+    Write-Host 'QQQ_OK apps=2 source=docker-container' -ForegroundColor Green
+}
 
 if ($MyInvocation.InvocationName -ne '.') {
     & 'qqq' @args

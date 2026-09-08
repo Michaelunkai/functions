@@ -6,15 +6,17 @@ param(
 )
 
 $__mutationLibrary = @(
+    'F:\study\Learning\01\01\Shells\powershell\profile-functions\Invoke-ProfileFunctionMutation.ps1'
     (Join-Path $env:USERPROFILE 'Documents\WindowsPowerShell\legacy-safe-functions\Invoke-ProfileFunctionMutation.ps1')
     'C:\Users\micha\Documents\WindowsPowerShell\legacy-safe-functions\Invoke-ProfileFunctionMutation.ps1'
     'F:\study\Windows\collected\Windows\PowerShell\Profile\ps5-profile-portable\legacy-safe-functions\Invoke-ProfileFunctionMutation.ps1'
     'F:\study\Platforms\windows\collected\Windows\PowerShell\Profile\ps5-profile-portable\legacy-safe-functions\Invoke-ProfileFunctionMutation.ps1'
 ) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
+$__mutationLibrary = @($__mutationLibrary)
 if (-not $__mutationLibrary) {
     throw 'rmfunc could not locate Invoke-ProfileFunctionMutation.ps1 in any known profile location. Reinstall the ps5-profile-portable legacy-safe-functions folder.'
 }
-. $__mutationLibrary[0]
+. ($__mutationLibrary[0])
 
 $__extraNames = @($Remaining | Where-Object { $null -ne $_ } | ForEach-Object { [string]$_ })
 if ([string]::IsNullOrWhiteSpace($Name) -and $__extraNames.Count -eq 0) {
@@ -24,4 +26,7 @@ if ([string]::IsNullOrWhiteSpace($Name) -and $__extraNames.Count -eq 0) {
 }
 
 $names = @($Name) + $__extraNames
-Invoke-ProfileFunctionRemove -Name $names -Force:$Force
+foreach ($functionName in $names) {
+    if ([string]::IsNullOrWhiteSpace($functionName)) { continue }
+    Invoke-ProfileFunctionMutation -Operation Remove -Name $functionName
+}

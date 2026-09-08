@@ -1,0 +1,49 @@
+[CmdletBinding()]
+param([switch]$SelfTest)
+$ErrorActionPreference='Stop'
+if($SelfTest){Write-Output 'DOCKER_SOCKET_REPAIR_SELFTEST executable=wsl.exe distro=Ubuntu python=python3';return}
+$active=@(Get-Process -Name 'com.docker.backend','Docker Desktop' -ErrorAction SilentlyContinue)
+if($active.Count){throw 'Docker socket cleanup requires Docker Desktop and its backend to be stopped.'}
+$wsl=Join-Path $env:SystemRoot 'System32\wsl.exe'
+# Enumeration, containment checks and unlink all run in the same filesystem API.
+# DrvFs can unlink stale Windows AF_UNIX reparse entries which Win32 rejects.
+$code=@'
+import os, pathlib
+base = pathlib.Path('/mnt/c/Users/micha/AppData/Local')
+if str(base.resolve()) != str(base):
+    raise RuntimeError('LocalAppData path is redirected; refusing socket cleanup')
+docker = base / 'Docker'
+roots = [docker / 'run', base / 'docker-secrets-engine']
+if docker.is_dir():
+    roots += [p for p in docker.iterdir() if p.name.startswith('run.stale-') and p.is_dir()]
+removed = 0
+names = {'dockerEthernetVfkit', 'dockerInference'}
+for root in roots:
+    if not root.exists():
+        continue
+    if root.resolve() != root or root.is_symlink():
+        raise RuntimeError('Socket directory is redirected: ' + str(root))
+    for entry in root.iterdir():
+        if entry.name.endswith(('.sock', '.sock.stale')) or entry.name in names:
+            if entry.is_dir():
+                raise RuntimeError('Unexpected directory at socket path: ' + str(entry))
+            os.unlink(entry)
+            removed += 1
+print('DOCKER_STALE_SOCKETS_REMOVED=' + str(removed))
+'@
+$processInfo=New-Object Diagnostics.ProcessStartInfo
+$processInfo.FileName=$wsl
+$processInfo.Arguments='-d Ubuntu -- python3 -'
+$processInfo.UseShellExecute=$false
+$processInfo.CreateNoWindow=$true
+$processInfo.RedirectStandardInput=$true
+$processInfo.RedirectStandardOutput=$true
+$processInfo.RedirectStandardError=$true
+$process=[Diagnostics.Process]::Start($processInfo)
+$stdout=$process.StandardOutput.ReadToEndAsync()
+$stderr=$process.StandardError.ReadToEndAsync()
+$process.StandardInput.Write($code)
+$process.StandardInput.Close()
+if(-not $process.WaitForExit(15000)){try{$process.Kill()}catch{};throw 'Docker socket cleanup exceeded 15 seconds'}
+if($process.ExitCode -ne 0){throw ('Docker socket cleanup failed: '+$stderr.Result.Trim())}
+Write-Output $stdout.Result.Trim()

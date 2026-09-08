@@ -28,15 +28,27 @@ if ($__2scNeedBootstrap) {
     Initialize-CodexProfileFunctions
 }
 function 7z7z {
-    $script = 'F:\study\Learning\01\01\Shells\powershell\profile-functions\shells\powershell\profile-helpers\7Z7z\Invoke-7z7z.ps1'
-    if (-not (Test-Path -LiteralPath $script)) {
-        throw "7z7z script not found: $script"
-    }
     if ($args -contains '-SelfTest') {
-        & $script @args
+        if (-not (Get-Command -Name '7z' -CommandType Function -ErrorAction SilentlyContinue)) {
+            throw '7z7z self-test requires the profile 7z function.'
+        }
+        foreach ($dependency in @('7zit', 'rm7z')) {
+            if (-not (Get-Command -Name $dependency -ErrorAction SilentlyContinue)) {
+                throw "7z7z dependency is unavailable: $dependency"
+            }
+        }
+        7z i *> $null
+        $selfTestExitCode = $LASTEXITCODE
+        if ($selfTestExitCode -ne 0) {
+            throw "7z7z self-test failed: 7z exit code $selfTestExitCode"
+        }
+        Write-Output '7Z7Z_SELFTEST_OK'
+        $global:LASTEXITCODE = 0
         return
     }
-    . $script @args
+
+    7zit
+    rm7z
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

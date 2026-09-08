@@ -2,49 +2,51 @@
 function reboot {
     [CmdletBinding()]
     param(
-        [switch]$VerifyOnly
+        [switch]$VerifyOnly,
+        [ValidateRange(0, 10)]
+        [int]$WaitSeconds = 10
     )
 
-    $hadComputerName = Test-Path Env:COMPUTERNAME
-    $previousComputerName = $env:COMPUTERNAME
-
-    try {
-        if ([string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) {
-            $env:COMPUTERNAME = [Environment]::MachineName
-        }
-
-        $shutdownPath = Join-Path ([Environment]::SystemDirectory) 'shutdown.exe'
-        $shutdownArguments = @(
-            '/r',
-            '/t',
-            '0',
-            '/d',
-            'p:0:0',
-            '/c',
-            'Immediate user-requested restart'
-        )
-
-        if ($VerifyOnly) {
-            [pscustomobject]@{
-                Executable = $shutdownPath
-                Arguments  = $shutdownArguments -join ' '
-            }
-            return
-        }
-
-        & $shutdownPath @shutdownArguments
-
-        if ($LASTEXITCODE -ne 0) {
-            throw "shutdown.exe failed with exit code $LASTEXITCODE."
-        }
+    $guardPath = 'C:\ProgramData\SafeRebootGuard\Invoke-SafeFastReboot.ps1'
+    if (-not (Test-Path -LiteralPath $guardPath -PathType Leaf)) {
+        throw "SafeRebootGuard is missing: $guardPath"
     }
-    finally {
-        if ($hadComputerName) {
-            $env:COMPUTERNAME = $previousComputerName
+
+    $powershellPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+    $shutdownPath = Join-Path ([Environment]::SystemDirectory) 'shutdown.exe'
+    $shutdownArguments = @('/r /t 0 /d p:0:0 /c "SafeRebootGuard approved restart after a clean servicing preflight"')
+    $commonArguments = @('-NoLogo','-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',$guardPath,'-WaitSeconds',$WaitSeconds)
+
+    if ($VerifyOnly) {
+        & $powershellPath @($commonArguments + @('-Mode','Audit'))
+        $auditCode = [int]$LASTEXITCODE
+        [pscustomobject]@{
+            Executable = $shutdownPath
+            Arguments = $shutdownArguments[0]
+            GuardPath = $guardPath
+            GuardAuditExitCode = $auditCode
+            SafeToRequestReboot = ($auditCode -eq 0)
         }
-        else {
-            Remove-Item Env:COMPUTERNAME -ErrorAction SilentlyContinue
-        }
+        $global:LASTEXITCODE = $auditCode
+        return
+    }
+
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    $isElevated = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    if ($isElevated) {
+        & $powershellPath @($commonArguments + @('-Mode','Reboot'))
+        $exitCode = [int]$LASTEXITCODE
+    }
+    else {
+        $childArguments = $commonArguments + @('-Mode','Reboot')
+        $process = Start-Process -FilePath $powershellPath -ArgumentList $childArguments -Verb RunAs -Wait -PassThru -ErrorAction Stop
+        $exitCode = [int]$process.ExitCode
+    }
+
+    $global:LASTEXITCODE = $exitCode
+    if ($exitCode -ne 0) {
+        throw "SafeRebootGuard refused the reboot request with exit code $exitCode."
     }
 }
 

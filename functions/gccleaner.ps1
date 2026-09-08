@@ -13,7 +13,7 @@ if (-not (Get-Command -Name 'Initialize-CodexProfileFunctions' -CommandType Func
 function gccleaner {
     Get-Process -Name "CCleaner64", "CCleaner" -ErrorAction SilentlyContinue | Stop-Process -Force
     $ccleanerPath = 'F:\backup\windowsapps\installed\ccleaner'
-    Remove-Item -LiteralPath $ccleanerPath -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+    Microsoft.PowerShell.Management\Remove-Item -LiteralPath $ccleanerPath -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
     $TAG = "ccleaner"
     Invoke-BackupDockerInstalledAppRestore $TAG
     Start-Sleep 5

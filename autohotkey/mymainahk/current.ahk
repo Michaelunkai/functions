@@ -1897,6 +1897,10 @@ global f6TapCount := 0
 global f6LastTapTime := 0
 global f6TapWindow := 3000          ; 3 seconds window for 6 taps
 
+; Preserve the last nonzero default microphone level for mmmute/uunmute.
+global microphonePreviousLevel := ""
+global microphonePreviousLevelFile := A_Temp "\mic-prev-level.txt"
+
 ; Track Space gesture for active-window small mode
 global spaceTapCount := 0
 global spaceLastTapTime := 0
@@ -2507,6 +2511,282 @@ ToggleActiveAppMute()
     }
 }
 
+; mmute/unmute - control the application owning the current foreground window.
+; Resolve the process from the HWND first so the hotstring never relies on a
+; stale active-window title or on whichever process happens to be under the
+; mouse pointer.
+SetForegroundAppMute(muteState, commandName)
+{
+    hwnd := DllCall("GetForegroundWindow", "Ptr")
+    if (!hwnd || !DllCall("IsWindow", "Ptr", hwnd, "Int")) {
+        ShowCommandStatus(commandName ": no foreground app detected", 2500)
+        return false
+    }
+
+    pid := 0
+    if (!DllCall("GetWindowThreadProcessId", "Ptr", hwnd, "UInt*", &pid)
+        || !pid || pid = DllCall("GetCurrentProcessId", "UInt")) {
+        ShowCommandStatus(commandName ": no foreground app detected", 2500)
+        return false
+    }
+
+    try {
+        processName := WinGetProcessName("ahk_id " hwnd)
+    } catch {
+        processName := ""
+    }
+    if (processName = "") {
+        ShowCommandStatus(commandName ": no foreground app detected", 2500)
+        return false
+    }
+
+    nircmdPath := ResolveNirCmdPath()
+    command := '"' nircmdPath '" muteappvolume "' processName '" ' muteState
+    try {
+        exitCode := RunWait(command, , "Hide")
+    } catch as err {
+        ShowCommandStatus(commandName ": nircmd failed - " err.Message, 3000)
+        return false
+    }
+
+    if (exitCode != 0) {
+        ShowCommandStatus(commandName ": nircmd failed (exit " exitCode ")", 3000)
+        return false
+    }
+
+    ShowCommandStatus(commandName ": " (muteState ? "muted " : "unmuted ") processName)
+    return true
+}
+
+ResolveNirCmdPath()
+{
+    for path in [
+        A_WinDir "\System32\nircmd.exe",
+        A_ScriptDir "\nircmd.exe",
+        A_WinDir "\Sysnative\nircmd.exe"
+    ] {
+        if FileExist(path)
+            return path
+    }
+    ; Let Windows search PATH as a final fallback; RunWait reports a clear
+    ; failure through the caller if the executable is unavailable.
+    return "nircmd.exe"
+}
+
+; mmmute/uunmute - use the CoreAudio default capture endpoint's scalar level.
+; The saved scalar is kept in memory for the current script session and in a
+; small UTF-8 file so a reload can still restore the user's previous level.
+MuteDefaultMicrophone()
+{
+    if !TryGetDefaultCaptureVolume(&level, &errorMessage) {
+        ShowCommandStatus("mmmute: could not read microphone - " errorMessage, 3000)
+        return false
+    }
+
+    if (level <= 0) {
+        ShowCommandStatus("mmmute: microphone is already muted")
+        return true
+    }
+
+    if !SaveMicrophonePreviousLevel(level, &errorMessage) {
+        ShowCommandStatus("mmmute: could not save microphone level - " errorMessage, 3000)
+        return false
+    }
+
+    if !TrySetDefaultCaptureVolume(0, &errorMessage) {
+        ShowCommandStatus("mmmute: could not mute microphone - " errorMessage, 3000)
+        return false
+    }
+
+    ShowCommandStatus("mmmute: microphone muted (was " FormatMicrophonePercent(level) "%)")
+    return true
+}
+
+UnmuteDefaultMicrophone()
+{
+    global microphonePreviousLevel
+
+    if !TryGetDefaultCaptureVolume(&level, &errorMessage) {
+        ShowCommandStatus("uunmute: could not read microphone - " errorMessage, 3000)
+        return false
+    }
+
+    if (level > 0) {
+        ShowCommandStatus("uunmute: microphone is already unmuted at " FormatMicrophonePercent(level) "%")
+        return true
+    }
+
+    if !TryReadSavedMicrophoneLevel(&restoreLevel) {
+        restoreLevel := 1.0
+    }
+
+    if !TrySetDefaultCaptureVolume(restoreLevel, &errorMessage) {
+        ShowCommandStatus("uunmute: could not unmute microphone - " errorMessage, 3000)
+        return false
+    }
+
+    microphonePreviousLevel := restoreLevel
+    ShowCommandStatus("uunmute: microphone unmuted at " FormatMicrophonePercent(restoreLevel) "%")
+    return true
+}
+
+ShowCommandStatus(message, duration := 2000)
+{
+    ToolTip(message)
+    SetTimer(() => ToolTip(), -duration)
+}
+
+SaveMicrophonePreviousLevel(level, &errorMessage)
+{
+    global microphonePreviousLevel, microphonePreviousLevelFile
+    errorMessage := ""
+    file := 0
+
+    try {
+        file := FileOpen(microphonePreviousLevelFile, "w", "UTF-8-RAW")
+        file.Write(Format("{:.6f}", level))
+        file.Close()
+        file := 0
+        microphonePreviousLevel := level
+        return true
+    } catch as err {
+        if IsObject(file) {
+            try file.Close()
+        }
+        errorMessage := err.Message
+        return false
+    }
+}
+
+TryReadSavedMicrophoneLevel(&level)
+{
+    global microphonePreviousLevel, microphonePreviousLevelFile
+    level := 0.0
+
+    if TryParseMicrophoneLevel(microphonePreviousLevel, &sessionLevel) && sessionLevel > 0 {
+        level := sessionLevel
+        return true
+    }
+
+    if !FileExist(microphonePreviousLevelFile)
+        return false
+
+    try {
+        savedText := FileRead(microphonePreviousLevelFile)
+    } catch {
+        return false
+    }
+
+    if TryParseMicrophoneLevel(savedText, &fileLevel) && fileLevel > 0 {
+        level := fileLevel
+        return true
+    }
+    return false
+}
+
+TryParseMicrophoneLevel(value, &level)
+{
+    level := 0.0
+    text := Trim(value)
+    if !RegExMatch(text, "^(?:0(?:\.\d+)?|1(?:\.0+)?)$", &match)
+        return false
+    level := match[0] + 0.0
+    return true
+}
+
+FormatMicrophonePercent(level)
+{
+    return Min(100, Max(0, Round(level * 100)))
+}
+
+OpenDefaultCaptureEndpointVolume(&endpointVolume, &errorMessage)
+{
+    endpointVolume := 0
+    errorMessage := ""
+    device := 0
+    opened := false
+
+    try {
+        enumerator := ComObject(
+            "{BCDE0395-E52F-467C-8E3D-C4579291692E}",
+            "{A95664D2-9614-4F35-A746-DE8DB63617E6}")
+        ; EDataFlow=eCapture (1), ERole=eConsole (0).
+        ComCall(4, enumerator, "Int", 1, "Int", 0, "Ptr*", &device)
+
+        endpointVolumeIid := Buffer(16, 0)
+        if DllCall("ole32\CLSIDFromString", "WStr",
+            "{5CDF2C82-841E-4546-9722-0CF74078229A}",
+            "Ptr", endpointVolumeIid.Ptr, "Int") != 0 {
+            throw Error("could not create the CoreAudio endpoint-volume IID")
+        }
+
+        ; IMMDevice::Activate is vtable slot 3; CLSCTX_ALL is 0x17.
+        ComCall(3, device, "Ptr", endpointVolumeIid.Ptr, "UInt", 0x17,
+            "Ptr", 0, "Ptr*", &endpointVolume)
+        opened := true
+        return true
+    } catch as err {
+        errorMessage := err.Message
+        return false
+    } finally {
+        ReleaseCoreAudioInterface(device)
+        if !opened
+            ReleaseCoreAudioInterface(endpointVolume)
+    }
+}
+
+TryGetDefaultCaptureVolume(&volume, &errorMessage)
+{
+    volume := 0.0
+    errorMessage := ""
+    endpointVolume := 0
+
+    if !OpenDefaultCaptureEndpointVolume(&endpointVolume, &errorMessage)
+        return false
+
+    try {
+        ; IAudioEndpointVolume::GetMasterVolumeLevelScalar is slot 9.
+        ComCall(9, endpointVolume, "Float*", &volume)
+        if (volume < 0 || volume > 1)
+            throw Error("CoreAudio returned an invalid microphone level")
+        return true
+    } catch as err {
+        errorMessage := err.Message
+        return false
+    } finally {
+        ReleaseCoreAudioInterface(endpointVolume)
+    }
+}
+
+TrySetDefaultCaptureVolume(volume, &errorMessage)
+{
+    errorMessage := ""
+    endpointVolume := 0
+
+    if !OpenDefaultCaptureEndpointVolume(&endpointVolume, &errorMessage)
+        return false
+
+    try {
+        ; IAudioEndpointVolume::SetMasterVolumeLevelScalar is slot 7.
+        ComCall(7, endpointVolume, "Float", volume, "Ptr", 0)
+        return true
+    } catch as err {
+        errorMessage := err.Message
+        return false
+    } finally {
+        ReleaseCoreAudioInterface(endpointVolume)
+    }
+}
+
+ReleaseCoreAudioInterface(interfacePtr)
+{
+    if interfacePtr {
+        ; Release returns ULONG, not HRESULT; specifying UInt prevents a
+        ; successful release count from being treated as a COM failure.
+        try ComCall(2, interfacePtr, "UInt")
+    }
+}
+
 KillForegroundApp()
 {
     hwnd := DllCall("GetForegroundWindow", "Ptr")
@@ -2548,36 +2828,158 @@ OpenRebootlessPerformanceMaximizer()
 
 OpenFirefox()
 {
-    ; Try common paths first (fastest)
+    ; Prefer the installed executable, then the registered/start-menu launchers.
     paths := [
         "C:\Program Files\Mozilla Firefox\firefox.exe",
         "C:\Program Files (x86)\Mozilla Firefox\firefox.exe",
+        "C:\Users\micha\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Firefox.lnk",
+        "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Firefox.lnk",
         EnvGet("LOCALAPPDATA") "\Microsoft\WindowsApps\firefox.exe"
     ]
 
     for p in paths {
         if FileExist(p) {
-            Run(p)
-            return
+            try {
+                Run(p)
+                return true
+            } catch {
+            }
         }
     }
 
-    ; Try registry
-    try {
-        regPath := RegRead("HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe")
-        if FileExist(regPath) {
-            Run(regPath)
-            return
+    ; App Paths may be registered per-machine or per-user.
+    for regKey in [
+        "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe",
+        "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\firefox.exe"
+    ] {
+        try {
+            regPath := Trim(RegRead(regKey), '"')
+            if FileExist(regPath) {
+                Run(regPath)
+                return true
+            }
+        } catch {
         }
     }
 
-    ; Last resort - let Windows find it
+    ; Last resort: allow Windows to resolve a registered Firefox command.
     try {
-        Run("firefox")
-        return
+        Run("firefox.exe")
+        return true
+    } catch {
     }
 
     MsgBox("Firefox not found!", "Error", "Icon!")
+    return false
+}
+
+RunApplication(executablePath, arguments := "")
+{
+    if !FileExist(executablePath)
+        return false
+
+    SplitPath(executablePath, , &workingDirectory)
+    command := '"' executablePath '"'
+    if (arguments != "")
+        command .= " " arguments
+
+    try {
+        Run(command, workingDirectory)
+        return true
+    } catch {
+        return false
+    }
+}
+
+RunFirstAvailable(paths, arguments := "")
+{
+    for path in paths {
+        if RunApplication(path, arguments)
+            return true
+    }
+    return false
+}
+
+OpenNamedApplication(name, paths, arguments := "")
+{
+    if RunFirstAvailable(paths, arguments)
+        return true
+
+    MsgBox(name " was not found or could not be launched.", "Shortcut error", "Icon!")
+    return false
+}
+
+OpenAdminDefaultTerminal()
+{
+    launcher := "C:\Users\micha\.codex\tools\terminal\Launch-AdminWindowsTerminal.ps1"
+    if !FileExist(launcher) {
+        MsgBox("The admin Windows Terminal launcher is missing.", "Shortcut error", "Icon!")
+        return false
+    }
+
+    powershell := A_WinDir "\System32\WindowsPowerShell\v1.0\powershell.exe"
+    command := '"' powershell '" -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File "' launcher '"'
+    try {
+        Run(command, , "Hide")
+        return true
+    } catch {
+        MsgBox("The admin Windows Terminal launcher could not be started.", "Shortcut error", "Icon!")
+        return false
+    }
+}
+
+OpenDaymark()
+{
+    return OpenNamedApplication("Daymark", [
+        "F:\backup\windowsapps\installed\daymark\Daymark.exe",
+        "C:\Users\micha\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Daymark.lnk"
+    ])
+}
+
+OpenProcessLasso()
+{
+    return OpenNamedApplication("Process Lasso", [
+        "F:\backup\windowsapps\installed\Process Lasso\ProcessLasso.exe"
+    ])
+}
+
+OpenFreebuff()
+{
+    return OpenNamedApplication("Freebuff", [
+        "C:\Users\micha\AppData\Local\Programs\@codebufffreebuff-desktop\Freebuff.exe",
+        "C:\Users\micha\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\Freebuff.lnk"
+    ])
+}
+
+OpenDriverTools()
+{
+    tools := [
+        Map("Name", "GIGABYTE Control Center", "Path", "C:\Program Files\GIGABYTE\Control Center\GCC.exe", "Arguments", ""),
+        Map("Name", "AMD Ryzen Master", "Path", "C:\Program Files\AMD\RyzenMaster\bin\AMD Ryzen Master.exe", "Arguments", ""),
+        Map("Name", "NVIDIA App", "Path", "C:\Program Files\NVIDIA Corporation\NVIDIA App\CEF\NVIDIA App.exe", "Arguments", ""),
+        Map("Name", "AMD Software", "Path", "C:\Program Files\AMD\CNext\CNext\RadeonSoftware.exe", "Arguments", ""),
+        Map("Name", "GameSir Connect", "Path", "C:\Users\micha\AppData\Local\Programs\GameSir Connect\GameSir Connect.exe", "Arguments", ""),
+        Map("Name", "Logi Options+", "Path", "C:\Program Files\LogiOptionsPlus\logioptionsplus.exe", "Arguments", "--disable-gpu")
+    ]
+
+    opened := 0
+    unavailable := ""
+    for tool in tools {
+        if RunApplication(tool["Path"], tool["Arguments"]) {
+            opened += 1
+        } else {
+            if (unavailable != "")
+                unavailable .= ", "
+            unavailable .= tool["Name"]
+        }
+    }
+
+    if (unavailable != "")
+        ToolTip("Driver tools opened: " opened "/" tools.Length "; unavailable: " unavailable)
+    else
+        ToolTip("Driver tools opened: " opened "/" tools.Length)
+    SetTimer(() => ToolTip(), -3000)
+    return opened = tools.Length
 }
 
 OpenGameLibraryManager()
@@ -2662,7 +3064,7 @@ ConfigureF10WakeSources()
 
 ; Ctrl+h - INSTANT FREEZE - registered once via RegisterHotKey/MOD_NOREPEAT
 ; Uses pure Windows API - starts minimize, then suspends without waiting seconds
-; No app/class exceptions: applies to games, terminals, and any other foreground app.
+; While Wand/WeMod is running, minimize only so trainer IPC remains live.
 ; Safety boundary: this feature must never terminate the target app.
 FreezeForegroundApp() {
     global frozenProcesses, lastProcessActionError, lastPauseHotkeyTick
@@ -2709,7 +3111,7 @@ FreezeForegroundApp() {
             , powerStateMask: processInfo.HasProp("powerStateMask") ? processInfo.powerStateMask : 0}
         mode := processInfo.HasProp("mode") ? processInfo.mode : "suspend"
         actionOk := ForceMinimize(processInfo.hwnd)
-            && ((mode = "throttle")
+            && ((mode = "connected") ? true : (mode = "throttle")
                 ? ApplyGameLowResourceMode(pid, resourceState)
                 : ApplySuspendedLowResourceMode(pid, resourceState, mode != "game_suspend"))
         if (actionOk) {
@@ -2723,11 +3125,14 @@ FreezeForegroundApp() {
 
     placement := CaptureWindowPlacement(hwnd)
     wasFullscreen := IsWindowFullscreenLike(hwnd, placement)
-    ; True suspension is the only mode that immediately stops CPU and GPU work.
+    ; Full suspension is available only when no Wand/WeMod runtime is active.
     ; Games skip synchronous working-set trimming because trimming several GB
     ; can block the hotkey thread and delay Alt+H. VERY_LOW memory priority lets
     ; Windows reclaim game pages asynchronously while preserving instant resume.
-    mode := IsLikelyGameWindow(hwnd) ? "game_suspend" : "suspend"
+    ; A suspended trainer cannot service IPC/heartbeats. Keep every target alive
+    ; while Wand is open, including games installed outside known game folders.
+    mode := (ProcessExist("Wand.exe") || ProcessExist("WeMod.exe"))
+        ? "connected" : (IsLikelyGameWindow(hwnd) ? "game_suspend" : "suspend")
     resourceState := CaptureProcessResourceState(pid)
     if (!IsObject(resourceState)) {
         ToolTip("Ctrl+H could not capture the app's resource state")
@@ -2763,7 +3168,7 @@ FreezeForegroundApp() {
         return
     }
 
-    actionOk := (mode = "throttle")
+    actionOk := (mode = "connected") ? true : (mode = "throttle")
         ? ApplyGameLowResourceMode(pid, resourceState)
         : ApplySuspendedLowResourceMode(pid, resourceState, mode != "game_suspend")
     if (!actionOk) {
@@ -2832,7 +3237,7 @@ RestoreFrozenApps() {
             , powerStateMask: processInfo.HasProp("powerStateMask") ? processInfo.powerStateMask : 0}
 
         ; Restore CPU/power resources for games; truly resume ordinary apps.
-        resourcesRestored := (mode = "throttle")
+        resourcesRestored := (mode = "connected") ? true : (mode = "throttle")
             ? RestoreProcessResources(processInfo.pid, resourceState)
             : RestoreSuspendedProcess(processInfo.pid, resourceState)
         if (!resourcesRestored) {
@@ -2841,7 +3246,7 @@ RestoreFrozenApps() {
         }
 
         placement := processInfo.HasProp("placement") ? processInfo.placement : 0
-        restored := RestoreProcessWindows(processInfo.pid, processInfo.hwnd, placement, mode != "throttle")
+        restored := RestoreProcessWindows(processInfo.pid, processInfo.hwnd, placement, mode != "throttle" && mode != "connected")
         if (restored && processInfo.HasProp("wasFullscreen") && processInfo.wasFullscreen) {
             ; Fullscreen stabilization is asynchronous. Keeping this record in
             ; state=restoring lets Ctrl+H cancel it immediately and prevents
@@ -3397,16 +3802,71 @@ ForceThreeWaySplit(target) {
     Run("explorer.exe shell:Downloads")
 }
 
-; rrer - Open new terminal
+; rrer - Open a new elevated tab using the configured Windows Terminal default profile
 :*:rrer::
 {
-    Run('"' A_WinDir '\System32\wscript.exe" "C:\Users\micha\.codex\tools\terminal\Open-AdminWindowsTerminal.vbs"')
+    OpenAdminDefaultTerminal()
+}
+
+; DDDDD - Open Daymark
+:*:ddddd::
+{
+    OpenDaymark()
+}
+
+; ddrivers - Open the installed vendor driver-management tools
+:*:ddrivers::
+{
+    OpenDriverTools()
+}
+
+; mmute - Mute the app owning the current foreground window
+:*:mmute::
+{
+    SetForegroundAppMute(1, "mmute")
+}
+
+; unmute - Unmute the app owning the current foreground window
+:*:unmute::
+{
+    SetForegroundAppMute(0, "unmute")
+}
+
+; mmmute - Mute the default CoreAudio capture endpoint
+:*:mmmute::
+{
+    MuteDefaultMicrophone()
+}
+
+; uunmute - Restore the saved default CoreAudio capture level
+:*:uunmute::
+{
+    UnmuteDefaultMicrophone()
 }
 
 ; xccc - Open Google Chrome
 :*:xccc::
 {
     Run('"C:\Program Files\Google\Chrome\Application\chrome.exe"')
+}
+
+; ggmail - Open Gmail (account u/2) in Chrome profile 2
+:*:ggmail::
+{
+    Run('"C:\Program Files\Google\Chrome\Application\chrome.exe" --profile-directory="Profile 2" "https://mail.google.com/mail/u/2/#inbox"')
+}
+
+; xccx - Open Chrome profile for michaelovsky55@gmail.com
+:*:xccx::
+{
+    chromePath := "C:\Program Files\Google\Chrome\Application\chrome.exe"
+    dir := ChromeProfileDirForEmail("michaelovsky55@gmail.com")
+    if (dir = "") {
+        ToolTip("xccx: no Chrome profile signed in as michaelovsky55@gmail.com")
+        SetTimer(() => ToolTip(), -2500)
+        return
+    }
+    Run('"' chromePath '" --profile-directory="' dir '"')
 }
 
 ; ffff - Open Firefox (auto-find)
@@ -3518,6 +3978,27 @@ ForceThreeWaySplit(target) {
     if WinWait("Codex ahk_exe Codex.exe", , 5) {
         WinActivate("Codex ahk_exe Codex.exe")
     }
+}
+
+; ccodex - Open ChatGPT/Codex Desktop
+:*:ccodex::
+{
+    Run('codex://')
+    if WinWait("Codex ahk_exe Codex.exe", , 5) {
+        WinActivate("Codex ahk_exe Codex.exe")
+    }
+}
+
+; plaso - Open Process Lasso
+:*:plaso::
+{
+    OpenProcessLasso()
+}
+
+; fbuff - Open Freebuff
+:*:fbuff::
+{
+    OpenFreebuff()
 }
 
 ; qqbit - Open qBittorrent
@@ -4430,8 +4911,8 @@ CheckMcsPostRestoreMarker()
         }
 
         ; ── Hotstrings  :*:trigger::
-        if RegExMatch(line, "^:\*:([^:]+)::$", &hm) {
-            trigger := hm[1]
+        if RegExMatch(line, "^:([^:]*):([^:]+)::$", &hm) {
+            trigger := hm[2]
             raw     := (prevComment != "") ? prevComment : trigger
             desc    := NeedHelpCleanDesc(raw, trigger)
             NeedHelpCategorize(trigger, desc, c_winmgmt, c_app, c_explorer, c_clip, c_system, c_danger)
@@ -4477,7 +4958,7 @@ CheckMcsPostRestoreMarker()
         }
 
         ; ── Regular hotkeys  ^1::  #w::  !h::  ^SC029::
-        if RegExMatch(line, "^([#\^!+~]*(?:[A-Za-z][A-Za-z0-9_]*|[0-9]|SC[0-9A-Fa-f]+))::$", &km) {
+        if RegExMatch(line, "^([#\^!+~<>*]*(?:[A-Za-z][A-Za-z0-9_]*|[0-9]|F[0-9]+|SC[0-9A-Fa-f]+|Wheel(?:Up|Down)|XButton[12]))::$", &km) {
             raw := km[1]
             ; Skip bare shift lines (they are handled by counter-tap block above)
             if (raw = "~LShift" || raw = "~RShift") {
@@ -4705,4 +5186,29 @@ F9CheckHold() {
     F9HoldStartTick := 0
     F9HoldTriggered := false
     F9IsDown := false
+}
+
+
+; ============================================================================
+; xccx helper - resolve the Chrome profile directory signed in with an email
+; ============================================================================
+; Reads Chrome Local State on every call so it stays correct even if the
+; profile folder is renamed or renumbered by Chrome later.
+ChromeProfileDirForEmail(email) {
+    localState := EnvGet("LOCALAPPDATA") "\Google\Chrome\User Data\Local State"
+    if !FileExist(localState)
+        return ""
+    try {
+        text := FileRead(localState)
+    } catch {
+        return ""
+    }
+    needle := '"user_name":"' email '"'
+    pos := InStr(text, needle)
+    if (pos = 0)
+        return ""
+    head := SubStr(text, 1, pos - 1)
+    if RegExMatch(head, '(?s).*"(Default|Profile ?\d*)"\s*:\s*\{', &m)
+        return m[1]
+    return ""
 }

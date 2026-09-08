@@ -1,0 +1,33 @@
+﻿[CmdletBinding()]
+param([switch]$LaunchWorker)
+$ErrorActionPreference='Stop'
+$desktop='C:\Program Files\Docker\Docker\Docker Desktop.exe'
+if(-not [IO.File]::Exists($desktop)){throw "Docker Desktop is missing: $desktop"}
+if(@(Get-Process -Name 'Docker Desktop','com.docker.backend' -ErrorAction SilentlyContinue).Count){Write-Output 'Docker Desktop is already running';return}
+
+if($LaunchWorker){
+ & 'F:\study\Platforms\windows\functions\Repair-DockerRuntimeSockets.ps1' | Out-Host
+ & 'F:\study\Containers\docker\backup-docker\repository-tools\SetDockerhyperv\Invoke-set-dockerhyperv.ps1' -NoRestart | Out-Host
+ Start-Process -FilePath $desktop -WindowStyle Hidden
+ return
+}
+$service=New-Object -ComObject Schedule.Service
+$service.Connect()
+$folder=$service.GetFolder('\')
+$definition=$service.NewTask(0)
+$definition.RegistrationInfo.Description='Manual Docker Desktop VMM launch. No automatic triggers. Keeps Docker outside the invoking terminal process tree.'
+$definition.Principal.UserId=[Security.Principal.WindowsIdentity]::GetCurrent().Name
+$definition.Principal.LogonType=3
+$definition.Principal.RunLevel=1
+$definition.Settings.Enabled=$true
+$definition.Settings.AllowDemandStart=$true
+$definition.Settings.DisallowStartIfOnBatteries=$false
+$definition.Settings.StopIfGoingOnBatteries=$false
+$definition.Settings.ExecutionTimeLimit='PT0S'
+$action=$definition.Actions.Create(0)
+$action.Path='C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe'
+$action.Arguments='-NoProfile -ExecutionPolicy Bypass -File '+[char]34+$PSCommandPath+[char]34+' -LaunchWorker'
+$action.WorkingDirectory=Split-Path -Parent $desktop
+$registered=$folder.RegisterTaskDefinition('DockerDesktopManualVmmLaunch',$definition,6,$null,$null,3,$null)
+$running=$registered.Run($null)
+Write-Output ('DOCKER_VMM_LAUNCH_REQUESTED instance='+$running.InstanceGuid)

@@ -31,6 +31,13 @@ if (Test-Path -LiteralPath $customCatalogPath -PathType Leaf) {
 }
 foreach ($installedAppFolder in $script:InstalledAppRestoreFolders) {
     $installedAppFunctionName = 'g' + ($installedAppFolder -replace '[^A-Za-z0-9]', '')
+    $managedCommand=Join-Path $env:USERPROFILE ('.gmenu\Commands\'+$installedAppFunctionName+'.ps1')
+    $managedReceipt=Join-Path $env:USERPROFILE ('.gmenu\Commands\'+$installedAppFunctionName+'.receipt.json')
+    if((Test-Path -LiteralPath $managedCommand -PathType Leaf) -and (Test-Path -LiteralPath $managedReceipt -PathType Leaf)) {
+        $managedBody=[scriptblock]::Create("& '"+$managedCommand.Replace("'","''")+"' @args")
+        Set-Item -LiteralPath ('Function:\global:'+$installedAppFunctionName) -Value $managedBody -Force
+        continue
+    }
     $capturedFolder = $installedAppFolder
     $capturedHelper = $script:InstalledAppRestoreHelper
     $installedAppFunction = {

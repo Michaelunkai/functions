@@ -16,5 +16,14 @@
     "Kind": "Content",
     "Path": "root.txt",
     "Process": null
+  },
+  {
+    "Folder": "HereticAI",
+    "Slug": "hereticai",
+    "TargetPath": "F:\\backup\\windowsapps\\installed\\HereticAI",
+    "Protected": false,
+    "Kind": "Command",
+    "Path": "Start Heretic AI.cmd",
+    "Process": null
   }
 ]

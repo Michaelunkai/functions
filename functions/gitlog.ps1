@@ -29,7 +29,7 @@ if ($__2scNeedBootstrap) {
 }
 function gitlog {
     param([string]$Token, [switch]$PersistToken)
-    & 'C:\Users\micha\Documents\WindowsPowerShell\ProfileSources\ps5-profile-portable\scripts\Invoke-Gitlog.ps1' -Token $Token -PersistToken:$PersistToken
+    Invoke-Gitlog -Token $Token -PersistToken:$PersistToken
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

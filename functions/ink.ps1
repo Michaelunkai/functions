@@ -1,9 +1,11 @@
-# ink.ps1 — Launch OpenCode with Inkling (256-expert MoE, 1M ctx, multimodal)
-# Usage: ink          (opens Inkling)
+# ink.ps1 — Compatibility alias for the current verified NVIDIA rank-1 model.
+# Usage: ink          (opens the rank-1 verified NVIDIA model)
 #        ink -Check   (health-check first, then open)
 #        ink <args>   (pass extra args to opencode)
 #
-# Thin wrapper around nvioc that forces -m nvidia-nim/thinkingmachines/inkling
+# Inkling reached end-of-life. This alias delegates to the canonical ranked
+# dispatcher so it cannot reintroduce the retired model or bypass identity
+# checks.
 # All proxy, config, health-check, and session-backup logic is inherited.
 
 $__2scProfileModule = 'C:\Users\micha\Documents\WindowsPowerShell\Modules\CodexProfileFunctions\CodexProfileFunctions.psd1'
@@ -36,22 +38,19 @@ function ink {
         [Parameter(ValueFromRemainingArguments = $true)][string[]]$Args
     )
 
-    $nviocPath = 'F:\study\Platforms\windows\functions\nvioc.ps1'
-    if (-not (Test-Path -LiteralPath $nviocPath -PathType Leaf)) {
-        throw "nvioc.ps1 not found at $nviocPath"
+    $rankedDispatcher = 'C:\Users\micha\Documents\WindowsPowerShell\Invoke-NvidiaRankedModel.ps1'
+    if (-not (Test-Path -LiteralPath $rankedDispatcher -PathType Leaf)) {
+        throw "Ranked NVIDIA dispatcher not found at $rankedDispatcher"
     }
 
-    $modelArg = 'nvidia-nim/thinkingmachines/inkling'
-    $passthroughArgs = @()
+    $passthroughArgs = @('-Rank', '1')
 
     if ($Check) {
         $passthroughArgs += '-Check'
     }
-    $passthroughArgs += '-m'
-    $passthroughArgs += $modelArg
     $passthroughArgs += $Args
 
-    & $nviocPath @passthroughArgs
+    & $rankedDispatcher @passthroughArgs
 }
 
 if ($MyInvocation.InvocationName -ne '.') {

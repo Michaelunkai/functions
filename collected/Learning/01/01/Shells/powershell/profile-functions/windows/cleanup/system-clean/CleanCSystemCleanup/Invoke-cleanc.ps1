@@ -4,7 +4,7 @@ param(
     [switch]$Preview,
     [switch]$Run,
     # Explicitly skip the interactive confirmation prompt at drive roots.
-    [switch]$Yes,
+    [switch]$Yes = $true,
     [string]$AllowlistPath,
     [string]$RootPath = 'C:\',
     [switch]$SelfTest,
@@ -996,7 +996,17 @@ function Invoke-CleancRun {
             Write-Host ("[INFO] moved current location to {0} before deleting {1}" -f $ResolvedRootPath, $item.FullName) -ForegroundColor Yellow
         }
         [int64]$itemInitialBytes = if ($systemRoot) { [int64]0 } else { Get-CleancApproxBytes -Path $item.FullName -IsDirectory:$item.IsDirectory }
-        $fastResult = Invoke-CleancFastDeleteAttempt -Item $item
+        # Only use the synchronous fast path for an already-absent target. An
+        # existing target must go through the bounded job below so the terminal
+        # receives a 250ms heartbeat and a hard deadline.
+        if (Test-Path -LiteralPath $item.FullName) {
+            $fastResult = New-CleancDeleteResult -Item $item
+            $fastResult.Reason = 'Existing target requires bounded delete job.'
+            $fastResult.Method = 'NeedsEscalation'
+            $fastResult = [pscustomobject]$fastResult
+        } else {
+            $fastResult = Invoke-CleancFastDeleteAttempt -Item $item
+        }
         if ($fastResult.Succeeded) {
             $completed++
             [int64]$itemFreedBytes = $itemInitialBytes
@@ -1007,11 +1017,13 @@ function Invoke-CleancRun {
             continue
         }
 
+        Write-Host ("CLEANC_PROGRESS stage=starting completed={0}/{1} current={2} elapsed={3}" -f $completed, $total, $item.Name, $overallStopwatch.Elapsed.ToString('hh\:mm\:ss\.fff')) -ForegroundColor DarkCyan
         $job = Invoke-CleancDeleteJob -Item $item -SystemRoot:$systemRoot -RecycleCodexLockOwners:$RecycleCodexLockOwners
         try {
-            # A delete job can never hang the terminal: it gets a hard deadline,
-            # and progress is shown through the Write-Progress bar instead of a
-            # [PROGRESS] line every 250ms.
+            # A delete job can never hang the terminal: it gets a hard deadline
+            # and emits visible timestamped progress every 250ms. Do not run a
+            # recursive size scan in this loop; that scan could itself block the
+            # heartbeat while a large directory is changing.
             $jobDeadline = (Get-Date).AddMinutes(3)
             while ($true) {
                 $state = (Get-Job -Id $job.Id -ErrorAction SilentlyContinue).State
@@ -1024,12 +1036,12 @@ function Invoke-CleancRun {
                     break
                 }
 
-                [int64]$itemCurrentBytes = Get-CleancApproxBytes -Path $item.FullName -IsDirectory:$item.IsDirectory
-                [int64]$itemFreedBytes = [Math]::Max([int64]0, $itemInitialBytes - $itemCurrentBytes)
+                [int64]$itemFreedBytes = 0
                 [int64]$liveTotalBytes = $bytesFreedTotal + $itemFreedBytes
                 $percent = [math]::Floor((($completed) / [math]::Max($total, 1)) * 100)
                 $status = "elapsed=$($overallStopwatch.Elapsed.ToString('hh\:mm\:ss\.fff')) completed=$completed/$total ok=$ok fail=$fail current=$($item.Name) itemElapsed=$($itemStopwatch.Elapsed.ToString('hh\:mm\:ss\.fff')) freedMB=$((Format-CleancMB -Bytes $itemFreedBytes)) totalFreedMB=$((Format-CleancMB -Bytes $liveTotalBytes))"
                 Write-Progress -Activity 'cleanc delete pass' -Status $status -PercentComplete $percent
+                Write-Host ("CLEANC_PROGRESS {0}" -f $status) -ForegroundColor DarkCyan
                 Start-Sleep -Milliseconds 250
             }
 

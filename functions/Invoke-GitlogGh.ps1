@@ -34,8 +34,20 @@ function Invoke-GitlogGh {
         [string]$StandardInputText
     )
 
-    $ghCommand = Get-Command gh -ErrorAction SilentlyContinue
-    if (-not $ghCommand) {
+    $ghCommand = Get-Command gh -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+    $ghPath = if ($ghCommand) { $ghCommand.Source } else { $null }
+    if (-not $ghPath) {
+        $programFiles = [Environment]::GetEnvironmentVariable('ProgramFiles')
+        $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+        $localAppData = [Environment]::GetEnvironmentVariable('LocalAppData')
+        $candidates = @()
+        if ($programFiles) { $candidates += Join-Path $programFiles 'GitHub CLI\gh.exe' }
+        if ($programFilesX86) { $candidates += Join-Path $programFilesX86 'GitHub CLI\gh.exe' }
+        if ($localAppData) { $candidates += Join-Path $localAppData 'Programs\GitHub CLI\gh.exe' }
+        $candidates = @($candidates | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Leaf) })
+        $ghPath = $candidates | Select-Object -First 1
+    }
+    if (-not $ghPath) {
         return [pscustomobject]@{ ExitCode = 127; Output = 'gh executable not found' }
     }
 
@@ -49,7 +61,7 @@ function Invoke-GitlogGh {
     }
 
     $psi = New-Object System.Diagnostics.ProcessStartInfo
-    $psi.FileName = $ghCommand.Source
+    $psi.FileName = $ghPath
     $psi.Arguments = ($quotedArguments -join ' ')
     $psi.UseShellExecute = $false
     $psi.RedirectStandardInput = [bool]$StandardInputText

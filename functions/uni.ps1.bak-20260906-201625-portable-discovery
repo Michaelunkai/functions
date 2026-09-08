@@ -1,0 +1,1802 @@
+﻿# First executable statement: no profile imports, WMI queries or compilation first.
+if($MyInvocation.InvocationName -ne '.') { Write-Host ('[START] Uni C: cleanup: '+(@($args) -join ' ')) }
+# Uni ownership-checked cleanup. Active profile entry point is this script.
+# The embedded C# filesystem/registry collectors compile lazily on each fresh host.
+# Exact app identities and exclusive C: paths authorize mutations. Shared and
+# ambiguous discoveries are preserved and reported. Verified processes stop first.
+# Exit 0: requested checked operations finished within the stated scan coverage.
+# Exit 2: unremoved artifacts, scan errors, or unverified coverage; fatal errors
+# also return a nonzero code. Neither code certifies universal zero leftovers.
+# --dry-run previews identity/root selection without running uninstallers/cleanup.
+
+$script:UniNeverKill = @('smss', 'csrss', 'wininit', 'winlogon', 'lsass', 'services', 'system', 'registry', 'audiodg', 'svchost')
+# shell/terminal hosts: only ever killed by name or path match, never by
+# command-line match alone (a shell that merely mentions the target must live)
+$script:UniShellNames = @('bash', 'sh', 'cmd', 'powershell', 'pwsh', 'conhost', 'windows.terminal', 'windowsterminal', 'wt', 'openconsole', 'freebuff', 'bun', 'node', 'code', 'cursor')
+$script:UniShellNames = @($script:UniShellNames | ForEach-Object { $_.ToLowerInvariant() })
+$script:UniProtectedPids = @{ $PID = $true }
+# Shell hosts are protected independently of process ancestry. Never use WMI here.
+$script:UniNeverKill += @('powershell','pwsh','cmd','conhost','windowsterminal','openconsole','explorer')
+$script:UniRmReady = $false
+function Get-UniLockerPids {
+    param([string]$Path)
+    if (-not $script:UniRmReady) {
+        try {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+public static class UniRm {
+    [StructLayout(LayoutKind.Sequential)] private struct RM_UNIQUE_PROCESS { public int dwProcessId; public long ProcessStartTime; }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] private struct RM_PROCESS_INFO { public RM_UNIQUE_PROCESS Process; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 256)] public string strAppName; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 64)] public string strServiceShortName; public uint ApplicationType; public uint AppStatus; public uint TSSessionId; [MarshalAs(UnmanagedType.Bool)] public bool bRestartable; }
+    [DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode)] private static extern int RmStartSession(out uint pSessionHandle, int dwSessionFlags, string strSessionKey);
+    [DllImport("rstrtmgr.dll", CharSet = CharSet.Unicode)] private static extern int RmRegisterResources(uint pSessionHandle, uint nFiles, string[] rgsFilenames, uint nApplications, RM_UNIQUE_PROCESS[] rgApplications, uint nServices, string[] rgsServiceNames);
+    [DllImport("rstrtmgr.dll")] private static extern int RmGetList(uint dwSessionHandle, out uint pnProcInfoNeeded, ref uint pnProcInfo, [In, Out] RM_PROCESS_INFO[] rgAffectedApps, ref uint lpdwRebootReasons);
+    [DllImport("rstrtmgr.dll")] private static extern int RmEndSession(uint pSessionHandle);
+    public static int[] GetLockers(string path) {
+        var list = new List<int>();
+        uint handle; uint reboot = 0;
+        if (RmStartSession(out handle, 0, Guid.NewGuid().ToString("N")) != 0) return list.ToArray();
+        try {
+            if (RmRegisterResources(handle, 1, new string[] { path }, 0, null, 0, null) != 0) return list.ToArray();
+            uint needed = 0; uint count = 0;
+            if (RmGetList(handle, out needed, ref count, null, ref reboot) == 234) {
+                var arr = new RM_PROCESS_INFO[needed];
+                count = needed;
+                if (RmGetList(handle, out needed, ref count, arr, ref reboot) == 0)
+                    for (uint i = 0; i < count; i++) { if (arr[i].Process.dwProcessId > 0) list.Add(arr[i].Process.dwProcessId); }
+            }
+        } finally { RmEndSession(handle); }
+        return list.ToArray();
+    }
+}
+'@ -ErrorAction Stop
+        } catch { }
+        $script:UniRmReady = $true
+    }
+    if (-not ('UniRm' -as [type])) { return @() }
+    try { return @([UniRm]::GetLockers($Path)) } catch { return @() }
+}
+
+# ---------------------------------------------------------------------------
+# live progress line (single \r-updated status row + permanent event lines)
+# ---------------------------------------------------------------------------
+$script:UniPhase = 0
+$script:UniPhaseCount = 12
+$script:UniStart = [DateTime]::UtcNow
+$script:UniLogicalProcessors = [math]::Max(1, [Environment]::ProcessorCount)
+# Keep the machine interactive while a sweep walks millions of paths.  The old
+# policy created up to 64 workers per root and 32 registry workers; on this host
+# that saturated the scheduler.  Bound the whole filesystem wave to four
+# below-normal scanner workers and the registry sweep to at most four scanners.
+$script:UniMaxConcurrentRoots = if ($script:UniLogicalProcessors -ge 8) { 2 } else { 1 }
+$script:UniFsWorkersPerRoot = if ($script:UniLogicalProcessors -ge 4) { 2 } else { 1 }
+$script:UniRegistryWorkers = [math]::Max(1, [math]::Min(4, [math]::Floor($script:UniLogicalProcessors / 4)))
+
+function Get-UniWidth {
+    try { if ($Host.UI.RawUI.WindowSize.Width -gt 40) { return $Host.UI.RawUI.WindowSize.Width } } catch { }
+    return 100
+}
+function Update-UniLine {
+    param([string]$Text)
+    $w = Get-UniWidth
+    $t = [string]$Text
+    if ($t.Length -gt ($w - 2)) { $t = $t.Substring(0, $w - 2) }
+    Write-Host ("`r" + $t.PadRight($w - 1)) -NoNewline
+}
+function Clear-UniLine {
+    $w = Get-UniWidth
+    Write-Host ("`r" + (' ' * ($w - 1)) + "`r") -NoNewline
+}
+function Get-UniElapsed {
+    $secs = [int](([DateTime]::UtcNow) - $script:UniStart).TotalSeconds
+    return ('{0}:{1:d2}' -f [math]::Floor($secs / 60), ($secs % 60))
+}
+function Write-UniPhase {
+    param([string]$Title)
+    if ('UniProgressV1' -as [type]) { [UniProgressV1]::Phase = $Title }
+    $script:UniPhase++
+    Clear-UniLine
+    Write-Host ("  [{0}/{1}] {2} ..." -f $script:UniPhase, $script:UniPhaseCount, $Title) -ForegroundColor Cyan
+    Update-UniLine ("[{0}] {1}: working ..." -f (Get-UniElapsed), $Title)
+}
+
+# ---------------------------------------------------------------------------
+# parallel filesystem collector (junction-safe, counters exposed for progress)
+# compiled lazily so phases 1-5 start instantly; only the sweep needs it
+# ---------------------------------------------------------------------------
+$script:UniCollectOk = $false
+function Ensure-UniSweepCollect {
+    if ($script:UniCollectOk) { return }
+    if ('UniSweepCollectV6' -as [type]) { $script:UniCollectOk = $true; return }
+    try {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.IO;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+
+public static class UniSweepCollectV6
+{
+    private const uint FILE_ATTRIBUTE_DIRECTORY = 0x10;
+    private const uint FILE_ATTRIBUTE_REPARSE_POINT = 0x400;
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint GetFileAttributesW(string lpFileName);
+
+    private static long _errors;
+    private static volatile bool _cancelled;
+    public static long Errors { get { return Interlocked.Read(ref _errors); } }
+    public static void Cancel() { _cancelled = true; }
+    private static void ScanError() { Interlocked.Increment(ref _errors); }
+    private static long _scanned;
+    private static long _matched;
+    public static long Scanned { get { return Interlocked.Read(ref _scanned); } }
+    public static long Matched { get { return Interlocked.Read(ref _matched); } }
+    public static void ResetCounters() { _cancelled = false; Interlocked.Exchange(ref _errors, 0); Interlocked.Exchange(ref _scanned, 0); Interlocked.Exchange(ref _matched, 0); }
+    public static int ClampWorkerCount(int requested) { return Math.Max(1, Math.Min(2, requested)); }
+
+    private class Item { public string Path; public string Parent; public string Mode; public int ItemDepth; }
+
+    public static Task<List<string>> CollectAsync(string root, string mode, string exactPattern, string loosePattern, string[] denyPaths, string[] protectedFiles, string[] rootDeny, int workerCount)
+    {
+        return Task.Run(() => Collect(root, mode, exactPattern, loosePattern, denyPaths, protectedFiles, rootDeny, workerCount));
+    }
+
+    public static List<string> Collect(string root, string mode, string exactPattern, string loosePattern, string[] denyPaths, string[] protectedFiles, string[] rootDeny, int workerCount)
+    {
+        if (root.EndsWith(":", StringComparison.Ordinal)) root = root + "\\";
+        var reExact = new Regex(exactPattern, RegexOptions.IgnoreCase);
+        var reLoose = new Regex(loosePattern, RegexOptions.IgnoreCase);
+        var rem = new Regex("removed|backup|bak|old", RegexOptions.IgnoreCase);
+        var extRe = new Regex(@"^\.(dll|exe|cpl|sys|cmd|bat|ps1|psm1|psd1|vbs|js|mjs|cjs|flow|json|xml|pak|log|tmp|dat|ini|cfg|db|wasm|map|ico|png|url|appref-ms|lnk)$", RegexOptions.IgnoreCase);
+        var rootSet = new HashSet<string>(rootDeny ?? new string[0], StringComparer.OrdinalIgnoreCase);
+        var del = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
+        var queue = new ConcurrentQueue<Item>();
+        long pending = 0;
+
+        string[] top;
+        try { top = Directory.GetFileSystemEntries(root); } catch { ScanError(); return new List<string>(); }
+        foreach (var e in top)
+        {
+            string name = Path.GetFileName(e);
+            if (rootSet.Contains(name)) continue;
+            uint a = GetFileAttributesW(e);
+            if (a == 0xFFFFFFFF || (a & FILE_ATTRIBUTE_REPARSE_POINT) != 0) continue;
+            if (name == ".git" || name == "__pycache__" || name == "$Recycle.Bin") continue;
+            if (IsProtected(e, protectedFiles)) continue;
+            if (IsDenied(e, denyPaths)) continue;
+            if ((a & FILE_ATTRIBUTE_DIRECTORY) != 0) { Interlocked.Increment(ref pending); queue.Enqueue(new Item { Path = e, Parent = Path.GetFileName(root), Mode = mode, ItemDepth = 1 }); }
+            else ProcessFile(e, name, Path.GetFileName(root), mode, 1, reExact, reLoose, rem, extRe, denyPaths, protectedFiles, del);
+        }
+
+        int workers = ClampWorkerCount(workerCount);
+        var threads = new List<Thread>();
+        for (int w = 0; w < workers; w++)
+        {
+            var t = new Thread(() => Worker(queue, ref pending, reExact, reLoose, rem, extRe, denyPaths, protectedFiles, del));
+            t.IsBackground = true;
+            t.Priority = ThreadPriority.BelowNormal;
+            t.Start();
+            threads.Add(t);
+        }
+        foreach (var t in threads) t.Join();
+
+        var flat = new List<string>(del.Keys);
+        // No parent promotion: siblings and containers have separate ownership.
+        return TopOnly(new List<string>(del.Keys), del);
+    }
+
+    private static void Worker(ConcurrentQueue<Item> queue, ref long pending, Regex reExact, Regex reLoose, Regex rem, Regex extRe, string[] deny, string[] prot, ConcurrentDictionary<string, byte> del)
+    {
+        while (!_cancelled)
+        {
+            if (Interlocked.Read(ref pending) > 100000) { ScanError(); Cancel(); return; }
+            Item it;
+            if (queue.TryDequeue(out it))
+            {
+                try { ProcessDir(it, reExact, reLoose, rem, extRe, deny, prot, del, queue, ref pending); }
+                catch { ScanError(); }
+                finally { Interlocked.Decrement(ref pending); }
+            }
+            else
+            {
+                if (Volatile.Read(ref pending) == 0) return;
+                Thread.Sleep(2);
+            }
+        }
+    }
+
+    private static void ProcessDir(Item it, Regex reExact, Regex reLoose, Regex rem, Regex extRe, string[] deny, string[] prot, ConcurrentDictionary<string, byte> del, ConcurrentQueue<Item> queue, ref long pending)
+    {
+        Interlocked.Increment(ref _scanned);
+        string name = Path.GetFileName(it.Path);
+        bool deleteDir = false;
+        bool exactMatch = reExact.IsMatch(name);
+        if (exactMatch)
+        {
+            // Nuclear mode: ignore depth limits for exact matches
+            if (it.Mode == "N" || it.Mode == "T") deleteDir = true;
+            else if (it.Mode == "B") deleteDir = (it.ItemDepth <= 3 || (it.ItemDepth <= 4 && reExact.IsMatch(it.Parent)) || it.Parent.Equals("node_modules", StringComparison.OrdinalIgnoreCase) || rem.IsMatch(name));
+            else deleteDir = (it.ItemDepth <= 3 || (it.ItemDepth <= 4 && reExact.IsMatch(it.Parent)));
+        }
+        else if (it.Mode == "N")
+        {
+            // In Nuclear mode, also check loose matches but with relaxed depth
+            if (reLoose.IsMatch(name))
+            {
+                deleteDir = (it.ItemDepth <= 5 || (it.ItemDepth <= 6 && reLoose.IsMatch(it.Parent)));
+            }
+        }
+        if (deleteDir) { del.TryAdd(it.Path, 0); Interlocked.Increment(ref _matched); return; }
+        string[] entries;
+        try { entries = Directory.GetFileSystemEntries(it.Path); } catch { ScanError(); return; }
+        if (entries.Length == 0 && reExact.IsMatch(name)) { del.TryAdd(it.Path, 0); Interlocked.Increment(ref _matched); return; }
+        string childMode = it.Mode;
+        int childStartDepth;
+        // Nuclear mode propagates to all children
+        if (it.Mode == "N") { childMode = "N"; childStartDepth = it.ItemDepth + 1; }
+        else if (it.Mode == "B" && name.Equals("AppData", StringComparison.OrdinalIgnoreCase)) { childMode = "A"; childStartDepth = 1; }
+        else if (it.Mode == "B" && name.Equals("scoop", StringComparison.OrdinalIgnoreCase)) { childMode = "A"; childStartDepth = it.ItemDepth + 1; }
+        else if (it.Mode != "T" && name.Equals("Temp", StringComparison.OrdinalIgnoreCase)) { childMode = "T"; childStartDepth = it.ItemDepth + 1; }
+        else { childStartDepth = it.ItemDepth + 1; }
+        foreach (var e in entries)
+        {
+            string nm = Path.GetFileName(e);
+            if (nm == ".git" || nm == "__pycache__" || nm == "$Recycle.Bin") continue;
+            uint a = GetFileAttributesW(e);
+            if (a == 0xFFFFFFFF || (a & FILE_ATTRIBUTE_REPARSE_POINT) != 0) continue;
+            if (IsDenied(e, deny)) continue;
+            if (IsProtected(e, prot)) continue;
+            if ((a & FILE_ATTRIBUTE_DIRECTORY) != 0) { Interlocked.Increment(ref pending); queue.Enqueue(new Item { Path = e, Parent = name, Mode = childMode, ItemDepth = childStartDepth }); }
+            else ProcessFile(e, nm, name, childMode, childStartDepth, reExact, reLoose, rem, extRe, deny, prot, del);
+        }
+    }
+
+    private static void ProcessFile(string path, string name, string parent, string mode, int itemDepth, Regex reExact, Regex reLoose, Regex rem, Regex extRe, string[] deny, string[] prot, ConcurrentDictionary<string, byte> del)
+    {
+        Interlocked.Increment(ref _scanned);
+        string ext = Path.GetExtension(name);
+        bool isShortcut = ext != null && (ext.Equals(".lnk", StringComparison.OrdinalIgnoreCase) || ext.Equals(".url", StringComparison.OrdinalIgnoreCase) || ext.Equals(".appref-ms", StringComparison.OrdinalIgnoreCase));
+        bool deleteFile = false;
+        bool exactMatch = reExact.IsMatch(name);
+        bool looseMatch = reLoose.IsMatch(name);
+        
+        if (exactMatch)
+        {
+            // Nuclear mode: ignore depth limits for exact matches
+            if (mode == "N" || mode == "T") deleteFile = true;
+            else if (mode == "A") deleteFile = (itemDepth <= 1 || (itemDepth <= 4 && looseMatch) || parent.Equals("node_modules", StringComparison.OrdinalIgnoreCase) || rem.IsMatch(name) || (ext != null && extRe.IsMatch(ext)));
+            else deleteFile = (itemDepth <= 1 || parent.Equals("node_modules", StringComparison.OrdinalIgnoreCase) || looseMatch || rem.IsMatch(name) || (ext != null && extRe.IsMatch(ext)));
+        }
+        else if (looseMatch)
+        {
+            if (isShortcut || mode == "T") deleteFile = true;
+            else if (mode == "N")
+            {
+                // Nuclear mode: relaxed depth for loose matches
+                deleteFile = (itemDepth <= 3 || (itemDepth <= 5 && looseMatch) || parent.Equals("node_modules", StringComparison.OrdinalIgnoreCase) || rem.IsMatch(name) || (ext != null && extRe.IsMatch(ext)));
+            }
+            else if (mode == "A") deleteFile = (itemDepth <= 1 || (itemDepth <= 4 && looseMatch) || parent.Equals("node_modules", StringComparison.OrdinalIgnoreCase) || rem.IsMatch(name) || (ext != null && extRe.IsMatch(ext)));
+            else deleteFile = (itemDepth <= 1 || parent.Equals("node_modules", StringComparison.OrdinalIgnoreCase) || looseMatch || rem.IsMatch(name) || (ext != null && extRe.IsMatch(ext)));
+        }
+        if (deleteFile) { del.TryAdd(path, 0); Interlocked.Increment(ref _matched); }
+    }
+
+    private static bool IsProtected(string path, string[] prot)
+    {
+        if (prot == null) return false;
+        foreach (var p in prot) if (path.Equals(p, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+    private static bool IsDenied(string path, string[] deny)
+    {
+        if (deny == null) return false;
+        foreach (var d in deny) if (path.Equals(d, StringComparison.OrdinalIgnoreCase) || path.StartsWith(d.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+
+    private static void Prune(List<string> del, ConcurrentDictionary<string, byte> delSet, string[] deny, string[] prot, string root)
+    {
+        var queue = new List<string>(del);
+        for (int i = 0; i < queue.Count; i++)
+        {
+            string p = queue[i];
+            if (string.IsNullOrEmpty(p)) continue;
+            string parent = Path.GetDirectoryName(p);
+            while (!string.IsNullOrEmpty(parent) && parent.Length > root.Length && !parent.Equals(root, StringComparison.OrdinalIgnoreCase))
+            {
+                if (delSet.ContainsKey(parent)) { parent = Path.GetDirectoryName(parent); continue; }
+                if (IsProtected(parent, prot) || IsDenied(parent, deny)) break;
+                string[] kids;
+                try { kids = Directory.GetFileSystemEntries(parent); } catch { break; }
+                bool empty = true;
+                foreach (var k in kids) { if (!delSet.ContainsKey(k)) { empty = false; break; } }
+                if (!empty) break;
+                if (delSet.TryAdd(parent, 0)) { del.Add(parent); queue.Add(parent); }
+                parent = Path.GetDirectoryName(parent);
+            }
+        }
+    }
+
+    private static List<string> TopOnly(List<string> del, ConcurrentDictionary<string, byte> delSet)
+    {
+        var sorted = new List<string>(del);
+        sorted.Sort((a, b) => a.Length.CompareTo(b.Length));
+        var result = new List<string>();
+        var resultSet = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var p in sorted)
+        {
+            bool hasAncestor = false;
+            string cur = Path.GetDirectoryName(p);
+            while (!string.IsNullOrEmpty(cur))
+            {
+                if (resultSet.Contains(cur)) { hasAncestor = true; break; }
+                string next = Path.GetDirectoryName(cur);
+                if (next == cur || next == null) break;
+                cur = next;
+            }
+            if (!hasAncestor) { result.Add(p); resultSet.Add(p); }
+        }
+        return result;
+    }
+}
+'@ -ErrorAction Stop
+        $script:UniCollectOk = $true
+    } catch {
+        $script:UniCollectOk = $false
+    }
+}
+
+# ---------------------------------------------------------------------------
+# parallel registry collector (Software hives + HKCR/COM), counters + progress
+# also compiled lazily - only the deep registry phase needs it
+# ---------------------------------------------------------------------------
+$script:UniRegOk = $false
+function Ensure-UniRegCollect {
+    if ($script:UniRegOk) { return }
+    if ('UniRegCollectV6' -as [type]) { $script:UniRegOk = $true; return }
+    try {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Win32;
+
+public static class UniRegCollectV6
+{
+    private static long _errors;
+    private static volatile bool _cancelled;
+    public static long Errors { get { return Interlocked.Read(ref _errors); } }
+    public static void Cancel() { _cancelled = true; }
+    private static void ScanError() { Interlocked.Increment(ref _errors); }
+    private static long _scanned;
+    private static long _matched;
+    public static long Scanned { get { return Interlocked.Read(ref _scanned); } }
+    public static long Matched { get { return Interlocked.Read(ref _matched); } }
+    public static void ResetCounters() { _cancelled = false; Interlocked.Exchange(ref _errors, 0); Interlocked.Exchange(ref _scanned, 0); Interlocked.Exchange(ref _matched, 0); }
+    public static int ClampWorkerCount(int requested) { return Math.Max(1, Math.Min(4, requested)); }
+
+    private class Work { public int Hive; public string Rel; public string Full; public bool IsClass; public bool InDeny; }
+
+    public static Task<List<string>> CollectAsync(string exactPattern, string loosePattern, string[] denyPrefixes, int workerCount)
+    {
+        return Task.Run(() => Collect(exactPattern, loosePattern, denyPrefixes, workerCount));
+    }
+
+    public static List<string> Collect(string exactPattern, string loosePattern, string[] denyPrefixes, int workerCount)
+    {
+        var reExact = new Regex(exactPattern, RegexOptions.IgnoreCase);
+        var reLoose = new Regex(loosePattern, RegexOptions.IgnoreCase);
+        var reGuid = new Regex(@"^\{[0-9A-Fa-f\-]+\}$");
+        var results = new ConcurrentDictionary<string, byte>(StringComparer.OrdinalIgnoreCase);
+        var queue = new ConcurrentQueue<Work>();
+        long pending = 0;
+
+        EnqueueRoot(queue, ref pending, 0, "Software", "HKLM\\SOFTWARE", false, false);
+        // The 64-bit Software traversal already visits the physical WOW6432Node.
+        EnqueueRoot(queue, ref pending, 2, "Software", "HKCU\\Software", false, false);
+        EnqueueRoot(queue, ref pending, 3, "", "HKCR", true, false);
+
+        int workers = ClampWorkerCount(workerCount);
+        var threads = new List<Thread>();
+        for (int w = 0; w < workers; w++)
+        {
+            var t = new Thread(() => Worker(queue, ref pending, reExact, reLoose, reGuid, denyPrefixes, results));
+            t.IsBackground = true;
+            t.Priority = ThreadPriority.BelowNormal;
+            t.Start();
+            threads.Add(t);
+        }
+        foreach (var t in threads) t.Join();
+
+        var k = new List<string>();
+        var v = new List<string>();
+        foreach (var s in results.Keys)
+        {
+            if (s.StartsWith("K:", StringComparison.Ordinal)) k.Add(s); else v.Add(s);
+        }
+        k.Sort(StringComparer.OrdinalIgnoreCase);
+        v.Sort(StringComparer.OrdinalIgnoreCase);
+        k.AddRange(v);
+        return k;
+    }
+
+    private static void EnqueueRoot(ConcurrentQueue<Work> queue, ref long pending, int hive, string rel, string full, bool isClass, bool inDeny)
+    {
+        Interlocked.Increment(ref pending);
+        queue.Enqueue(new Work { Hive = hive, Rel = rel, Full = full, IsClass = isClass, InDeny = inDeny });
+    }
+
+    private static RegistryKey OpenWork(Work it)
+    {
+        try
+        {
+            if (it.Hive == 0) { using (var hive = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64)) return hive.OpenSubKey(it.Rel); }
+            if (it.Hive == 1) { using (var hive = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry32)) return hive.OpenSubKey(it.Rel); }
+            if (it.Hive == 2) { using (var hive = RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Default)) return hive.OpenSubKey(it.Rel); }
+            if (it.Rel.Length == 0) return Registry.ClassesRoot;
+            return Registry.ClassesRoot.OpenSubKey(it.Rel);
+        }
+        catch { ScanError(); return null; }
+    }
+
+    private static void Worker(ConcurrentQueue<Work> queue, ref long pending, Regex reExact, Regex reLoose, Regex reGuid, string[] deny, ConcurrentDictionary<string, byte> results)
+    {
+        while (!_cancelled)
+        {
+            if (Interlocked.Read(ref pending) > 100000) { ScanError(); Cancel(); return; }
+            Work it;
+            if (queue.TryDequeue(out it))
+            {
+                try { Process(it, reExact, reLoose, reGuid, deny, results, queue, ref pending); }
+                catch { ScanError(); }
+                finally { Interlocked.Decrement(ref pending); }
+            }
+            else
+            {
+                if (Volatile.Read(ref pending) == 0) return;
+                Thread.Sleep(2);
+            }
+        }
+    }
+
+    private static void Process(Work it, Regex reExact, Regex reLoose, Regex reGuid, string[] deny, ConcurrentDictionary<string, byte> results, ConcurrentQueue<Work> queue, ref long pending)
+    {
+        Interlocked.Increment(ref _scanned);
+        using (var key = OpenWork(it))
+        {
+            if (key == null) return;
+            string name = key.Name;
+            int idx = name.LastIndexOf('\\');
+            string leaf = idx >= 0 ? name.Substring(idx + 1) : name;
+
+            if (!it.InDeny && reExact.IsMatch(leaf))
+            {
+                results.TryAdd("K:" + it.Full, 0);
+                Interlocked.Increment(ref _matched);
+                return;
+            }
+            if (it.IsClass && reGuid.IsMatch(leaf) && !it.InDeny)
+            {
+                object def = null;
+                try { def = key.GetValue(null); } catch { ScanError(); }
+                string ds = def as string;
+                if (ds != null && reExact.IsMatch(ds))
+                {
+                    results.TryAdd("K:" + it.Full, 0);
+                    Interlocked.Increment(ref _matched);
+                    return;
+                }
+            }
+
+            string[] vns = null;
+            try { vns = key.GetValueNames(); } catch { ScanError(); }
+            if (vns != null)
+            {
+                foreach (string vn in vns)
+                {
+                    bool match = false;
+                    if (reExact.IsMatch(vn)) match = true;
+                    if (!match)
+                    {
+                        object data = null;
+                        try { data = key.GetValue(vn); } catch { ScanError(); }
+                        string s = data as string;
+                        if (s != null) match = reExact.IsMatch(s);
+                        else
+                        {
+                            string[] ss = data as string[];
+                            if (ss != null)
+                            {
+                                foreach (string x in ss)
+                                {
+                                    if (x != null && reExact.IsMatch(x)) { match = true; break; }
+                                }
+                            }
+                        }
+                    }
+                    if (match)
+                    {
+                        results.TryAdd("V:" + it.Full + "\u0001" + vn, 0);
+                        Interlocked.Increment(ref _matched);
+                    }
+                }
+            }
+
+            string[] sns = null;
+            try { sns = key.GetSubKeyNames(); } catch { ScanError(); }
+            if (sns != null)
+            {
+                foreach (string sn in sns)
+                {
+                    if (!it.IsClass && sn.Equals("Classes", StringComparison.OrdinalIgnoreCase)) continue;
+                    string childFull = it.Full + "\\" + sn;
+                    bool childDeny = it.InDeny || IsDeny(deny, childFull);
+                    string childRel = it.Rel.Length == 0 ? sn : it.Rel + "\\" + sn;
+                    Interlocked.Increment(ref pending);
+                    queue.Enqueue(new Work { Hive = it.Hive, Rel = childRel, Full = childFull, IsClass = it.IsClass, InDeny = childDeny });
+                }
+            }
+        }
+    }
+
+    private static bool IsDeny(string[] deny, string full)
+    {
+        if (deny == null) return false;
+        foreach (var d in deny) if (full.StartsWith(d, StringComparison.OrdinalIgnoreCase)) return true;
+        return false;
+    }
+}
+'@ -ErrorAction Stop
+        $script:UniRegOk = $true
+    } catch {
+        $script:UniRegOk = $false
+    }
+}
+
+# ---------------------------------------------------------------------------
+# delete one target with escalating force: direct -> long-path cmd -> attrib
+# No unrelated lock-holder termination, ACL takeover, or recursive shell fallback.
+# ---------------------------------------------------------------------------
+$script:UniIsElevated = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+function Remove-UniTarget {
+    param([string]$Path, [ValidateRange(1,3)][int]$MaxRounds = 3)
+    if (-not (Test-UniOwnedPath $Path)) {
+        Write-Warning "Preserved without exclusive ownership evidence: $Path"
+        return $false
+    }
+    try {
+        if (-not (Test-Path -LiteralPath $Path -ErrorAction Stop)) { return $true }
+        # Nonrecursive .NET deletion of each verified child. No shell interpolation,
+        # ACL takeover, junction traversal, or termination of unrelated lock holders.
+        $pending = New-Object 'System.Collections.Generic.Stack[string]'
+        $dirs = New-Object 'System.Collections.Generic.List[string]'
+        $pending.Push([IO.Path]::GetFullPath($Path))
+        while ($pending.Count) {
+            $current=$pending.Pop()
+            if (-not (Test-UniOwnedPath $current)) { throw "Ownership or link changed: $current" }
+            $item=Get-Item -LiteralPath $current -Force -ErrorAction Stop
+            Update-UniLine ("[{0}] deleting: {1}" -f (Get-UniElapsed),$current)
+            if ($item.PSIsContainer) {
+                $dirs.Add($current)
+                foreach($child in [IO.Directory]::EnumerateFileSystemEntries($current)) { $pending.Push($child) }
+            } else {
+                [IO.File]::SetAttributes($current, ($item.Attributes -band (-bnot [IO.FileAttributes]::ReadOnly)))
+                [IO.File]::Delete($current)
+            }
+        }
+        for($i=$dirs.Count-1;$i -ge 0;$i--) {
+            if (-not (Test-UniOwnedPath $dirs[$i])) { throw 'Ownership changed during deletion' }
+            [IO.Directory]::Delete($dirs[$i],$false)
+        }
+        if(Test-Path -LiteralPath $Path -ErrorAction Stop){
+            if($MaxRounds -gt 1){
+                Write-Host ('Owned path remains after deletion; reconciling another storage layer: '+$Path)
+                return (Remove-UniTarget -Path $Path -MaxRounds ($MaxRounds-1))
+            }
+            return $false
+        }
+        return $true
+    } catch {
+        Write-Warning ("Unremoved: {0}: {1}" -f $Path,$_.Exception.Message)
+        return $false
+    }
+}
+
+# ---------------------------------------------------------------------------
+# tokens / patterns: exact (full names) + loose (full names + 6+ letter
+# shared-substrings, so 'ccleaner' also catches '-cccleanup' style markers)
+# ---------------------------------------------------------------------------
+$script:UniDenyTokens = @(
+    'windows', 'win', 'microsoft', 'system', 'sys', 'system32', 'syswow64', 'program', 'programs', 'programdata',
+    'users', 'user', 'public', 'common', 'commonfiles', 'temp', 'tmp', 'appdata', 'local', 'locals', 'localdata',
+    'network', 'shared', 'microsoftshared', 'config', 'data', 'core', 'kernel', 'driver', 'drivers', 'service',
+    'services', 'fonts', 'log', 'logs', 'install', 'installer', 'update', 'runtime', 'default', 'desktop',
+    'documents', 'document', 'download', 'downloads', 'start', 'startmenu', 'windowsapps', 'windowsnt',
+    'internetexplorer', 'dotnet', 'powershell', 'ps1', 'exe', 'bin', 'lib', 'dll', 'ini', 'cfg', 'dat', 'db',
+    'node', 'git', 'test', 'setup', 'help', 'docs', 'readme', 'license', 'version', 'release', 'debug', 'build',
+    'source', 'sample', 'samples', 'example', 'examples', 'demo', 'device', 'storage', 'cache', 'history',
+    'recent', 'roaming', 'registry', 'shell', 'cmd', 'console', 'photo', 'photos', 'picture', 'pictures',
+    'music', 'video', 'videos', 'movie', 'movies', 'image', 'images', 'file', 'files', 'folder', 'backup',
+    'archive', 'project', 'projects', 'work', 'report', 'account', 'profile', 'settings', 'game', 'games',
+    'save', 'saved', 'app', 'application', 'msi', 'mst', 'htm', 'html', 'xml', 'json', 'png', 'jpg', 'jpeg',
+    'gif', 'ico', 'txt', 'md', 'pdf', 'zip', 'rar', '7z', 'tar', 'gz',
+    # v3 additions - common words that must never be sweeped on their own
+    'viewer', 'player', 'reader', 'editor', 'manager', 'center', 'centre', 'studio', 'cloud', 'sync',
+    'launcher', 'helper', 'assistant', 'server', 'client', 'mobile', 'tablet', 'search', 'browser',
+    'navigator', 'cleaner', 'cleaners', 'cleanup', 'clean', 'cleans', 'cleaned', 'cleaning',
+    'uncleaned', 'leaner', 'cleane', 'disk', 'drive', 'volume', 'memory', 'optimize',
+    'optimizer', 'booster', 'speed', 'quick', 'fast', 'note', 'notes', 'notebook', 'updater', 'updates',
+    'folder', 'folders', 'directory', 'directories', 'filename', 'path', 'home', 'menu', 'view', 'views',
+    'panel', 'widget', 'gadget', 'tray', 'taskbar', 'startup', 'favorite', 'favorites', 'recentdocs',
+    'crash', 'crashreport', 'dump', 'dumps', 'session', 'sessions', 'bookmark', 'bookmarks', 'cookie',
+    'cookies', 'template', 'templates', 'theme', 'themes', 'skin', 'skins', 'icon', 'icons', 'asset',
+    'assets', 'resource', 'resources', 'package', 'packages', 'module', 'modules', 'plugin', 'plugins',
+    'extension', 'extensions', 'component', 'components', 'library', 'libraries', 'framework', 'platform',
+    'engine', 'api', 'sdk', 'ide', 'compiler', 'interpreter', 'daemon', 'agent', 'broker', 'proxy',
+    'gateway', 'host', 'vm', 'container', 'database', 'dataset', 'table', 'record', 'field', 'form',
+    'query', 'sql', 'environment', 'var', 'variable', 'value', 'key', 'hives', 'root', 'branch', 'leaf',
+    'parent', 'child', 'os', 'kernel', 'device', 'hardware', 'firmware', 'software', 'suite', 'pack',
+    'bundle', 'uninstaller', 'configurator', 'virtual', 'vms', 'aws', 'azure', 'gcp', 'google', 'oracle',
+    'amazon', 'apple', 'linux', 'unix', 'mac', 'macos', 'ios', 'android', 'web', 'www', 'internet',
+    'online', 'offline', 'local', 'remote', 'restore', 'recovery', 'snapshot', 'iso', 'vhd', 'vhdx',
+    'vmdk', 'mount', 'format', 'filesystem', 'ntfs', 'swap', 'pagefile', 'hiberfil', 'error', 'warning',
+    'fail', 'failure', 'exception', 'bug', 'issue', 'problem', 'fix', 'repair', 'patch', 'hotfix',
+    'upgrade', 'downgrade', 'uninstall', 'remove', 'delete', 'erase', 'wipe', 'purge', 'sweep', 'prune',
+    'trim', 'defrag', 'compact', 'compress', 'cab', 'msp', 'mst', 'ocx', 'com', 'vxd', 'drv', 'inf',
+    'mdb', 'mdf', 'ldf', 'ndf', 'csv', 'tsv', 'yaml', 'yml', 'toml', 'properties', 'props', 'admin',
+    'administrator', 'guest', 'domain', 'group', 'everyone', 'authenticated', 'anonymous', 'interactive',
+    'batch', 'scheduler', 'scheduled', 'jobs', 'at', 'once', 'daily', 'weekly', 'monthly', 'hourly',
+    'logon', 'boot', 'reboot', 'shutdown', 'restart', 'sleep', 'hibernate', 'resume', 'wake', 'power',
+    'battery', 'acl', 'dacl', 'sacl', 'ace', 'owner', 'inherit', 'write', 'execute', 'modify', 'deny',
+    'allow', 'grant', 'permission', 'right', 'privilege', 'elevated', 'elevation', 'uac', 'sudo',
+    'runas', 'token', 'handle', 'object', 'event', 'mutex', 'semaphore', 'timer', 'wait', 'thread',
+    'fiber', 'apc', 'dpc', 'dma', 'io', 'filter', 'fs', 'storage', 'media', 'cd', 'dvd', 'bluray',
+    'floppy', 'tape', 'ssd', 'hdd', 'nvme', 'sata', 'scsi', 'usb', 'thunderbolt', 'firewire', 'pci',
+    'pcie', 'vga', 'dvi', 'hdmi', 'serial', 'parallel', 'ps2', 'jack', 'socket', 'slot', 'bus',
+    'bridge', 'controller', 'hub', 'switch', 'router', 'modem', 'nic', 'tcp', 'udp', 'icmp', 'arp',
+    'dns', 'dhcp', 'http', 'https', 'ftp', 'sftp', 'ssh', 'telnet', 'smtp', 'pop', 'imap', 'ntp',
+    'ldap', 'kerberos', 'ssl', 'tls', 'rdp', 'vnc', 'teamviewer', 'anydesk', 'chrome', 'chromium',
+    'firefox', 'safari', 'opera', 'edge', 'ie', 'webview', 'electron', 'qt', 'gtk', 'java',
+    'javascript', 'typescript', 'python', 'php', 'ruby', 'go', 'golang', 'rust', 'swift', 'kotlin',
+    'c', 'cpp', 'c++', 'c#', 'vb', 'node', 'npm', 'yarn', 'pnpm', 'bun', 'kubernetes', 'k8s',
+    'ubuntu', 'debian', 'fedora', 'arch', 'centos', 'redhat', 'alpine', 'suse', 'manjaro', 'mint',
+    'kali', 'wifi', 'bluetooth', 'ethernet', 'wlan', 'wan', 'vpn', 'security', 'secure', 'protect',
+    'protection', 'guard', 'shield', 'defender', 'antivirus', 'malware', 'spyware', 'adware', 'trojan',
+    'virus', 'worm', 'ransomware', 'rootkit', 'botnet', 'phishing', 'scam', 'fraud', 'crack', 'keygen',
+    'hack', 'cheat', 'mod', 'overlay', 'stream', 'broadcast', 'record', 'writer', 'find', 'index',
+    'crawler', 'spider', 'bot', 'automation', 'script', 'macro', 'shortcut', 'link', 'url', 'uri',
+    'dir', 'drive', 'name', 'label', 'tag', 'keyword', 'term', 'column', 'row', 'entry', 'item',
+    'list', 'array', 'map', 'hash', 'dict', 'class', 'type', 'interface', 'enum', 'struct',
+    'namespace', 'assembly', 'binary', 'executable', 'pid', 'job', 'schedule', 'trigger', 'action',
+    'condition', 'parameter', 'argument', 'flag', 'switch', 'sibling', 'ancestor', 'descendant',
+    'bios', 'uefi', 'iphone', 'ipad', 'watch', 'tv', 'intranet', 'extranet', 'fat32', 'exfat', 'ext4',
+    'btrfs', 'xfs', 'zfs', 'raid', 'lvm', 'minidump', 'warnings', 'failures', 'exceptions', 'tasks',
+    'minutes', 'hour', 'hours', 'day', 'days', 'week', 'weeks', 'month', 'months', 'year', 'years'
+)
+
+function Get-UniTokenPattern {
+    param([string]$Token)
+    $sb = ''
+    foreach ($c in $Token.ToCharArray()) {
+        if ($sb.Length) { $sb += '[^a-z0-9]*' }
+        $sb += [regex]::Escape($c.ToString())
+    }
+    return $sb
+}
+
+function Get-UniPatterns {
+    param([string[]]$Names)
+    $parts = @(); $tokens = @()
+    foreach ($name in $Names) {
+        $name = ([string]$name).Trim()
+        $token = ($name -replace '[^A-Za-z0-9]', '').ToLowerInvariant()
+        if ($token.Length -lt 4 -or $script:UniDenyTokens -contains $token) { continue }
+        if ($name -match '[\\/:*?"<>|\x00-\x1f]') { throw "Invalid app name: $name" }
+        $tokens += $token
+        # Full token only. Never invent substrings or cross directory separators.
+        $body = (([regex]::Split($name, '[ ._-]+') | ForEach-Object { [regex]::Escape($_) }) -join '[ ._-]*')
+        $parts += '(?<![A-Za-z0-9])' + $body + '(?![A-Za-z0-9])'
+    }
+    if (-not $parts.Count) { return $null }
+    $pattern = '(?:' + ($parts -join '|') + ')'
+    return @{ Tokens=@($tokens | Select-Object -Unique); Exact=$pattern; Loose=$pattern }
+}
+
+# ---------------------------------------------------------------------------
+# stats
+# ---------------------------------------------------------------------------
+$script:UniStats = @{ Processes = 0; Services = 0; Tasks = 0; Firewall = 0; RegKeys = 0; RegValues = 0; EnvVars = 0; Shortcuts = 0; Files = 0; Dirs = 0 }
+$script:UniFailed = New-Object System.Collections.Generic.List[string]
+$script:UniRegSweepFound = $false
+
+# ---------------------------------------------------------------------------
+# 1. kill every related process (name / path / command line / window title)
+# ---------------------------------------------------------------------------
+function Invoke-UniKillProcesses {
+    param($ReExact)
+    $stopped=New-Object 'System.Collections.Generic.List[object]'
+    foreach($candidate in @(Get-Process -ErrorAction Stop)) {
+        try {
+            if ($script:UniProtectedPids.ContainsKey($candidate.Id)) { continue }
+            if ($script:UniNeverKill -contains $candidate.ProcessName.ToLowerInvariant()) { continue }
+            $exe=$candidate.Path
+            if (-not (Test-UniTargetExecutable $exe)) { continue }
+            if([IO.Path]::GetFileName($exe) -match '^(unins\d*|uninstall|setup|.*installer)\.exe$'){continue}
+            $started=$candidate.StartTime
+            # Reopen and validate creation time and executable immediately before Kill.
+            $live=Get-Process -Id $candidate.Id -ErrorAction Stop
+            if ($live.StartTime -ne $started -or $live.Path -ine $exe -or -not (Test-UniTargetExecutable $live.Path)) { continue }
+            Write-Host ("Stopping owned process: {0} PID {1}" -f $exe,$live.Id)
+            $live.Kill()
+            $stopped.Add($live)
+            $script:UniStats.Processes++
+        } catch {
+            if ($exe -and (Test-UniTargetExecutable $exe)) { throw }
+        } finally { $exe=$null }
+    }
+    $deadline=[DateTime]::UtcNow.AddSeconds(5)
+    foreach($live in $stopped){
+        $remaining=[math]::Max(0,[int]($deadline-[DateTime]::UtcNow).TotalMilliseconds)
+        if(-not $live.WaitForExit($remaining)){$script:UniFailed.Add('Process did not exit within five seconds: '+$live.Id)}
+    }
+}
+
+# ---------------------------------------------------------------------------
+# 2. stop + delete related services (WMI + registry Services key)
+# ---------------------------------------------------------------------------
+function Invoke-UniServices {
+ param($ReExact)
+ Add-Type -AssemblyName System.ServiceProcess -ErrorAction Stop
+ # SCM + registry are independent of a broken/hung Win32_Service WMI provider.
+ foreach($service in [ServiceProcess.ServiceController]::GetServices()) {
+  $key=[Microsoft.Win32.Registry]::LocalMachine.OpenSubKey('SYSTEM\CurrentControlSet\Services\'+$service.ServiceName)
+  if(-not $key){$service.Dispose();continue}
+  try {$image=[Environment]::ExpandEnvironmentVariables([string]$key.GetValue('ImagePath'))} finally {$key.Close()}
+  $command=Split-UniCommand $image
+  if(-not $command -or -not(Test-UniTargetExecutable $command.File)){$service.Dispose();continue}
+  try {
+   if(@($service.DependentServices | Where-Object Status -NE Stopped).Count){$script:UniFailed.Add('Running service dependents: '+$service.ServiceName);continue}
+   Write-Host ('Stopping owned service: '+$service.ServiceName)
+   if($service.Status -ne [ServiceProcess.ServiceControllerStatus]::Stopped){$service.Stop();$service.WaitForStatus([ServiceProcess.ServiceControllerStatus]::Stopped,[TimeSpan]::FromSeconds(10))}
+   $info=New-Object Diagnostics.ProcessStartInfo
+   $info.FileName="$env:SystemRoot\System32\sc.exe";$info.Arguments='delete "'+$service.ServiceName+'"';$info.UseShellExecute=$false;$info.CreateNoWindow=$true
+   $proc=[Diagnostics.Process]::Start($info)
+   if(-not $proc.WaitForExit(10000)){$proc.Kill();throw 'Service deletion command timed out'}
+   if($proc.ExitCode -ne 0){throw ('Service deletion failed: '+$proc.ExitCode)}
+   if(Get-Service -Name $service.ServiceName -ErrorAction SilentlyContinue){$script:UniFailed.Add('Service pending deletion: '+$service.ServiceName)}else{$script:UniStats.Services++}
+  } catch {$script:UniFailed.Add('Service: '+$service.ServiceName+': '+$_.Exception.Message)}
+  finally {$service.Dispose()}
+ }
+}
+
+# ---------------------------------------------------------------------------
+# 3. delete related scheduled tasks (incl. .job leftovers via filesystem pass)
+# ---------------------------------------------------------------------------
+function Invoke-UniTasks {
+ param($ReExact)
+ $scheduler=$null
+ try {
+  $scheduler=New-Object -ComObject Schedule.Service -ErrorAction Stop
+  $scheduler.Connect()
+  $folders=New-Object 'System.Collections.Generic.Queue[object]'
+  $folders.Enqueue($scheduler.GetFolder('\'))
+  while($folders.Count){
+   $folder=$folders.Dequeue()
+   foreach($task in $folder.GetTasks(1)){
+    $actions=@($task.Definition.Actions); if(-not $actions.Count){continue}
+    $owned=$true
+    foreach($action in $actions){if($action.Type -ne 0 -or -not(Test-UniTargetExecutable ([Environment]::ExpandEnvironmentVariables([string]$action.Path)))){$owned=$false}}
+    if(-not $owned){continue}
+    Write-Host ('Removing owned task: '+$task.Path)
+    if($task.State -eq 4){$task.Stop(0)}
+    $folder.DeleteTask($task.Name,0)
+    $script:UniStats.Tasks++
+   }
+   foreach($child in $folder.GetFolders(0)){$folders.Enqueue($child)}
+  }
+ } catch {$script:UniFailed.Add('Scheduled-task verification: '+$_.Exception.Message)}
+ finally {if($scheduler){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($scheduler)}}
+ Invoke-UniLegacyTasks
+}
+function Get-UniLegacyTaskExecutable {
+ param([byte[]]$Bytes)
+ # MS-TSCH 2.4.1 / 2.4.2.1: fixed header offset and counted UTF-16 string.
+ if($Bytes.Length -lt 72 -or [BitConverter]::ToUInt16($Bytes,2) -ne 1){return $null}
+ $offset=[int][BitConverter]::ToUInt16($Bytes,20)
+ if($offset -lt 70 -or $offset+2 -gt $Bytes.Length){return $null}
+ $count=[int][BitConverter]::ToUInt16($Bytes,$offset)
+ if($count -lt 2 -or $offset+2+2*$count -gt $Bytes.Length){return $null}
+ $value=[Text.Encoding]::Unicode.GetString($Bytes,$offset+2,2*$count)
+ if($value[$value.Length-1] -ne [char]0){return $null}
+ $value=$value.Substring(0,$value.Length-1)
+ if($value.Contains([string][char]0)){return $null}
+ return $value
+}
+function Invoke-UniLegacyTasks {
+ foreach($file in @(Get-ChildItem -LiteralPath 'C:\Windows\Tasks' -Filter '*.job' -File -Force -ErrorAction SilentlyContinue)){
+  try {
+   $full=[IO.Path]::GetFullPath($file.FullName)
+   if([IO.Path]::GetDirectoryName($full) -ine 'C:\Windows\Tasks'){continue}
+   $linked=$false;$current=$full
+   while($current.Length -gt 3){if((Get-Item -LiteralPath $current -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint){$linked=$true;break};$current=[IO.Path]::GetDirectoryName($current)}
+   if($linked){continue}
+   $bytes=[IO.File]::ReadAllBytes($full)
+   $target=Get-UniLegacyTaskExecutable $bytes
+   if(-not $target -or -not(Test-UniTargetExecutable $target)){continue}
+   # Recheck the actual definition, never authorize a task by its filename.
+   if([Convert]::ToBase64String([IO.File]::ReadAllBytes($full)) -cne [Convert]::ToBase64String($bytes)){throw 'Legacy task changed during verification'}
+   Write-Host ('Removing verified legacy task: '+$full)
+   [IO.File]::Delete($full)
+   if([IO.File]::Exists($full)){throw 'Legacy task remains'}
+   $script:UniStats.Tasks++
+  } catch {$script:UniFailed.Add('Legacy task: '+$file.FullName+': '+$_.Exception.Message)}
+ }
+}
+
+# ---------------------------------------------------------------------------
+# 4. delete related firewall rules
+# ---------------------------------------------------------------------------
+function Invoke-UniFirewall {
+    param($ReExact)
+    $policy=$null
+    try {
+        $policy=New-Object -ComObject HNetCfg.FwPolicy2 -ErrorAction Stop
+        $groups=@{}
+        foreach($rule in $policy.Rules){
+            $name=[string]$rule.Name
+            if(-not $groups.ContainsKey($name)){$groups[$name]=@()}
+            $groups[$name] += [string]$rule.ApplicationName
+        }
+        foreach($name in @($groups.Keys)){
+            $owned=$true
+            foreach($application in $groups[$name]){
+                if(-not(Test-UniTargetExecutable ([Environment]::ExpandEnvironmentVariables($application)))){$owned=$false}
+            }
+            if(-not $owned){continue}
+            # Reconcile duplicate names immediately before the name-based COM removal.
+            $live=@($policy.Rules | Where-Object Name -EQ $name)
+            if(-not $live.Count){continue}
+            foreach($rule in $live){if(-not(Test-UniTargetExecutable ([Environment]::ExpandEnvironmentVariables([string]$rule.ApplicationName)))){$owned=$false}}
+            if(-not $owned){$script:UniFailed.Add('Shared firewall rule name: '+$name);continue}
+            Write-Host "Removing owned firewall rule: $name"
+            $policy.Rules.Remove($name)
+            if(@($policy.Rules | Where-Object Name -EQ $name).Count){$script:UniFailed.Add('Firewall rule remains: '+$name)}
+            else{$script:UniStats.Firewall++}
+        }
+    } catch {$script:UniFailed.Add('Firewall verification unavailable: '+$_.Exception.Message);Write-Warning $script:UniFailed[$script:UniFailed.Count-1]}
+    finally {if($policy){[void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($policy)}}
+}
+
+# ---------------------------------------------------------------------------
+# 5. uninstall entries / App Paths / Run & RunOnce values
+# ---------------------------------------------------------------------------
+function Remove-UniRegistryKey {
+    param([string]$ProviderPath)
+    if (-not (Test-UniOwnedRegistry $ProviderPath)) { throw "Registry key lacks exclusive ownership: $ProviderPath" }
+    Remove-Item -LiteralPath $ProviderPath -Recurse -Force -ErrorAction Stop
+    if (Test-Path -LiteralPath $ProviderPath -ErrorAction Stop) { throw "Registry key remains: $ProviderPath" }
+}
+
+# remove one registry value. An empty value name means the key's DEFAULT value
+# (e.g. per-app audio PolicyConfig references), which PowerShell's
+# Remove-ItemProperty refuses with a parameter-binding error that
+# -ErrorAction cannot silence - so empty names go through the .NET API instead.
+function Remove-UniRegistryValue {
+ param([string]$ProviderPath,[AllowEmptyString()][string]$ValueName)
+ $path=$ProviderPath -replace '^.*Registry::','' -replace '^HKLM:?', 'HKEY_LOCAL_MACHINE' -replace '^HKCU:?', 'HKEY_CURRENT_USER'
+ $split=$path.IndexOf('\'); if($split -lt 1){throw 'Invalid registry path'}
+ $hiveName=$path.Substring(0,$split);$sub=$path.Substring($split+1)
+ $hive=switch($hiveName){'HKEY_LOCAL_MACHINE'{[Microsoft.Win32.Registry]::LocalMachine};'HKEY_CURRENT_USER'{[Microsoft.Win32.Registry]::CurrentUser};default{throw 'Unsupported registry hive'}}
+ $key=$hive.OpenSubKey($sub,$true)
+ if(-not $key){throw "Cannot open registry key for writing: $path"}
+ try {
+  $value=$key.GetValue($ValueName,$null,[Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+  $command=Split-UniCommand ([string]$value)
+  $isRun=$path -match '\\CurrentVersion\\Run(Once)?$'
+  if(-not (Test-UniOwnedRegistry $ProviderPath) -and -not ($isRun -and $command -and (Test-UniTargetExecutable $command.File))){throw "Shared registry value preserved: $path :: $ValueName"}
+  $key.DeleteValue($ValueName,$true)
+  if($key.GetValueNames() -contains $ValueName){throw 'Registry value still exists'}
+ } finally {$key.Close()}
+}
+
+function Invoke-UniInstallerKeys {
+ param($ReExact)
+ foreach($root in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths','HKCU:\Software\Microsoft\Windows\CurrentVersion\App Paths')){
+  if(-not(Test-Path -LiteralPath $root)){continue}
+  foreach($key in @(Get-ChildItem -LiteralPath $root -ErrorAction Stop)){
+   $target=[string]$key.GetValue('')
+   if(-not(Test-UniTargetExecutable $target.Trim('"'))){continue}
+   $script:UniOwnedRegistryRoots += $key.Name
+   Remove-UniRegistryKey $key.PSPath
+   $script:UniStats.RegKeys++
+  }
+ }
+ foreach($root in @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Run','HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce','HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run','HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce')){
+  if(-not(Test-Path -LiteralPath $root)){continue}
+  $key=Get-Item -LiteralPath $root -ErrorAction Stop
+  try {
+   foreach($name in @($key.GetValueNames())){
+    $command=Split-UniCommand ([string]$key.GetValue($name))
+    if(-not $command -or -not(Test-UniTargetExecutable $command.File)){continue}
+    Remove-UniRegistryValue $root $name
+    Remove-UniStartupApproval $root $name $command.File
+    $script:UniStats.RegValues++
+   }
+  } finally {$key.Close()}
+ }
+}
+
+# ---------------------------------------------------------------------------
+# 6. deep registry sweep (Software hives + HKCR / COM / TypeLib)
+# ---------------------------------------------------------------------------
+function Invoke-UniRegistrySweep {
+    param($ReExact, $ReLoose)
+    $denyPrefixes = @('HKLM\SOFTWARE\Microsoft', 'HKLM\SOFTWARE\WOW6432Node\Microsoft', 'HKCU\Software\Microsoft')
+    $task = $null
+    Update-UniLine ("[{0}] initializing registry scanner ..." -f (Get-UniElapsed))
+    foreach($ownedKey in @($script:UniOwnedRegistryRoots | Sort-Object Length)){
+        $provider='Registry::'+$ownedKey
+        if(-not(Test-UniOwnedRegistry $provider)){continue}
+        if(Test-Path -LiteralPath $provider -ErrorAction Stop){
+            Write-Host ('Removing owned registry subtree: '+$ownedKey)
+            Remove-UniRegistryKey $provider
+            $script:UniStats.RegKeys++
+        }
+    }
+    Ensure-UniRegCollect
+    if ($script:UniRegOk) {
+        try {
+            [UniRegCollectV6]::ResetCounters()
+            $task = [UniRegCollectV6]::CollectAsync($ReExact.ToString(), $ReLoose.ToString(), $denyPrefixes, $script:UniRegistryWorkers)
+        } catch { $task = $null }
+    }
+    if (-not $task) {
+        Clear-UniLine
+        throw "Registry collector unavailable; cleanup incomplete."
+        return
+    }
+    $scanWait=[Diagnostics.Stopwatch]::StartNew()
+    while (-not $task.IsCompleted) {
+        if($scanWait.Elapsed.TotalMinutes -ge 15){[UniRegCollectV6]::Cancel();throw 'Registry scan timed out; coverage incomplete.'}
+        $sc = 0; $mt = 0
+        try { $sc = [UniRegCollectV6]::Scanned; $mt = [UniRegCollectV6]::Matched } catch { }
+        Update-UniLine ("[{0}] registry sweep: keys {1:N0} scanned · {2} matched · workers {3} ..." -f (Get-UniElapsed), $sc, $mt, $script:UniRegistryWorkers)
+        Start-Sleep -Milliseconds 100
+    }
+    $items = @()
+    try { $items = @($task.Result) } catch { throw }
+    if([UniRegCollectV6]::Errors -gt 0){$script:UniFailed.Add('Registry scan errors: '+[UniRegCollectV6]::Errors)}
+    if ($items.Count -eq 0) {
+        Clear-UniLine
+        Write-Host "  registry sweep: nothing matched." -ForegroundColor Green
+        return
+    }
+    $script:UniRegSweepFound = $true
+    $i = 0
+    foreach ($item in $items) {
+        $i++
+        if ($item.StartsWith('K:')) {
+            $rp = 'Registry::' + $item.Substring(2)
+            Update-UniLine ("[{0}] registry sweep [{1}/{2}]: key {3}" -f (Get-UniElapsed), $i, $items.Count, $item.Substring(2))
+            if (-not (Test-UniOwnedRegistry $rp)) { $script:UniFailed.Add('Ambiguous registry key: '+$rp); continue }
+            Remove-UniRegistryKey -ProviderPath $rp
+            $script:UniStats.RegKeys++
+            Clear-UniLine
+            Write-Host ("  registry key removed: {0}" -f $item.Substring(2)) -ForegroundColor Green
+        } else {
+            $sep = $item.IndexOf([char]1)
+            if ($sep -lt 0) { continue }
+            $rp = 'Registry::' + $item.Substring(2, $sep - 2)
+            $vn = $item.Substring($sep + 1)
+            $vnShow = if ([string]::IsNullOrEmpty($vn)) { '(default)' } else { $vn }
+            Update-UniLine ("[{0}] registry sweep [{1}/{2}]: value {3} :: {4}" -f (Get-UniElapsed), $i, $items.Count, $item.Substring(2, $sep - 2), $vnShow)
+            if (-not (Test-UniOwnedRegistry $rp)) { $script:UniFailed.Add('Shared registry value: '+$rp+' :: '+$vn); continue }
+            Remove-UniRegistryValue -ProviderPath $rp -ValueName $vn
+            $script:UniStats.RegValues++
+            Clear-UniLine
+            Write-Host ("  registry value removed: {0} :: {1}" -f $item.Substring(2, $sep - 2), $vnShow) -ForegroundColor DarkGreen
+        }
+    }
+    Clear-UniLine
+    Write-Host ("  registry sweep done: {0} keys, {1} values." -f $script:UniStats.RegKeys, $script:UniStats.RegValues) -ForegroundColor Green
+}
+
+# ---------------------------------------------------------------------------
+# 7. environment variables + PATH
+# ---------------------------------------------------------------------------
+function Invoke-UniEnvVars {
+    param($ReExact)
+    foreach($scope in @('User','Machine')) {
+        $vars=[Environment]::GetEnvironmentVariables($scope)
+        foreach($key in @($vars.Keys)) {
+            # Never remove a shared variable wholesale because its data mentions an app.
+            if ([string]$key -ieq 'Path') { continue }
+            if (-not (Test-UniOwnedPath ([string]$vars[$key]))) { continue }
+            if ([string]$key -match '^(SystemRoot|windir|ComSpec|TEMP|TMP|USERPROFILE|APPDATA|LOCALAPPDATA|ProgramData|ProgramFiles|PSModulePath|PATHEXT)$') { continue }
+            [Environment]::SetEnvironmentVariable($key,$null,$scope)
+            $script:UniStats.EnvVars++
+        }
+        $old=[Environment]::GetEnvironmentVariable('Path',$scope)
+        if ($null -eq $old) { continue }
+        $parts=@($old -split ';')
+        $keep=@($parts | Where-Object { -not (Test-UniOwnedPath $_) })
+        if ($keep.Count -ne $parts.Count) {
+            [Environment]::SetEnvironmentVariable('Path',($keep -join ';'),$scope)
+            $script:UniStats.EnvVars++
+        }
+    }
+    # Preserve machine entries, process-only entries, ordering and empty segments.
+    $env:Path=(@($env:Path -split ';' | Where-Object { -not (Test-UniOwnedPath $_) }) -join ';')
+}
+
+# ---------------------------------------------------------------------------
+# 8. shortcuts / pins (Start Menu, Desktop, Taskbar, Recent)
+# ---------------------------------------------------------------------------
+function Invoke-UniShortcuts {
+    param($ReLoose)
+    $dirs = @()
+    foreach ($d in @(
+        (Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs'),
+        (Join-Path $env:ProgramData 'Microsoft\Windows\Start Menu\Programs'),
+        (Join-Path $env:USERPROFILE 'Desktop'),
+        ([Environment]::GetFolderPath('CommonDesktopDirectory')),
+        (Join-Path $env:APPDATA 'Microsoft\Internet Explorer\Quick Launch\User Pinned\TaskBar'),
+        (Join-Path $env:APPDATA 'Microsoft\Internet Explorer\Quick Launch\User Pinned\StartMenu'),
+        (Join-Path $env:APPDATA 'Microsoft\Windows\Recent')
+    )) {
+        if ($d -and (Test-Path -LiteralPath $d -PathType Container)) { $dirs += $d }
+    }
+    $shell = $null
+    try { $shell = New-Object -ComObject WScript.Shell } catch { }
+    foreach ($d in $dirs) {
+        $files = @()
+        try {
+            $files = @(Get-ChildItem -LiteralPath $d -Recurse -File -ErrorAction SilentlyContinue | Where-Object { $_.Extension -match '^\.(lnk|url|appref-ms)$' })
+        } catch { }
+        foreach ($f in $files) {
+            $hit = $false
+            if (-not $hit -and $shell) {
+                try {
+                    $sc = $shell.CreateShortcut($f.FullName)
+                    if ($sc.TargetPath -and (Test-UniTargetExecutable ([string]$sc.TargetPath))) { $hit = $true }
+                } catch { }
+            }
+            if ($hit) {
+                Update-UniLine ("[{0}] shortcuts: {1}" -f (Get-UniElapsed), $f.FullName)
+                [void]$script:UniOwnedFiles.Add($f.FullName)
+                if (Remove-UniTarget -Path $f.FullName) {
+                    $script:UniStats.Shortcuts++
+                    Clear-UniLine
+                    Write-Host ("  shortcut removed: {0}" -f $f.FullName) -ForegroundColor Green
+                    $parent=$f.Directory.FullName
+                    if($parent -ine $d -and (Test-UniSafeRoot $parent) -and -not [IO.Directory]::EnumerateFileSystemEntries($parent).GetEnumerator().MoveNext()){
+                        [IO.Directory]::Delete($parent,$false)
+                    }
+                }
+            }
+        }
+    }
+    Clear-UniLine
+    Write-Host ("  shortcuts: {0} removed." -f $script:UniStats.Shortcuts) -ForegroundColor Green
+}
+
+# ---------------------------------------------------------------------------
+# 9. MRU / recent entries
+# ---------------------------------------------------------------------------
+function Invoke-UniMru {
+ param($ReExact)
+ # MRU lists are shared Explorer data, not application-owned registrations.
+ # The read-only registry sweep reports references without deleting shared lists.
+ Write-Host 'Shared Explorer history preserved; matching references are reported by the registry scan.'
+}
+
+# ---------------------------------------------------------------------------
+# 10. filesystem obliteration (parallel scan + live counters + per-item log)
+# ---------------------------------------------------------------------------
+function Invoke-UniFileSweep {
+    param([string]$ExactPat, [string]$LoosePat, [string[]]$ExplicitPaths)
+
+    # Remove proven app storage before a full-drive discovery pass. This avoids
+    # walking thousands of files that are already conclusively owned by the app.
+    foreach($root in @($script:UniOwnedRoots | Sort-Object @{Expression={if($_ -match '\\Packages\\.*\\LocalCache\\'){0}else{1}}},Length)){
+        if(-not(Test-Path -LiteralPath $root -ErrorAction Stop)){continue}
+        $wasDirectory=[IO.Directory]::Exists($root)
+        Write-Host ('Cleaning owned root: '+$root)
+        if(Remove-UniTarget $root){
+            if($wasDirectory){$script:UniStats.Dirs++}else{$script:UniStats.Files++}
+        }else{$script:UniFailed.Add($root)}
+    }
+    if($script:UniIObitRequested){
+        foreach($file in @('C:\Windows\SysWOW64\version\_IObitDel.dll',($env:USERPROFILE+'\Documents\WindowsPowerShell\version\_IObitDel.dll'))){
+            if(Test-Path -LiteralPath $file -ErrorAction Stop){
+                if(Remove-UniTarget $file){$script:UniStats.Files++}else{$script:UniFailed.Add($file)}
+            }
+        }
+    }
+    # Explicit paths that have not already been removed above.
+    foreach ($p in $ExplicitPaths) {
+        Update-UniLine ("[{0}] explicit target: {1}" -f (Get-UniElapsed), $p)
+        if (-not (Test-Path -LiteralPath $p -ErrorAction Stop)) { continue }
+        $explicitIsDirectory=[IO.Directory]::Exists($p)
+        if (Remove-UniTarget -Path $p) {
+            if($explicitIsDirectory){$script:UniStats.Dirs++}else{$script:UniStats.Files++}
+            Clear-UniLine
+            Write-Host ("  deleted: {0}" -f $p) -ForegroundColor Green
+        } else {
+            [void]$script:UniFailed.Add($p)
+            Clear-UniLine
+            Write-Host ("  BLOCKED: {0}" -f $p) -ForegroundColor Red
+        }
+    }
+
+    $sd = [IO.Path]::GetPathRoot([Environment]::SystemDirectory)
+    $prog86 = $null
+    try { $prog86 = ${env:ProgramFiles(x86)} } catch { }
+    $rootDenyNames = @('Windows', 'Users', 'Program Files', 'Program Files (x86)', 'ProgramData', 'Temp', 'System Volume Information', 'Recovery', 'Windows.old', '$Recycle.Bin', 'Config.Msi', 'MSOCache', 'PerfLogs', '$WinREAgent', 'pagefile.sys', 'hiberfil.sys', 'swapfile.sys', 'DumpStack.log.tmp', 'bootmgr', 'BOOTSECT.BAK')
+    
+    # Discover package manager explicit paths for the target tokens
+    $explicitPkgPaths = @()
+    foreach ($tok in $pat.Tokens) {
+        # Scoop
+        if (Test-Path -LiteralPath (Join-Path $env:USERPROFILE 'scoop') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:USERPROFILE 'scoop')
+        }
+        if (Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'Scoop') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:LOCALAPPDATA 'Scoop')
+        }
+        # uv
+        if (Test-Path -LiteralPath (Join-Path $env:APPDATA 'uv') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:APPDATA 'uv')
+        }
+        # Chocolatey
+        if (Test-Path -LiteralPath 'C:\ProgramData\chocolatey' -PathType Container) {
+            $explicitPkgPaths += 'C:\ProgramData\chocolatey'
+        }
+        # Winget (DesktopAppInstaller packages cache)
+        if (Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'Packages') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:LOCALAPPDATA 'Packages')
+        }
+        # npm/pnpm/yarn global
+        if (Test-Path -LiteralPath (Join-Path $env:APPDATA 'npm') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:APPDATA 'npm')
+        }
+        if (Test-Path -LiteralPath (Join-Path $env:LOCALAPPDATA 'pnpm') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:LOCALAPPDATA 'pnpm')
+        }
+        # pipx
+        if (Test-Path -LiteralPath (Join-Path $env:APPDATA 'pipx') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:APPDATA 'pipx')
+        }
+        # Cargo/Rust
+        if (Test-Path -LiteralPath (Join-Path $env:USERPROFILE '.cargo') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:USERPROFILE '.cargo')
+        }
+        # Go
+        if (Test-Path -LiteralPath (Join-Path $env:USERPROFILE 'go') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:USERPROFILE 'go')
+        }
+        # Bun
+        if (Test-Path -LiteralPath (Join-Path $env:APPDATA 'bun') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:APPDATA 'bun')
+        }
+        # Deno
+        if (Test-Path -LiteralPath (Join-Path $env:APPDATA 'deno') -PathType Container) {
+            $explicitPkgPaths += (Join-Path $env:APPDATA 'deno')
+        }
+    }
+    $explicitPkgPaths = @($explicitPkgPaths | Select-Object -Unique | Where-Object { Test-Path -LiteralPath $_ -PathType Container })
+
+    $script:UniRootSpecs = @(
+        @{ Path = $sd; Mode = 'A'; RootDeny = $rootDenyNames },
+        @{ Path = (Join-Path $sd 'Temp'); Mode = 'T'; RootDeny = @() },
+        @{ Path = (Join-Path $sd 'Windows\Temp'); Mode = 'T'; RootDeny = @() },
+        @{ Path = (Join-Path $sd 'Windows\Tasks'); Mode = 'T'; RootDeny = @() },
+        @{ Path = (Join-Path $sd 'Windows\System32\Tasks'); Mode = 'T'; RootDeny = @() },
+        @{ Path = (Join-Path $sd 'Windows\Prefetch'); Mode = 'T'; RootDeny = @() },
+        @{ Path = $env:USERPROFILE; Mode = 'B'; RootDeny = @() },
+        @{ Path = $env:ProgramData; Mode = 'A'; RootDeny = @() },
+        @{ Path = $env:ProgramFiles; Mode = 'A'; RootDeny = @() },
+        @{ Path = $prog86; Mode = 'A'; RootDeny = @() },
+        @{ Path = (Join-Path $sd 'Users\Public'); Mode = 'B'; RootDeny = @() },
+        # AppData\Local\Packages (Windows App Installer / Winget cache) - Nuclear mode for exact matches
+        @{ Path = (Join-Path $env:LOCALAPPDATA 'Packages'); Mode = 'N'; RootDeny = @() },
+        # AppData\Roaming (uv, pipx, npm, etc.) - Nuclear mode
+        @{ Path = $env:APPDATA; Mode = 'N'; RootDeny = @() },
+        # Scoop locations - Nuclear mode
+        @{ Path = (Join-Path $env:USERPROFILE 'scoop'); Mode = 'N'; RootDeny = @() },
+        @{ Path = (Join-Path $env:LOCALAPPDATA 'Scoop'); Mode = 'N'; RootDeny = @() }
+    )
+    # Add discovered package manager paths as Nuclear mode roots
+    foreach ($p in $explicitPkgPaths) {
+        $script:UniRootSpecs += @{ Path = $p; Mode = 'N'; RootDeny = @() }
+    }
+    $script:UniRootSpecs = @($script:UniRootSpecs | Where-Object {
+        $_.Path -and $_.Path.StartsWith($sd, [System.StringComparison]::OrdinalIgnoreCase) -and (Test-Path -LiteralPath $_.Path -PathType Container)
+    })
+    $uniqueRoots=@{}
+    foreach($spec in $script:UniRootSpecs){
+        $key=[IO.Path]::GetFullPath($spec.Path).TrimEnd('\')
+        if(-not $uniqueRoots.ContainsKey($key) -or $spec.Mode -eq 'N'){$uniqueRoots[$key]=$spec}
+    }
+    $script:UniRootSpecs=@($uniqueRoots.Values | Sort-Object {$_.Path.Length})
+    $script:UniDenyPaths = @()
+    if ($env:ProgramFiles) {
+        $script:UniDenyPaths += (Join-Path $env:ProgramFiles 'WindowsApps')
+        $script:UniDenyPaths += (Join-Path $env:ProgramFiles 'Microsoft Shared')
+        $script:UniDenyPaths += (Join-Path $env:ProgramFiles 'Common Files\Microsoft Shared')
+        $script:UniDenyPaths += (Join-Path $env:ProgramFiles 'Windows NT')
+        $script:UniDenyPaths += (Join-Path $env:ProgramFiles 'Internet Explorer')
+    }
+    if ($prog86) {
+        $script:UniDenyPaths += (Join-Path $prog86 'Microsoft Shared')
+        $script:UniDenyPaths += (Join-Path $prog86 'Windows NT')
+        $script:UniDenyPaths += (Join-Path $prog86 'Internet Explorer')
+    }
+    if ($env:ProgramData) { $script:UniDenyPaths += (Join-Path $env:ProgramData 'Package Cache') }
+    $script:UniDenyPaths = @($script:UniDenyPaths | Where-Object { $_ -and (Test-Path -LiteralPath $_ -PathType Container) })
+
+    $protected = @()
+    if ($PSCommandPath) { $protected += [System.IO.Path]::GetFullPath($PSCommandPath) }
+    $mod = Get-Module -Name 'CodexProfileFunctions' -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($mod -and $mod.ModuleBase) {
+        $protected += (Join-Path $mod.ModuleBase ($mod.Name + '.psm1'))
+        $protected += (Join-Path $mod.ModuleBase ($mod.Name + '.psd1'))
+    }
+    $script:UniProtected = $protected
+
+    # launch root scans in bounded parallel waves so the big roots overlap
+    # instead of adding up - combined live counters while they run
+    Ensure-UniSweepCollect
+    if (-not $script:UniCollectOk) {
+        Clear-UniLine
+        throw "Filesystem collector unavailable; cleanup incomplete."
+        return
+    }
+    [UniSweepCollectV6]::ResetCounters()
+    $rootQueue = @($script:UniRootSpecs)
+    $running = @()
+    $completed = @()
+    $maxConcurrent = $script:UniMaxConcurrentRoots
+    $scanWait=[Diagnostics.Stopwatch]::StartNew()
+    while ($rootQueue.Count -gt 0 -or $running.Count -gt 0) {
+        if($scanWait.Elapsed.TotalMinutes -ge 30){[UniSweepCollectV6]::Cancel();throw 'Filesystem scan timed out; coverage incomplete.'}
+        while ($rootQueue.Count -gt 0 -and $running.Count -lt $maxConcurrent) {
+            $rs = $rootQueue[0]
+            $rootQueue = @($rootQueue | Select-Object -Skip 1)
+            try {
+                # Explicit child roots are scanned once with their own mode.
+                $scanDeny=@($script:UniDenyPaths)
+                foreach($child in $script:UniRootSpecs){if($child.Path -ine $rs.Path -and (Test-UniWithin $child.Path $rs.Path)){$scanDeny += $child.Path}}
+                $task = [UniSweepCollectV6]::CollectAsync($rs.Path, $rs.Mode, $ExactPat, $LoosePat, $scanDeny, $script:UniProtected, @($rs.RootDeny), $script:UniFsWorkersPerRoot)
+                if ($task) { $running += @{ Path = $rs.Path; Mode = $rs.Mode; Task = $task } }
+            } catch { }
+        }
+        if ($running.Count -eq 0) { break }
+        $sc = 0; $mt = 0
+        try { $sc = [UniSweepCollectV6]::Scanned; $mt = [UniSweepCollectV6]::Matched } catch { }
+        Update-UniLine ("[{0}] scanning roots: entries {1:N0} · matched {2} · roots {3} · workers {4} ..." -f (Get-UniElapsed), $sc, $mt, $running.Count, ($running.Count * $script:UniFsWorkersPerRoot))
+        Start-Sleep -Milliseconds 100
+        $still = @()
+        foreach ($r in $running) {
+            if ($r.Task.IsCompleted) { $completed += $r } else { $still += $r }
+        }
+        $running = $still
+    }
+    Clear-UniLine
+    Write-Host ("  scanned {0} root(s): {1}" -f $completed.Count, (@($completed | ForEach-Object { $_.Path }) -join ', ')) -ForegroundColor Cyan
+    foreach ($t in $completed) {
+        $cands = @()
+        try { $cands = @($t.Task.Result) } catch { throw }
+        if ($cands.Count -eq 0) {
+            Clear-UniLine
+            Write-Host ("  nothing matched under {0}." -f $t.Path) -ForegroundColor DarkGray
+            continue
+        }
+        $i = 0
+        foreach ($c in $cands) {
+            $i++
+            $wasDir = $false
+            try { $wasDir = [System.IO.Directory]::Exists($c) } catch { }
+            Update-UniLine ("[{0}] deleting [{1}/{2}] {3} ..." -f (Get-UniElapsed), $i, $cands.Count, $c)
+            if (Remove-UniTarget -Path $c) {
+                if ($wasDir) { $script:UniStats.Dirs++ } else { $script:UniStats.Files++ }
+                Clear-UniLine
+                Write-Host ("  deleted: {0}" -f $c) -ForegroundColor Green
+            } else {
+                [void]$script:UniFailed.Add($c)
+                Clear-UniLine
+                Write-Host ("  BLOCKED: {0}" -f $c) -ForegroundColor Red
+            }
+        }
+    }
+    Clear-UniLine
+    Write-Host ("  filesystem sweep done: {0} file(s), {1} dir(s) deleted." -f $script:UniStats.Files, $script:UniStats.Dirs) -ForegroundColor Green
+}
+
+# ---------------------------------------------------------------------------
+# 11. final round: re-kill, release handles, retry blocked items + re-scan nuclear roots
+# ---------------------------------------------------------------------------
+function Invoke-UniFinal {
+    param($ReExact,$ReLoose,[string]$ExactPat,[string]$LoosePat,$RootSpecs,$DenyPaths,$Protected)
+    # Retrying deletion must never kill lock holders, restart Explorer, or elevate
+    # and repeat earlier external mutations. Report blocked items instead.
+    foreach($path in @($script:UniOwnedRoots)) {
+        if (Test-Path -LiteralPath $path -ErrorAction Stop) {
+            if (-not (Remove-UniTarget $path)) { if (-not $script:UniFailed.Contains($path)) { $script:UniFailed.Add($path) } }
+        }
+    }
+    foreach($program in @($script:UniSelectedPrograms)) {
+        if (Test-Path -LiteralPath $program.RegistryPath -ErrorAction Stop) { $script:UniFailed.Add('Registration remains: '+$program.Name) }
+    }
+}
+
+# ---------------------------------------------------------------------------
+# summary
+# ---------------------------------------------------------------------------
+function Write-UniSummary {
+    Clear-UniLine
+    if(('UniSweepCollectV6' -as [type]) -and [UniSweepCollectV6]::Errors -gt 0){$script:UniFailed.Add('Filesystem scan errors: '+[UniSweepCollectV6]::Errors)}
+    Write-Host ("Run finished in {0}. Verified file removals: {1}; directory removals: {2}." -f (Get-UniElapsed),$script:UniStats.Files,$script:UniStats.Dirs)
+    foreach($path in @($script:UniFailed | Select-Object -Unique)) { Write-Warning "Unremoved or unverified: $path" }
+    Write-Host 'Scan coverage excludes inaccessible and protected locations. Shared or ambiguous artifacts are preserved. Zero leftovers is not certified.'
+    $global:LASTEXITCODE=if($script:UniFailed.Count){2}else{0}
+}
+
+# Ownership boundary, September 2026. Name matches discover candidates; they do
+# not authorize terminating a process or recursively deleting a directory.
+function Get-UniIdentity {
+    param([string]$Name)
+    return ($Name.Trim().ToLowerInvariant() -replace '[ ._-]','')
+}
+function Remove-UniStartupApproval {
+ param([string]$RunKey,[string]$ValueName,[string]$Executable)
+ if(-not(Test-UniTargetExecutable $Executable)){throw 'Startup approval target lacks ownership'}
+ if($RunKey -notmatch '^(HKCU|HKLM):\\SOFTWARE\\(WOW6432Node\\)?Microsoft\\Windows\\CurrentVersion\\Run$'){return}
+ $hive=if($matches[1] -eq 'HKCU'){[Microsoft.Win32.Registry]::CurrentUser}else{[Microsoft.Win32.Registry]::LocalMachine}
+ $branch=if($matches[2]){'Run32'}else{'Run'}
+ $key=$hive.OpenSubKey('Software\Microsoft\Windows\CurrentVersion\Explorer\StartupApproved\'+$branch,$true)
+ if(-not $key){return}
+ try {
+  if($key.GetValueNames() -contains $ValueName){$key.DeleteValue($ValueName,$true);$script:UniStats.RegValues++;Write-Host ('Removed startup approval for verified target: '+$ValueName)}
+ } finally {$key.Close()}
+}
+function Test-UniProductName {
+    param([string]$DisplayName,[string[]]$Identities)
+    if($Identities -contains (Get-UniIdentity $DisplayName)){return $true}
+    # A numeric trailing release is distinct from arbitrary product suffixes.
+    $base=$DisplayName -replace '\s+(?:v(?:ersion)?\s*)?\d+(?:\.\d+)*(?:\s*\(x(?:64|86)\))?$',''
+    return ($base -ne $DisplayName -and $Identities -contains (Get-UniIdentity $base))
+}
+function Test-UniTargetExecutable {
+    param([string]$Path)
+    $Path=[Environment]::ExpandEnvironmentVariables([string]$Path).Trim().Trim('"')
+    if(Test-UniOwnedPath $Path){return $true}
+    if($Path -notmatch '^[A-Za-z]:\\' -or $Path -match '[*?<>|]' -or $Path.Substring(2).Contains(':')){return $false}
+    $full=[IO.Path]::GetFullPath($Path)
+    $current=$full
+    try {while($current.Length -gt 3){
+        if(Test-Path -LiteralPath $current -ErrorAction Stop){if((Get-Item -LiteralPath $current -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint){return $false}}
+        $current=[IO.Path]::GetDirectoryName($current)
+    }} catch {return $false}
+    foreach($root in @($script:UniExecutionRoots)){
+        if(Test-UniWithin $full $root){return $true}
+    }
+    # Startup references must remain identifiable when the portable app is closed.
+    $root=[IO.Path]::GetDirectoryName($full);$folder=[IO.Path]::GetFileName($root)
+    $kind=Get-UniIdentity $folder
+    if($folder -match '^\d+(\.\d+)+$'){$kind=Get-UniIdentity ([IO.Path]::GetFileName([IO.Path]::GetDirectoryName($root)))}
+    $mainFiles=@()
+    if($script:UniCCleanerRequested -and $kind -eq 'ccleaner'){$mainFiles=@('CCleaner64.exe','CCleaner.exe')}
+    if($script:UniDriverBoosterRequested -and $kind -eq 'driverbooster'){$mainFiles=@('DriverBooster.exe')}
+    foreach($main in $mainFiles){
+        $mainPath=Join-Path $root $main
+        if(-not [IO.File]::Exists($mainPath)){continue}
+        try {
+            if((Get-Item -LiteralPath $mainPath -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint){continue}
+            $version=[Diagnostics.FileVersionInfo]::GetVersionInfo($mainPath)
+            if(($kind -eq 'ccleaner' -and $version.ProductName -eq 'CCleaner' -and $version.CompanyName -match '^(Gen Digital Inc\.|Piriform(?: Ltd\.?)?)$') -or ($kind -eq 'driverbooster' -and $version.ProductName -eq 'Driver Booster' -and $version.CompanyName -eq 'IObit')){return $true}
+        } catch {return $false}
+    }
+    return $false
+}
+function Initialize-UniExecutionRoots {
+    # Metadata verifies portable copies without granting file deletion outside C:.
+    $script:UniExecutionRoots=@()
+    foreach($process in @(Get-Process -ErrorAction Stop)){
+        try {
+            $path=$process.Path
+            if(-not $path){continue}
+            $leaf=[IO.Path]::GetFileName($path)
+            $kind=$null
+            if($script:UniCCleanerRequested -and $leaf -match '^CCleaner(?:64)?\.exe$'){$kind='ccleaner'}
+            if($script:UniDriverBoosterRequested -and $leaf -ieq 'DriverBooster.exe'){$kind='driverbooster'}
+            if(-not $kind){continue}
+            $version=[Diagnostics.FileVersionInfo]::GetVersionInfo($path)
+            $verified=($kind -eq 'ccleaner' -and $version.ProductName -eq 'CCleaner' -and $version.CompanyName -match '^(Gen Digital Inc\.|Piriform(?: Ltd\.?)?)$') -or ($kind -eq 'driverbooster' -and $version.ProductName -eq 'Driver Booster' -and $version.CompanyName -eq 'IObit')
+            if($verified){
+                $root=[IO.Path]::GetDirectoryName($path)
+                # Never authorize a shared portable directory based on one executable.
+                $parent=[IO.Path]::GetFileName($root)
+                if($parent -match '^\d+(\.\d+)+$'){$parent=[IO.Path]::GetFileName([IO.Path]::GetDirectoryName($root))}
+                if((Get-UniIdentity $parent) -eq $kind){
+                    $script:UniExecutionRoots += $root
+                    Write-Host ('Verified target process location (file deletion still C: only): '+$root)
+                }
+            }
+        } catch {$script:UniFailed.Add('Process identity inspection: '+$_.Exception.Message)}
+    }
+    $script:UniExecutionRoots=@($script:UniExecutionRoots | Select-Object -Unique)
+}
+function Test-UniWithin {
+    param([string]$Path,[string]$Root)
+    if(-not $Path -or -not $Root){return $false}
+    return $Path.Equals($Root,[StringComparison]::OrdinalIgnoreCase) -or $Path.StartsWith($Root.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)
+}
+function Test-UniSafeRoot {
+    param([string]$Path)
+    try {
+        if($Path -notmatch '^C:\\' -or $Path -match '[*?<>|\x00-\x1f]' -or $Path.Substring(2).Contains(':')){return $false}
+        $full=[IO.Path]::GetFullPath($Path).TrimEnd('\')
+        if($full.Length -le 3){return $false}
+        $blocked=@('C:\Windows','C:\Recovery','C:\System Volume Information','C:\$Recycle.Bin','C:\Program Files\Common Files','C:\Program Files (x86)\Common Files','C:\Program Files\WindowsApps','C:\ProgramData\Package Cache')
+        foreach($b in $blocked){if(Test-UniWithin $full $b){return $false}}
+        $containers=@('C:','C:\Users','C:\Program Files','C:\Program Files (x86)','C:\ProgramData','C:\Temp',$env:USERPROFILE,$env:APPDATA,$env:LOCALAPPDATA,$env:PUBLIC)
+        foreach($b in $containers){if($b -and $full -ieq $b.TrimEnd('\')){return $false}}
+        # Refuse user-profile roots and shared AppData containers, regardless of user.
+        if($full -match '^C:\\Users\\[^\\]+(\\(AppData(\\(Local|LocalLow|Roaming))?|Desktop|Documents|Downloads))?$'){return $false}
+        $current=$full
+        while($current -and $current.Length -gt 3){
+            if(Test-Path -LiteralPath $current -ErrorAction Stop){
+                $item=Get-Item -LiteralPath $current -Force -ErrorAction Stop
+                if($item.Attributes -band [IO.FileAttributes]::ReparsePoint){return $false}
+            }
+            $current=[IO.Path]::GetDirectoryName($current)
+        }
+        return $true
+    } catch {return $false}
+}
+function Test-UniOwnedPath {
+    param([string]$Path)
+    if(Test-UniKnownResidualFile $Path){return $true}
+    if(-not (Test-UniSafeRoot $Path)){return $false}
+    $full=[IO.Path]::GetFullPath($Path).TrimEnd('\')
+    foreach($other in @($script:UniOtherRoots)) {if(Test-UniWithin $full $other){return $false}}
+    if($script:UniOwnedFiles -and $script:UniOwnedFiles.Contains($full)){return $true}
+    foreach($root in @($script:UniOwnedRoots)){if(Test-UniWithin $full $root){return $true}}
+    return $false
+}
+function Test-UniKnownResidualFile {
+    param([string]$Path)
+    if(-not $script:UniIObitRequested -or -not $Path){return $false}
+    try {
+        $full=[IO.Path]::GetFullPath($Path)
+        $allowed=@('C:\Windows\SysWOW64\version\_IObitDel.dll',($env:USERPROFILE+'\Documents\WindowsPowerShell\version\_IObitDel.dll'))
+        if($allowed -inotcontains $full -or [IO.Directory]::Exists($full)){return $false}
+        $current=$full
+        while($current.Length -gt 3){
+            if(Test-Path -LiteralPath $current -ErrorAction Stop){if((Get-Item -LiteralPath $current -Force -ErrorAction Stop).Attributes -band [IO.FileAttributes]::ReparsePoint){return $false}}
+            $current=[IO.Path]::GetDirectoryName($current)
+        }
+        return $true
+    } catch {return $false}
+}
+function Split-UniCommand {
+    param([string]$Command)
+    $command=[Environment]::ExpandEnvironmentVariables($Command).Trim()
+    if($command -match '^"(?<exe>[A-Za-z]:\\[^"\r\n]+)"(?<args>\s.*)?$' -or $command -match '^(?<exe>[A-Za-z]:\\[^\s"]+\.exe)(?<args>\s.*)?$'){
+        return @{File=$matches.exe; Arguments=([string]$matches.args).Trim()}
+    }
+    return $null # Ambiguous unquoted path, DLL/script host, or bare executable.
+}
+function Test-UniOwnedRegistry {
+    param([string]$Path)
+    $path=$Path -replace '^.*Registry::','' -replace '^HKLM:?', 'HKEY_LOCAL_MACHINE' -replace '^HKCU:?', 'HKEY_CURRENT_USER'
+    foreach($root in @($script:UniDeferredRegistryRoots)){if((Test-UniWithin $path $root) -or (Test-UniWithin $root $path)){return $false}}
+    foreach($root in @($script:UniOwnedRegistryRoots)){if(Test-UniWithin $path $root){return $true}}
+    return $false
+}
+function Initialize-UniOwnership {
+    param([string[]]$Names,[string[]]$Paths)
+    $script:UniOwnedRoots=@(); $script:UniOtherRoots=@(); $script:UniSelectedPrograms=@(); $script:UniOwnedRegistryRoots=@(); $script:UniDeferredRegistryRoots=@()
+    $script:UniOwnedFiles=New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+    $identities=@($Names | ForEach-Object {Get-UniIdentity $_} | Select-Object -Unique)
+    $script:UniDockerRequested=($identities -contains 'docker' -or $identities -contains 'dockerdesktop')
+    if($script:UniDockerRequested){$identities += 'dockerdesktop'}
+    $script:UniIObitRequested=$identities -contains 'iobit'
+    $script:UniDriverBoosterRequested=($identities -contains 'driverbooster' -or $script:UniIObitRequested)
+    $script:UniCCleanerRequested=$identities -contains 'ccleaner'
+    if($script:UniDriverBoosterRequested){$identities += 'driverbooster'}
+    $all=@()
+    foreach($root in @('HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall','HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall','HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall','HKCU:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall')){
+        if(-not (Test-Path -LiteralPath $root)){continue}
+        foreach($key in @(Get-ChildItem -LiteralPath $root -ErrorAction Stop)){
+            $p=Get-ItemProperty -LiteralPath $key.PSPath -ErrorAction Stop
+            if(-not $p.DisplayName){continue}
+            $selected=(Test-UniProductName ([string]$p.DisplayName) $identities) -or ($script:UniIObitRequested -and ([string]$p.Publisher).Trim() -eq 'IObit')
+            $location=([string]$p.InstallLocation).Trim().Trim('"').TrimEnd('\')
+            foreach($explicit in @($Paths)){
+                if($location -and (Test-UniSafeRoot $location) -and [IO.Path]::GetFullPath($explicit).TrimEnd('\') -ieq [IO.Path]::GetFullPath($location).TrimEnd('\')){$selected=$true}
+            }
+            $record=[pscustomobject]@{Name=[string]$p.DisplayName; Location=$location; Selected=$selected; RegistryPath=$key.PSPath; Quiet=[string]$p.QuietUninstallString; Command=[string]$p.UninstallString; KeyName=$key.PSChildName; WindowsInstaller=$p.WindowsInstaller}
+            $all += $record
+            if($selected){$script:UniSelectedPrograms += $record}
+            elseif($location -match '^C:\\' -and $location.Length -gt 3){$script:UniOtherRoots += [IO.Path]::GetFullPath($location)}
+        }
+    }
+    $candidateRoots=@($Paths)
+    $relative=@();$registryRelative=@()
+    if($script:UniCCleanerRequested){$relative += @('Piriform\CCleaner','CCleaner');$registryRelative += 'Piriform\CCleaner'}
+    if($script:UniDriverBoosterRequested){$relative += 'IObit\Driver Booster';$registryRelative += 'IObit\Driver Booster'}
+    if($script:UniIObitRequested){$relative += 'IObit';$registryRelative += 'IObit';$candidateRoots += 'C:\Temp\iobit-db-license-tmp'}
+    $storageBases=@('C:\ProgramData','C:\Program Files','C:\Program Files (x86)')
+    foreach($userDir in [IO.Directory]::EnumerateDirectories('C:\Users')){
+        foreach($part in @('Local','LocalLow','Roaming')){$storageBases += $userDir+'\AppData\'+$part}
+        $packages=$userDir+'\AppData\Local\Packages'
+        if(Test-UniSafeRoot ($packages+'\OwnershipProbe')){
+            foreach($package in @(Get-ChildItem -LiteralPath $packages -Directory -ErrorAction SilentlyContinue)){
+                foreach($part in @('Local','LocalLow','Roaming')){$storageBases += $package.FullName+'\LocalCache\'+$part}
+            }
+        }
+    }
+    foreach($base in $storageBases){foreach($rel in $relative){$candidate=$base+'\'+$rel;if([IO.Directory]::Exists($candidate)){$candidateRoots += $candidate}}}
+    foreach($hive in @('HKEY_CURRENT_USER\Software','HKEY_LOCAL_MACHINE\SOFTWARE','HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node')){
+        foreach($rel in $registryRelative){$script:UniOwnedRegistryRoots += $hive+'\'+$rel}
+    }
+    if($script:UniDockerRequested){
+        # Vendor-documented residual locations, C: only. Shared-root overlap checks
+        # below still apply. No global WSL shutdown, distro removal or VM guessing.
+        $candidateRoots += @('C:\Program Files\Docker','C:\ProgramData\Docker','C:\ProgramData\DockerDesktop')
+        foreach($userDir in [IO.Directory]::EnumerateDirectories('C:\Users')){
+            if(-not(Test-UniSafeRoot ($userDir+'\AppData\Local\Docker'))){continue}
+            $candidateRoots += @(@($userDir+'\AppData\Local\Docker';$userDir+'\AppData\Roaming\Docker';$userDir+'\AppData\Roaming\Docker Desktop';$userDir+'\.docker') | Where-Object { [IO.Directory]::Exists($_) })
+        }
+        foreach($hive in @('HKEY_CURRENT_USER\Software','HKEY_LOCAL_MACHINE\SOFTWARE','HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node')){
+            $script:UniOwnedRegistryRoots += @($hive+'\Docker Inc.\Docker Desktop';$hive+'\Docker Desktop')
+        }
+    }
+    foreach($p in $script:UniSelectedPrograms){
+        if($p.Location){$candidateRoots += $p.Location}
+        # Product-specific registry subtrees only, never a publisher subtree.
+        foreach($hive in @('HKEY_CURRENT_USER\Software','HKEY_LOCAL_MACHINE\SOFTWARE','HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node')){
+            $script:UniOwnedRegistryRoots += $hive+'\'+$p.Name
+        }
+    }
+    # Exact product folder names in app storage; never arbitrary same-name docs.
+    foreach($base in @($env:APPDATA,$env:LOCALAPPDATA,$env:ProgramData,$env:ProgramFiles,${env:ProgramFiles(x86)})){
+        if(-not $base -or -not (Test-Path -LiteralPath $base)){continue}
+        foreach($dir in @(Get-ChildItem -LiteralPath $base -Directory -Force -ErrorAction Stop)){
+            if($identities -contains (Get-UniIdentity $dir.Name)){$candidateRoots += $dir.FullName}
+        }
+    }
+    foreach($candidate in @($candidateRoots | Select-Object -Unique)){
+        if(-not (Test-UniSafeRoot $candidate)){throw "Unsafe or linked app root: $candidate"}
+        $full=[IO.Path]::GetFullPath($candidate).TrimEnd('\')
+        $conflict=$false
+        foreach($other in $script:UniOtherRoots){if((Test-UniWithin $full $other) -or (Test-UniWithin $other $full)){$conflict=$true;break}}
+        if($conflict){$script:UniFailed.Add('Shared installation preserved: '+$full);continue}
+        $script:UniOwnedRoots += $full
+        Write-Host "Owned app root: $full"
+    }
+    $script:UniOwnedRoots=@($script:UniOwnedRoots | Select-Object -Unique)
+    Initialize-UniExecutionRoots
+    if(-not $script:UniOwnedRoots.Count -and -not $script:UniSelectedPrograms.Count){throw 'No exact installed identity or exclusive app root found. Specify the exact installed display name or app path.'}
+}
+function Invoke-UniOfficialUninstall {
+    param([ValidateRange(1,180)][int]$TimeoutSeconds=180)
+    foreach($program in @($script:UniSelectedPrograms)){
+        # A prior attempt may already have removed its registration asynchronously.
+        if(-not(Test-Path -LiteralPath $program.RegistryPath -ErrorAction Stop)){
+            Write-Host ('Already unregistered: '+$program.Name)
+            continue
+        }
+        if($program.WindowsInstaller -eq 1 -and $program.KeyName -match '^\{[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\}$'){
+            $command=@{File="$env:SystemRoot\System32\msiexec.exe";Arguments=''}
+        } else { $command=Split-UniCommand $program.Quiet }
+        if(-not $command){$command=Split-UniCommand $program.Command}
+        if(-not $command){Set-UniUninstallIncomplete $program 'No unambiguous registered uninstaller executable';continue}
+        $isMsi=([IO.Path]::GetFullPath($command.File) -ieq "$env:SystemRoot\System32\msiexec.exe") -or ([IO.Path]::GetFullPath($command.File) -ieq "$env:SystemRoot\SysWOW64\msiexec.exe")
+        if($isMsi){
+            if($program.WindowsInstaller -ne 1 -or $program.KeyName -notmatch '^\{[0-9a-fA-F]{8}(-[0-9a-fA-F]{4}){3}-[0-9a-fA-F]{12}\}$'){Set-UniUninstallIncomplete $program 'MSI product identity could not be verified';continue}
+            $command.Arguments='/x '+$program.KeyName+' /qn /norestart'
+        } elseif(-not (Test-UniOwnedPath $command.File)) {Set-UniUninstallIncomplete $program ('Official uninstaller is outside exclusive C: app roots: '+$command.File);continue}
+        $alreadyRunning=$false
+        if(-not $isMsi){
+            foreach($running in @(Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($command.File)) -ErrorAction SilentlyContinue)){
+                if(-not $running.Path -or $running.Path -ieq $command.File){Set-UniUninstallIncomplete $program ('Existing uninstaller PID '+$running.Id+' is still active; no duplicate started');$alreadyRunning=$true;break}
+            }
+        }
+        if($alreadyRunning){continue}
+        $info=New-Object Diagnostics.ProcessStartInfo
+        $info.FileName=$command.File; $info.Arguments=$command.Arguments; $info.UseShellExecute=$false
+        $info.WorkingDirectory=[IO.Path]::GetDirectoryName($command.File)
+        if(-not [IO.File]::Exists($command.File)){
+            Set-UniUninstallIncomplete $program ('Registered uninstaller is missing: '+$command.File)
+            continue
+        }
+        Write-Host "Running official uninstaller: $($program.Name)"
+        try {$process=[Diagnostics.Process]::Start($info)} catch {
+            Set-UniUninstallIncomplete $program ('Uninstaller could not start: '+$_.Exception.Message)
+            continue
+        }
+        $watch=[Diagnostics.Stopwatch]::StartNew()
+        $timedOut=$false
+        while(-not $process.WaitForExit(1000)){
+            Write-Host ("Official uninstaller PID {0}; elapsed {1}s; limit {2}s." -f $process.Id,[int]$watch.Elapsed.TotalSeconds,$TimeoutSeconds)
+            if($watch.Elapsed.TotalSeconds -ge $TimeoutSeconds){Set-UniUninstallIncomplete $program ('Uninstaller still running, PID '+$process.Id+'; timed out; installation preserved');$timedOut=$true;break}
+        }
+        if($timedOut){$process.Dispose();continue}
+        $code=$process.ExitCode
+        $process.Dispose()
+        if($code -in @(1641,3010)){
+            Set-UniUninstallIncomplete $program ('Uninstaller requests reboot; exit '+$code)
+            continue
+        }
+        if($code -ne 0){
+            Set-UniUninstallIncomplete $program ('Official uninstaller exited with code '+$code+'; executable '+$command.File)
+            continue
+        }
+        if(Test-Path -LiteralPath $program.RegistryPath){
+            Set-UniUninstallIncomplete $program 'Registration remains after the uninstaller exited successfully'
+        }
+    }
+}
+function Set-UniUninstallIncomplete {
+    param($Program,[string]$Reason)
+    $message=$Program.Name+': '+$Reason
+    $script:UniFailed.Add($message)
+    # Keep the failed installation repairable. Even a selected parent root may
+    # not recursively erase this subtree. Other independent targets still run.
+    if($Program.Location){$script:UniOtherRoots += [IO.Path]::GetFullPath($Program.Location).TrimEnd('\')}
+    else {$script:UniOtherRoots += @($script:UniOwnedRoots)}
+    # Publisher/product registry roots can overlap. Defer ambiguous deep registry
+    # removal after a vendor failure; exact startup references have their own checks.
+    $script:UniDeferredRegistryRoots=@($script:UniOwnedRegistryRoots)
+    Write-Host ('UNINSTALL INCOMPLETE: '+$message) -ForegroundColor Yellow
+    Write-Host 'Preserving this installation and its registration; continuing other verified cleanup.'
+}
+
+
+# ---------------------------------------------------------------------------
+# the nuclear entry point
+# ---------------------------------------------------------------------------
+function Start-UniHeartbeat {
+ if(-not ('UniProgressV1' -as [type])){
+  Add-Type -TypeDefinition @"
+using System;
+using System.Threading;
+using System.Diagnostics;
+public static class UniProgressV1 {
+ private static Timer timer;
+ private static Stopwatch watch;
+ public static string Phase = "Initializing";
+ public static void Start() {
+  watch=Stopwatch.StartNew();
+  timer=new Timer(delegate(object state) {
+   try { Console.WriteLine("[RUNNING {0:0}s] {1}",watch.Elapsed.TotalSeconds,Phase); } catch { }
+  },null,1000,1000);
+ }
+ public static void Stop() { if(timer!=null){timer.Dispose();timer=null;} }
+}
+"@ -ErrorAction Stop
+ }
+ [UniProgressV1]::Stop()
+ [UniProgressV1]::Phase='Initializing'
+ [UniProgressV1]::Start()
+}
+function uni {
+    $ErrorActionPreference = 'Stop'
+    $script:UniFailed = New-Object 'System.Collections.Generic.List[string]'
+    $script:UniPhase=0
+    $dryRun=$false
+    $raw = @($args)
+    $names = New-Object System.Collections.Generic.List[string]
+    $paths = New-Object System.Collections.Generic.List[string]
+    $sweepOnly = $false
+    foreach ($a in $raw) {
+        $s = [string]$a
+        if ($s -eq '--dry-run') { $dryRun=$true; continue }
+        elseif ($s -match '^(/|--|-)[A-Za-z]') { throw "Unknown option: $s" }
+        elseif ($s -match '^[A-Za-z]:[\\/]' -or $s -match '^\\\\' -or (Test-Path -LiteralPath $s -ErrorAction SilentlyContinue)) {
+            try { $paths.Add([System.IO.Path]::GetFullPath($s)) } catch { $paths.Add($s) }
+        }
+        else { $names.Add($s) }
+    }
+    if ($names.Count -eq 0 -and $paths.Count -eq 0) {
+        Write-Host 'uni: no target app names or paths given.' -ForegroundColor Yellow
+        return
+    }
+    $requestedNames=@($names)
+    if ($paths.Count -gt 0) {
+        foreach($p in $paths) {
+            if (-not (Test-UniSafeRoot $p)) { throw "Unsafe explicit app path: $p" }
+            $names.Add([IO.Path]::GetFileNameWithoutExtension($p.TrimEnd('\')))
+        }
+    }
+    if(@($requestedNames | ForEach-Object {Get-UniIdentity $_}) -contains 'docker'){
+        $names.Add('Docker Desktop')
+    }
+    $pat = Get-UniPatterns -Names @($names)
+    if (-not $pat) {
+        Write-Host ("uni: names too short or too generic to sweep safely: {0}" -f (@($names) -join ', ')) -ForegroundColor Yellow
+        return
+    }
+    $ReExact = New-Object System.Text.RegularExpressions.Regex($pat.Exact, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    $ReLoose = New-Object System.Text.RegularExpressions.Regex($pat.Loose, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
+
+    Write-Host ('  SEARCH TERMS: {0}' -f ($pat.Tokens -join ', ')) -ForegroundColor Cyan
+    Write-Host '  Preserving shared resources; reporting unverified leftovers.' -ForegroundColor DarkGray
+    $script:UniStart = [DateTime]::UtcNow
+
+    Initialize-UniOwnership -Names $requestedNames -Paths @($paths)
+    if($dryRun){
+        Write-Host 'DRY RUN: identity and ownership preview only. No uninstallers or cleanup actions executed.'
+        foreach($program in $script:UniSelectedPrograms){Write-Host ('Selected registration: '+$program.Name)}
+        $global:LASTEXITCODE=0
+        return
+    }
+    Write-UniPhase 'Terminating verified target processes'
+    Invoke-UniKillProcesses -ReExact $ReExact
+    Write-UniPhase 'Removing verified target services'
+    Invoke-UniServices -ReExact $ReExact
+    Write-UniPhase 'Deleting scheduled tasks'
+    Invoke-UniTasks -ReExact $ReExact
+    Write-UniPhase 'Running exact registered uninstallers'
+    Invoke-UniOfficialUninstall
+    Write-UniPhase 'Removing firewall rules'
+    Invoke-UniFirewall -ReExact $ReExact
+    Write-UniPhase 'Uninstall / App Paths / Run keys'
+    Invoke-UniInstallerKeys -ReExact $ReExact
+    Write-UniPhase 'Deep registry & COM sweep'
+    Invoke-UniRegistrySweep -ReExact $ReExact -ReLoose $ReLoose
+    Write-UniPhase 'Cleaning environment variables'
+    Invoke-UniEnvVars -ReExact $ReExact
+    Write-UniPhase 'Removing shortcuts and pins'
+    Invoke-UniShortcuts -ReLoose $ReLoose
+    Write-UniPhase 'Cleaning MRU and recent lists'
+    Invoke-UniMru -ReExact $ReExact
+    Write-UniPhase 'Removing verified C: app files'
+    Invoke-UniFileSweep -ExactPat $pat.Exact -LoosePat $pat.Loose -ExplicitPaths @($paths)
+    Write-UniPhase 'Final cleanup round'
+    Invoke-UniFinal -ReExact $ReExact -ReLoose $ReLoose -ExactPat $pat.Exact -LoosePat $pat.Loose -RootSpecs $script:UniRootSpecs -DenyPaths $script:UniDenyPaths -Protected $script:UniProtected
+
+    Write-UniSummary
+}
+
+if ($MyInvocation.InvocationName -ne '.') {
+    $global:LASTEXITCODE=2
+    Write-Host 'Starting Uni: resolving exact application ownership.'
+    $runtime=Join-Path $PSScriptRoot 'uni.runtime.dll'
+    if(-not(Test-Path -LiteralPath $runtime)){throw 'Uni runtime missing. Run the documented build script.'}
+    [void][Reflection.Assembly]::Load([IO.File]::ReadAllBytes($runtime))
+    Start-UniHeartbeat
+    $script:UniRunLock=New-Object Threading.Mutex($false,'Global\UniOwnedCleanupV6')
+    $script:UniHasLock=$false
+    try {
+        try {$script:UniHasLock=$script:UniRunLock.WaitOne(0)} catch [Threading.AbandonedMutexException] {$script:UniHasLock=$true}
+        if(-not $script:UniHasLock){throw 'Another Uni run is active; this invocation did not mutate anything.'}
+        & 'uni' @args
+    }
+    catch {
+        $global:LASTEXITCODE=2
+        Write-Host ('INCOMPLETE: '+$_.Exception.Message) -ForegroundColor Red
+        Write-Host 'Subsequent cleanup stopped. Completed external actions are not rolled back; reconcile before retrying.'
+        throw
+    } finally {
+        if('UniSweepCollectV6' -as [type]){[UniSweepCollectV6]::Cancel()}
+        if('UniRegCollectV6' -as [type]){[UniRegCollectV6]::Cancel()}
+        if($script:UniHasLock){$script:UniRunLock.ReleaseMutex()}
+        if($script:UniRunLock){$script:UniRunLock.Dispose()}
+        [UniProgressV1]::Stop()
+    }
+    exit $global:LASTEXITCODE
+}

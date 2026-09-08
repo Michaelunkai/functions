@@ -78,3 +78,17 @@
 - Keep minimized titled app windows during enumeration and use `MonitorFromWindow` for their monitor association.
 - Run complete stdin harnesses with `/ErrorStdOut=UTF-8`; if a harness is interrupted, stop only the test `AutoHotkey64.exe` process whose command line does not reference `current.ahk`.
 - For strict warning checks, route `#Warn All` to `StdOut`, initialize retained GUI handles at hotstring entry, and bind GUI methods directly instead of referencing outer locals from callback lambdas.
+
+## 2026-09-08: AHK mute hotstrings and ddrivers AppsFolder popup
+
+### Root Cause:
+- `ddrivers` invoked a stale `shell:AppsFolder` GameSir identifier after already having a valid installed `GameSir Connect.exe` path.
+- The live script had no `mmute`, `unmute`, `mmmute`, or `uunmute` hotstrings.
+
+### Fix:
+- Removed the stale GameSir AppsFolder launch route and count it once through the direct executable list.
+- Added HWND/PID foreground app mute commands and CoreAudio default-capture scalar persistence with a session value plus `%TEMP%\mic-prev-level.txt` fallback.
+
+### Verification:
+- AutoHotkey v2 `/validate` passed; one live `current.ahk` instance remained active.
+- Direct app, driver, microphone state-matrix, and live four-hotstring probes passed; the original microphone level and saved file were restored.

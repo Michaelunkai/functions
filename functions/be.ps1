@@ -118,7 +118,11 @@ if ($snapshotExisted) {
 Write-Host 'BE: [1/4] Reloading current profile (. $profile)...' -ForegroundColor Cyan
 . $profile
 Write-Host 'BE: [2/4] Backing up profile files (latest functions)...' -ForegroundColor Cyan
-try { & $backupScript } catch { throw "BE: profile backup failed: $($_.Exception.Message)" }
+$profileBackupHost = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+try {
+    & $profileBackupHost -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $backupScript
+    if ($LASTEXITCODE -ne 0) { throw "profile backup child exit code: $LASTEXITCODE" }
+} catch { throw "BE: profile backup failed: $($_.Exception.Message)" }
 Write-Host 'BE: [3/4] Syncing PowerShell 7 profile (ps527)...' -ForegroundColor Cyan
 $ps527Command = Get-Command ps527 -CommandType Function -ErrorAction SilentlyContinue | Select-Object -First 1
 if (-not $ps527Command) { throw 'BE: ps527 function is unavailable after profile reload.' }

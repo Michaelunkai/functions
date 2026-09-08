@@ -1,0 +1,26 @@
+﻿[CmdletBinding()]
+param([switch]$LaunchWorker)
+$ErrorActionPreference='Stop'
+$desktop='C:\Program Files\Docker\Docker\Docker Desktop.exe'
+if(-not [IO.File]::Exists($desktop)){throw "Docker Desktop is missing: $desktop"}
+if(@(Get-Process -Name 'Docker Desktop','com.docker.backend' -ErrorAction SilentlyContinue).Count){Write-Output 'Docker Desktop is already running';return}
+
+if($LaunchWorker){
+ & 'F:\study\Platforms\windows\functions\Repair-DockerRuntimeSockets.ps1' | Out-Host
+ & 'F:\study\Containers\docker\backup-docker\repository-tools\SetDockerhyperv\Invoke-set-dockerhyperv.ps1' -NoRestart | Out-Host
+ Write-Output 'DOCKER_NATIVE_PREFLIGHT_COMPLETE'
+ return
+}
+
+# The old COM/IRegisteredTask.Run path rejects its null parameter on this host
+# with 0x80070057 and can leave a manual task behind. The caller is already a
+# native, detached PS5 worker, so run the bounded preflight directly and launch
+# Docker Desktop as its own hidden process.
+& $PSCommandPath -LaunchWorker | Out-Host
+$preflightSucceeded=$?
+$preflightExitCode=$LASTEXITCODE
+if(-not $preflightSucceeded -or ($null -ne $preflightExitCode -and [int]$preflightExitCode -ne 0)){throw ('Docker native preflight failed: '+$preflightExitCode)}
+$workingDirectory=Split-Path -Parent $desktop
+$running=Start-Process -FilePath $desktop -WorkingDirectory $workingDirectory -WindowStyle Hidden -PassThru -ErrorAction Stop
+if($null -eq $running){throw 'Docker Desktop launch did not return a process.'}
+Write-Output ('DOCKER_VMM_LAUNCH_REQUESTED pid='+$running.Id)

@@ -58,7 +58,7 @@ function before {
     }
 
     $steps = @(
-        [pscustomobject]@{ Name = 'Profile backup'; Action = { if (Test-Path -LiteralPath $profileBackupScript -PathType Leaf) { & $profileBackupScript } else { Write-Warning "before: profile backup script not found, skipping: $profileBackupScript" } } },
+        [pscustomobject]@{ Name = 'Profile backup'; Action = { if (Test-Path -LiteralPath $profileBackupScript -PathType Leaf) { $backupHost = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'; & $backupHost -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $profileBackupScript; if ($LASTEXITCODE -ne 0) { throw "before: profile backup child exit code: $LASTEXITCODE" } } else { Write-Warning "before: profile backup script not found, skipping: $profileBackupScript" } } },
         [pscustomobject]@{ Name = 'Codex backup'; Action = { backcod } },
         [pscustomobject]@{ Name = 'Latest game backup'; Action = { ass } },
         [pscustomobject]@{ Name = 'DISM and SFC repair'; Action = { fff } }

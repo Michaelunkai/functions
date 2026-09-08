@@ -1,0 +1,99 @@
+'use strict';
+const fs=require('fs'),path=require('path'),crypto=require('crypto'),cp=require('child_process');
+const sessionAreas=['Network','Local Storage','IndexedDB','Session Storage'];
+const appRoot='F:\\backup\\windowsapps\\installed\\todoist';
+function windowsStore(operation,input=''){
+ const exe=path.join(__dirname,'TodoistSessionWindows.exe');
+ for(let attempt=0;attempt<3;attempt++){
+  const r=cp.spawnSync(exe,[operation],{input,encoding:'utf8',windowsHide:true,timeout:30000,maxBuffer:128*1024*1024});
+  if(r.status===0)return r.stdout.trim();
+  const code=r.error?.code;
+  if(['ETIMEDOUT','EAGAIN','EBUSY'].includes(code)&&attempt<2)continue;
+  const detail=code?String(code):String(r.stderr||'').trim();
+  const safe=/^[A-Z_0-9]+$/.test(detail)?detail:'EXIT_'+String(r.status);
+  throw Error('Windows session '+operation+' failed: '+safe);
+ }
+}
+function decodeRecord(encoded){
+ const r=JSON.parse(Buffer.from(encoded,'base64').toString());
+ if(r.version!==1||!r.session||!r.localState||!r.configKey)throw Error('Protected session record is incomplete');return r;
+}
+function readVault(){return decodeRecord(windowsStore('read'));}
+function stagingDirectory(value){
+ const stage=path.resolve(value||'');
+ if(path.dirname(stage).toLowerCase()!==path.dirname(appRoot).toLowerCase()||!/^\.todoist-stage-[a-f0-9]{32}$/i.test(path.basename(stage)))throw Error('Unexpected staging directory');
+ if(fs.existsSync(stage)&&fs.lstatSync(stage).isSymbolicLink())throw Error('Unexpected staging directory');
+ return stage;
+}
+function readHubRecovery(stage){
+ const file=path.join(stage,'.todoist-session.dpapi');
+ const stat=fs.lstatSync(file);
+ if(!stat.isFile()||stat.isSymbolicLink()||stat.size>64*1024*1024)throw Error('Invalid encrypted recovery payload');
+ return decodeRecord(windowsStore('unprotect-key',fs.readFileSync(file).toString('base64')));
+}
+function saveVault(record){
+ windowsStore('write',Buffer.from(JSON.stringify(record)).toString('base64'));
+ const saved=readVault();if(saved.session!==record.session||saved.localState!==record.localState||saved.configKey!==record.configKey||JSON.stringify(saved.webSession)!==JSON.stringify(record.webSession))throw Error('Protected session verification failed');
+}
+function readWebSession(profile){
+ const files=Object.create(null);
+ function visit(directory){for(const entry of fs.readdirSync(directory,{withFileTypes:true})){
+  const item=path.join(directory,entry.name);
+  if(entry.isSymbolicLink())throw Error('Redirected profile data is not supported');
+  if(entry.isDirectory())visit(item);
+  else if(entry.isFile()&&entry.name!=='LOCK'&&!entry.name.endsWith('-shm'))files[path.relative(profile,item).split(path.sep).join('/')]=fs.readFileSync(item).toString('base64');
+ }}
+ for(const area of sessionAreas){const dir=path.join(profile,area);if(fs.existsSync(dir))visit(dir);}
+ return files;
+}
+function readInstalled(includeWeb=false,root=appRoot){
+ const profile=path.join(root,'UserData/Roaming/Todoist');
+ const archives=fs.readdirSync(path.join(root,'Package'),{withFileTypes:true}).filter(e=>e.isDirectory()).map(e=>path.join(root,'Package',e.name,'app/resources/app.asar')).filter(p=>fs.existsSync(p));
+ if(archives.length!==1)throw Error('App package is missing or ambiguous');
+ const match=fs.readFileSync(archives[0],'utf8').match(/ENCRYPTION_KEY:"([^"]+)"/);if(!match)throw Error('Unsupported app session format');
+ return {version:1,webSession:includeWeb?readWebSession(profile):undefined,configKey:match[1],session:fs.readFileSync(path.join(profile,'session.json')).toString('base64'),localState:fs.readFileSync(path.join(profile,'Local State')).toString('base64')};
+}
+async function validate(record){
+ const bytes=Buffer.from(record.session,'base64'),iv=bytes.subarray(0,16);let session;
+ for(const salt of [iv,iv.toString()]){try{const d=crypto.createDecipheriv('aes-256-cbc',crypto.pbkdf2Sync(record.configKey,salt,10000,32,'sha512'),iv);session=JSON.parse(Buffer.concat([d.update(bytes.subarray(17)),d.final()]).toString());break;}catch{}}
+ if(!session?.token)throw Error('No saved sign-in');const enc=Buffer.from(session.token,'utf8');
+ if(enc.subarray(0,3).toString()!=='v10')throw Error('Unsupported protected session format');
+ const state=JSON.parse(Buffer.from(record.localState,'base64').toString());const protectedKey=Buffer.from(state.os_crypt?.encrypted_key||'','base64');
+ if(protectedKey.subarray(0,5).toString()!=='DPAPI')throw Error('Unsupported Windows key protection');
+ const key=Buffer.from(windowsStore('unprotect-key',protectedKey.subarray(5).toString('base64')),'base64');let token;
+ try{const d=crypto.createDecipheriv('aes-256-gcm',key,enc.subarray(3,15));d.setAuthTag(enc.subarray(-16));token=Buffer.concat([d.update(enc.subarray(15,-16)),d.final()]);
+ const r=await fetch('https://api.todoist.com/api/v1/user',{headers:{Authorization:'Bearer '+token.toString()},redirect:'error',signal:AbortSignal.timeout(15000)});await r.body?.cancel();if(r.status!==200)throw Error('Saved sign-in was not accepted (HTTP '+r.status+')');
+ }finally{key.fill(0);token?.fill(0);}
+}
+async function main(){
+ if(path.resolve(process.argv[2]||'').toLowerCase()!==appRoot.toLowerCase())throw Error('Unexpected app directory');
+ const mode=process.argv[3]||'--check';if(!['--check','--probe','--check-stage','--save','--vault','--restore','--recover'].includes(mode))throw Error('Unexpected operation');
+ const stage=['--restore','--recover','--check-stage'].includes(mode)?stagingDirectory(process.argv[4]):null;
+ const fromVault=mode==='--vault'||mode==='--restore'||!fs.existsSync(path.join(appRoot,'UserData/Roaming/Todoist/session.json'));
+ const record=mode==='--recover'?readHubRecovery(stage):mode==='--check-stage'?readInstalled(false,stage):fromVault?readVault():readInstalled(mode==='--save');await validate(record);
+ if(mode==='--save')saveVault(record);
+ if(mode==='--restore'||mode==='--recover'){
+  if(!record.webSession||!Object.keys(record.webSession).length)throw Error('Protected web session is missing');
+  const profile=path.join(stage,'UserData/Roaming/Todoist');fs.mkdirSync(profile,{recursive:true});
+  for(const name of ['session.json','Local State'])if(fs.existsSync(path.join(profile,name)))throw Error('Refusing to overwrite an existing staged session');
+  fs.writeFileSync(path.join(profile,'session.json'),Buffer.from(record.session,'base64'),{flag:'wx'});
+  fs.writeFileSync(path.join(profile,'Local State'),Buffer.from(record.localState,'base64'),{flag:'wx'});
+  for(const [relative,content] of Object.entries(record.webSession||{})){
+   const components=relative.split('/');
+   if(!sessionAreas.includes(components[0])||components.some(c=>!c||c==='.'||c==='..'||/[\\:]/.test(c)))throw Error('Invalid protected profile path');
+   const output=path.join(profile,...components);fs.mkdirSync(path.dirname(output),{recursive:true});fs.writeFileSync(output,Buffer.from(content,'base64'),{flag:'wx'});
+  }
+  if(mode==='--recover'){
+   // The Hub payload is sufficient even if the registry cannot be written.
+   try{saveVault(record);}catch{console.log('TODOIST_SESSION_STORE_UNAVAILABLE recovery=dockerhub');}
+   fs.unlinkSync(path.join(stage,'.todoist-session.dpapi'));
+  }
+ }
+ console.log('TODOIST_SESSION_VALID authenticated=true source='+(mode==='--recover'?'dockerhub-windows-encrypted':mode==='--check-stage'?'staged-profile':fromVault?'windows-protected-store':'installed-profile'));
+}
+main().catch(error=>{
+ if(process.argv[3]==='--probe'){process.exitCode=1;return;}
+ const safe=['No saved sign-in','Unexpected app directory','Unexpected operation','App package is missing or ambiguous','Unsupported app session format','Unsupported protected session format','Unsupported Windows key protection','Windows protected session operation failed','Protected session record is incomplete','Protected session verification failed','Unexpected staging directory','Refusing to overwrite an existing staged session'];
+ const message=/^Windows session (read|write|unprotect-key) failed: [A-Z_0-9]+$/.test(error.message)||safe.includes(error.message)||/^Saved sign-in was not accepted \(HTTP \d+\)$/.test(error.message)?error.message:'Saved sign-in could not be verified';
+ console.error('TODOIST_SESSION_UNVERIFIED: '+message);process.exitCode=1;
+});

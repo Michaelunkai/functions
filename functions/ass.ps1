@@ -36,7 +36,11 @@ function ass {
 
     $exe = 'C:\Users\micha\Documents\WindowsPowerShell\legacy-safe-functions\AssLatestGameBackup\AssLatestGameBackup.exe'
     if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) {
-        throw "ass executable not found: $exe"
+        if ($SelfTest) {
+            throw "ass executable not found: $exe"
+        }
+        Write-Warning "ASS_SKIPPED reason=executable_missing path=$exe"
+        return
     }
 
     if ($SelfTest) {

@@ -1,5 +1,5 @@
 # nvi.ps1 - Compatibility entrypoint for the ranked NVIDIA launchers.
-# Usage: nvi          (opens rank 1: Inkling)
+# Usage: nvi          (opens rank 1: Nemotron 3 Ultra 550B)
 #        nvi -Ultra   (opens rank 2: Nemotron 3 Ultra 550B)
 #        nvi -Check   (full health check, then open)
 #

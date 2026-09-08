@@ -1,0 +1,27 @@
+﻿[CmdletBinding()]
+param([switch]$SelfTest)
+$ErrorActionPreference='Stop'
+$cli='C:\Program Files\Docker\Docker\resources\bin\docker.exe'
+$credentialPath=Join-Path $env:LOCALAPPDATA 'Codex\DockerCredentials\hub-token.dpapi'
+if(-not (Test-Path -LiteralPath $credentialPath -PathType Leaf)){throw "Docker Hub saved credential missing: $credentialPath"}
+if(-not (Test-Path -LiteralPath $cli -PathType Leaf)){throw "Docker CLI missing: $cli"}
+$secure=(Get-Content -LiteralPath $credentialPath -Raw).Trim() | ConvertTo-SecureString
+if($SelfTest){Write-Output 'DLOG_SELFTEST_OK encrypted_credential_readable=true username=michadockermisha';return}
+$info=New-Object Diagnostics.ProcessStartInfo
+$info.FileName=$cli
+$info.EnvironmentVariables['PATH']=(Split-Path -Parent $cli)+';'+$env:PATH
+$info.Arguments='login docker.io --username michadockermisha --password-stdin'
+$info.UseShellExecute=$false
+$info.CreateNoWindow=$true
+$info.RedirectStandardInput=$true
+$info.RedirectStandardOutput=$true
+$info.RedirectStandardError=$true
+$process=[Diagnostics.Process]::Start($info)
+$outTask=$process.StandardOutput.ReadToEndAsync()
+$errTask=$process.StandardError.ReadToEndAsync()
+$pointer=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
+try {$process.StandardInput.WriteLine([Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer))}
+finally {[Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer);$process.StandardInput.Close();$secure.Dispose()}
+if(-not $process.WaitForExit(30000)){try{$process.Kill()}catch{};throw 'Docker Hub login exceeded 30 seconds'}
+if($process.ExitCode -ne 0){throw ('Docker Hub login failed: '+$errTask.Result.Trim())}
+Write-Output $outTask.Result.Trim()

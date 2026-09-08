@@ -89,3 +89,9 @@
 - Context: Reporting multiple AutoHotkey syntax-check results in one PowerShell command.
 - Error: Piping directly after a `foreach` statement produced `An empty pipe element is not allowed`.
 - Fix: Assign the loop output to a variable or wrap the entire loop in `@(...)` before piping it to `Format-Table`.
+
+## 2026-09-08 - AHK mute hotstrings and ddrivers AppsFolder popup
+
+- Root cause: `ddrivers` launched GameSir Connect through a stale `shell:AppsFolder` identifier even though the installed direct executable was available; the requested mute hotstrings were also absent from the live script.
+- Fix: use the verified direct vendor executable list only; add HWND-based app mute/unmute and CoreAudio default-capture mute/unmute with session and `%TEMP%\mic-prev-level.txt` persistence.
+- Verification: AutoHotkey v2 `/validate` exit 0; direct app-mute and six-tool driver probes passed; live `mmute`, `unmute`, `mmmute`, and `uunmute` triggers were consumed and the microphone state/file were restored.

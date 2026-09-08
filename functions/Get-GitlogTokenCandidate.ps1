@@ -48,7 +48,8 @@ function Get-GitlogTokenCandidate {
         return $managerCandidate
     }
 
-    if (Test-Path -LiteralPath $credentialPath) {
+    $credentialPath = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.git-credentials'
+    if (Test-Path -LiteralPath $credentialPath -PathType Leaf) {
         $credentialText = [System.IO.File]::ReadAllText($credentialPath)
         $match = [regex]::Match($credentialText, 'https://[^:]+:([^@]+)@github\.com')
         if ($match.Success) {
