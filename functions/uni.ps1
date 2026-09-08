@@ -2028,6 +2028,41 @@ function Invoke-UniFinal {
     # and orphan-registry pass are still running, including links the scanner
     # deliberately does not traverse.
     Remove-UniGMenuKnownArtifacts
+
+    # A verified target can recreate an already-authorized artifact between the
+    # first final delete and the summary check.  Give the same ownership scope
+    # three bounded settling rounds; never expand by filename or kill an
+    # unverified process.  A persistent creator or lock is reported below.
+    for($reconcileRound=1;$reconcileRound -le 3;$reconcileRound++){
+        Remove-UniGMenuKnownArtifacts
+        $recreated=New-Object 'System.Collections.Generic.List[string]'
+        foreach($path in @($script:UniOwnedRoots)){
+            if(-not [string]::IsNullOrWhiteSpace([string]$path) -and (Test-Path -LiteralPath $path -ErrorAction SilentlyContinue -PathType Any)){
+                [void]$recreated.Add([string]$path)
+            }
+        }
+        foreach($path in @($script:UniOwnedFiles)){
+            if(-not [string]::IsNullOrWhiteSpace([string]$path) -and (Test-Path -LiteralPath ([string]$path) -ErrorAction SilentlyContinue -PathType Leaf)){
+                [void]$recreated.Add([string]$path)
+            }
+        }
+        foreach($path in @(Get-UniGMenuCleanupPaths)){
+            if(Test-Path -LiteralPath $path -ErrorAction SilentlyContinue -PathType Any){[void]$recreated.Add([string]$path)}
+        }
+        $recreated=@($recreated | Sort-Object Length | Select-Object -Unique)
+        if(-not $recreated.Count){break}
+        Write-Host ('  post-final reconciliation round {0}/3: {1} authorized artifact(s) remain ...' -f $reconcileRound,$recreated.Count) -ForegroundColor Yellow
+        Invoke-UniEarlyStop
+        foreach($path in $recreated){
+            if(-not (Test-Path -LiteralPath $path -ErrorAction SilentlyContinue -PathType Any)){continue}
+            if(-not (Remove-UniTarget -Path $path)){
+                if(Test-UniOwnedPath $path){
+                    if(-not $script:UniFailed.Contains([string]$path)){[void]$script:UniFailed.Add([string]$path)}
+                }else{Add-UniProtectedArtifact $path}
+            }
+        }
+        if($reconcileRound -lt 3){Start-Sleep -Milliseconds 250}
+    }
 }
 
 # ---------------------------------------------------------------------------
