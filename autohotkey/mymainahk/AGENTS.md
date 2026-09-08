@@ -61,3 +61,9 @@ NEVER call TaskOutput or TaskGet with IDs from previous sessions or from other c
 
 
 
+
+## Runtime Architecture Notes
+
+- `current.ahk` is the live shortcut controller. Its `kkkk` gesture snapshots the foreground HWND/PID, refuses protected system/runtime processes, invokes `kkkk-kill-helper.ahk`, and verifies the original PID/creation stamp has exited.
+- `kkkk-kill-helper.ahk` must be launched through `AutoHotkey64.exe /script`; it terminates descendants first with native `TerminateProcess` and has a bounded wait so a hung `taskkill /T` path cannot block the controller.
+- `mmute`/`unmute` resolve the foreground process from its window handle. `mmmute`/`uunmute` use the default CoreAudio capture endpoint and persist the previous scalar level in session state plus `%TEMP%\mic-prev-level.txt`.

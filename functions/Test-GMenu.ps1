@@ -145,7 +145,7 @@ try {
     $rejected=$false;try{Save-GMenuFunctionDefinition 'gmenu' $profileFixture}catch{$rejected=$true}
     Check $rejected 'generated registration cannot overwrite gmenu'
     $progressText=(& {Write-GMenuProgress 'fixture' 1 3} 6>&1 | Out-String)
-    Check ($progressText -match '33\.333%') 'live progress has three decimal places'
+    Check ($progressText -match '33\.3333%.*elapsed_ms=') 'live progress has four decimal places and elapsed time'
     $result=[pscustomobject]@{Status='PASSED';PowerShell=$PSVersionTable.PSVersion.ToString();Tests=$passed.Count;Cases=$passed.ToArray()}
     $result | ConvertTo-Json -Depth 4 | Set-Content -LiteralPath (Join-Path $PSScriptRoot 'GMenu-test-results.json') -Encoding UTF8
     $result | ConvertTo-Json -Depth 4

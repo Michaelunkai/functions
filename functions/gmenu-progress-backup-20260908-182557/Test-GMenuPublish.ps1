@@ -127,8 +127,7 @@ function Invoke-GMenuRestore {throw 'Automatic restore must not run in the publi
     Check ([IO.File]::ReadAllText((Join-Path $env:USERPROFILE 'saved-profile.ps1')).Contains('function gFixturePublish')) 'publish saves a discoverable function definition before returning'
     $savedProfile=[IO.File]::ReadAllText((Join-Path $env:USERPROFILE 'saved-profile.ps1'))
     Check ($savedProfile.Contains('function untouched') -and -not $savedProfile.Contains('original restore command') -and @(Get-ChildItem -LiteralPath (Join-Path $env:USERPROFILE '.gmenu\CommandHistory\ProfileSources') -Filter '*.ps1').Count -gt 0) 'legacy global function upgrades with source backup and unrelated functions preserved'
-    Check (@($messages | Where-Object {$_ -match '^GMENU complete 100\.0000% .*elapsed_ms='}).Count -eq 1) 'completion progress follows successful publish and registration with four-decimal elapsed progress'
-    Check (-not @($messages | Where-Object {$_ -match 'GMENU_HEARTBEAT'}).Count) 'generic heartbeat output is removed'
+    Check (@($messages | Where-Object {$_ -match '^GMENU complete 100\.000%'}).Count -eq 1) 'completion progress follows successful publish and registration'
     Check (@(Get-ChildItem -LiteralPath (Join-Path $env:USERPROFILE '.gmenu') -Filter '.gmenu-work-*').Count -eq 0) 'publish returns after removing its temporary payload work'
     Check (($env:HERMES_MMENU_GMENU -eq $savedMode) -and ($env:HERMES_MMENU_SOURCE_LABEL_PATH_OVERRIDE -eq $savedLabelPath)) 'publish restores caller environment settings'
     $global:GMenuTestDropResume=$true;$dropResult=@(& (Join-Path $fixtureCode 'gmenu.ps1') $app -PassThru 6>$null | Where-Object {$_ -isnot [Management.Automation.ErrorRecord]})
@@ -211,9 +210,9 @@ function Invoke-GMenuRestore {throw 'Automatic restore must not run in the publi
     Check ($code -eq 0 -and $global:GMenuFixtureUploadStarts['b.tar'] -eq 2 -and $global:GMenuFixtureUploadStarts['a.tar'] -eq 1 -and $global:GMenuFixtureCancelledHealthy -eq 0) 'failed layer retries without restarting healthy parallel upload'
     Check ($global:GMenuFixtureTokenCalls -ge 3) '401 upload failure refreshes the token before retry'
     $display=(& {Write-MmenuCDashboard -Name 'fixture' -Phase 'test' -Started (Get-Date).AddSeconds(-1) -DoneBytes 1 -TotalBytes 3} 6>&1 | Out-String)
-    Check ($display -match '33\.3333%.*elapsed_ms=') 'mmenu upload dashboard preserves four-decimal precision and elapsed progress'
+    Check ($display -match '33\.333%') 'mmenu upload dashboard preserves three decimal precision'
     $largeDisplay=(& {Write-MmenuCDashboard -Name 'fixture' -Phase 'large-test' -Started (Get-Date).AddSeconds(-1) -DoneBytes 3GB -TotalBytes 4GB} 6>&1 | Out-String)
-    Check ($largeDisplay -match '75\.0000%') 'progress accepts payload sizes above the 32-bit integer limit'
+    Check ($largeDisplay -match '75\.000%') 'progress accepts payload sizes above the 32-bit integer limit'
     [pscustomobject]@{Status='PASSED';PowerShell=$PSVersionTable.PSVersion.ToString();Tests=$passed.Count;Cases=$passed.ToArray();Transport='isolated fixture; no app backup or registry mutation'} | ConvertTo-Json -Depth 5
 }finally {
     $env:USERPROFILE=$savedUser;$env:HERMES_MMENU_GMENU=$savedMode;$env:HERMES_MMENU_SOURCE_LABEL_PATH_OVERRIDE=$savedLabelPath

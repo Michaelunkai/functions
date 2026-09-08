@@ -5,4 +5,5 @@ PowerShell project. Coverage is therefore recorded as unavailable rather than
 invented. Behavioral coverage is represented by the eight regression scripts,
 the exact-list fixture, the no-target orphan fixture, the failure/timeout
 fixture, the early-stop fixture, the Telegram shared-startup fixture, the
-profile recreation watcher, and the eight-process queue harness.
+profile recreation watcher, the current profile `cfun uni` route, the
+disposable GMenu deletion proof, and the eight-process queue harness.

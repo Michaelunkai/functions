@@ -44,6 +44,6 @@
                   "saved function registration is idempotent",
                   "saved profile wrapper uses the shared dispatcher and excludes recovery secrets",
                   "generated registration cannot overwrite gmenu",
-                  "live progress has three decimal places"
+                  "live progress has four decimal places and elapsed time"
               ]
 }

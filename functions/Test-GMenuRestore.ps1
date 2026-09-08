@@ -11,6 +11,20 @@ try {
     $runtimeText=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'GMenuRuntime.ps1'))
     Check ($runtimeText -match '\$script:GMenuTokenRefreshAt' -and $runtimeText -match 'Get-GMenuHubToken \$Ticket\.Repository \$Credential') 'long Docker Hub restore refreshes expiring pull tokens between layers'
     Check ($runtimeText -match '\$maxAttempts=20' -and $runtimeText -match 'GRESTORE_RETRY') 'Docker Hub restore reports and retries transient download failures'
+    $restoreScript=Join-Path $PSScriptRoot 'Invoke-InstalledAppDockerRestoreAndLaunch.ps1'
+    $restoreTokens=$null;$restoreErrors=$null
+    $restoreAst=[Management.Automation.Language.Parser]::ParseFile($restoreScript,[ref]$restoreTokens,[ref]$restoreErrors)
+    $targetLabelNode=$restoreAst.Find({param($n)$n -is [Management.Automation.Language.FunctionDefinitionAst] -and $n.Name -eq 'Test-InstalledAppDockerTargetLabel'},$true)
+    Check ($null -ne $targetLabelNode) 'restore exposes a dedicated Docker target-label validator'
+    . ([scriptblock]::Create($targetLabelNode.Extent.Text))
+    $labelTarget='F:\backup\windowsapps\installed\HereticAI'
+    $exactLabel=Test-InstalledAppDockerTargetLabel -Labels ([pscustomobject]@{'backup.source.path'=$labelTarget}) -Folder 'HereticAI' -FullTarget $labelTarget
+    $legacyLabel=Join-Path (Join-Path (Join-Path $env:USERPROFILE '.gmenu') '.gmenu-work-970c6e0e85104d37970dea142e09d18a') 'HereticAI'
+    $legacyCheck=Test-InstalledAppDockerTargetLabel -Labels ([pscustomobject]@{'backup.source.path'=$legacyLabel}) -Folder 'HereticAI' -FullTarget $labelTarget
+    $mismatchCheck=Test-InstalledAppDockerTargetLabel -Labels ([pscustomobject]@{'backup.source.path'='C:\temp\other\HereticAI'}) -Folder 'HereticAI' -FullTarget $labelTarget
+    Check ($exactLabel.Accepted -and $exactLabel.Kind -eq 'target') 'exact installed target label is accepted'
+    Check ($legacyCheck.Accepted -and $legacyCheck.Kind -eq 'legacy-gmenu-work') 'strict legacy GMenu staging label is accepted for migration'
+    Check (-not $mismatchCheck.Accepted -and $mismatchCheck.Kind -eq 'mismatch') 'arbitrary target-path label mismatch remains rejected'
     $source=Join-Path $root 'source';$data=Join-Path $root 'data'
     [void][IO.Directory]::CreateDirectory((Join-Path $source 'UserData'))
     [void][IO.Directory]::CreateDirectory($data)
@@ -105,12 +119,9 @@ try {
     & {
         . (Join-Path $PSScriptRoot 'GMenuRuntime.ps1')
         $serviceRoot=Join-Path $root 'owned'
-        function Get-CimInstance {
-            [pscustomobject]@{Name='Owned';PathName=('"'+$serviceRoot+'\daemon.exe" --flag')}
-            [pscustomobject]@{Name='Other';PathName=('"'+$serviceRoot+'-other\daemon.exe"')}
-        }
-        $services=@(Get-GMenuOwnedServices $serviceRoot)
-        Check ($services.Count -eq 1 -and $services[0].Name -eq 'Owned') 'service ownership checks the full folder boundary'
+        $owned=Resolve-GMenuOwnedServiceBinary $serviceRoot ('"'+$serviceRoot+'\daemon.exe" --flag')
+        $other=Resolve-GMenuOwnedServiceBinary $serviceRoot ('"'+$serviceRoot+'-other\daemon.exe"')
+        Check ($owned -and -not $other) 'service ownership checks the full folder boundary'
     }
     & {
         . (Join-Path $PSScriptRoot 'GMenuRuntime.ps1')

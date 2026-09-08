@@ -28,14 +28,7 @@ Write-Output ('GMENU_FIXTURE '+$Value)
     Remove-Item -LiteralPath $commandPath -Force
     $second=@(gfixture 'again')
     Check ($second[0] -eq 'GMENU_FIXTURE again' -and (Test-Path -LiteralPath $commandPath -PathType Leaf)) 'generated function self-heals after command deletion'
-    $fallbackRoot=Join-Path $root 'Documents\WindowsPowerShell\GMenuFallback'
-    $fallbackBackupRoot=Join-Path $fallbackRoot 'CommandBackups'
-    [void][IO.Directory]::CreateDirectory($fallbackBackupRoot)
-    Copy-Item -LiteralPath $backup -Destination (Join-Path $fallbackBackupRoot 'gfixture.ps1') -Force
     Remove-Item -LiteralPath $commandPath,$backup -Force
-    $third=@(gfixture 'fallback')
-    Check ($third[0] -eq 'GMENU_FIXTURE fallback' -and (Test-Path -LiteralPath $commandPath -PathType Leaf)) 'missing .gmenu state self-heals from the independent fallback mirror'
-    Remove-Item -LiteralPath $commandPath,(Join-Path $fallbackBackupRoot 'gfixture.ps1') -Force
     $rejected=$false;$message=''
     try {Invoke-GMenuSavedCommand -Name 'gfixture'} catch {$rejected=$true;$message=$_.Exception.Message}
     Check ($rejected -and $message -match 'protected backup' -and $message -notmatch 'CommandNotFoundException') 'missing private artifact reports a controlled repair message'

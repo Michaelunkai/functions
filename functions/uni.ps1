@@ -2030,12 +2030,15 @@ function Invoke-UniFinal {
     Remove-UniGMenuKnownArtifacts
 
     # A verified target can recreate an already-authorized artifact between the
-    # first final delete and the summary check.  Give the same ownership scope
-    # three bounded settling rounds; never expand by filename or kill an
-    # unverified process.  A persistent creator or lock is reported below.
-    for($reconcileRound=1;$reconcileRound -le 3;$reconcileRound++){
+    # first final delete and the summary check.  Keep the same ownership scope
+    # through a bounded quiet window and include registry roots in the check;
+    # never expand by filename or kill an unverified process.  A persistent
+    # creator or lock is reported below.
+    $quietRounds=0
+    for($reconcileRound=1;$reconcileRound -le 5;$reconcileRound++){
         Remove-UniGMenuKnownArtifacts
         $recreated=New-Object 'System.Collections.Generic.List[string]'
+        $recreatedRegistry=New-Object 'System.Collections.Generic.List[string]'
         foreach($path in @($script:UniOwnedRoots)){
             if(-not [string]::IsNullOrWhiteSpace([string]$path) -and (Test-Path -LiteralPath $path -ErrorAction SilentlyContinue -PathType Any)){
                 [void]$recreated.Add([string]$path)
@@ -2049,9 +2052,28 @@ function Invoke-UniFinal {
         foreach($path in @(Get-UniGMenuCleanupPaths)){
             if(Test-Path -LiteralPath $path -ErrorAction SilentlyContinue -PathType Any){[void]$recreated.Add([string]$path)}
         }
+        foreach($ownedKey in @($script:UniOwnedRegistryRoots | Select-Object -Unique)){
+            $provider='Registry::'+[string]$ownedKey
+            try {
+                if((Test-UniOwnedRegistry $provider) -and (Test-Path -LiteralPath $provider -ErrorAction Stop)){
+                    [void]$recreatedRegistry.Add($provider)
+                }
+            } catch {
+                $message='Unable to verify authorized registry root during final reconciliation: '+$provider+': '+$_.Exception.Message
+                if(-not $script:UniFailed.Contains($message)){[void]$script:UniFailed.Add($message)}
+            }
+        }
         $recreated=@($recreated | Sort-Object Length | Select-Object -Unique)
-        if(-not $recreated.Count){break}
-        Write-Host ('  post-final reconciliation round {0}/3: {1} authorized artifact(s) remain ...' -f $reconcileRound,$recreated.Count) -ForegroundColor Yellow
+        $recreatedRegistry=@($recreatedRegistry | Sort-Object Length | Select-Object -Unique)
+        if(-not $recreated.Count -and -not $recreatedRegistry.Count){
+            $quietRounds++
+            if($quietRounds -ge 3){break}
+            Start-Sleep -Milliseconds 250
+            continue
+        }
+        $quietRounds=0
+        $remainingCount=$recreated.Count+$recreatedRegistry.Count
+        Write-Host ('  post-final reconciliation round {0}/5: {1} authorized artifact(s) remain ...' -f $reconcileRound,$remainingCount) -ForegroundColor Yellow
         Invoke-UniEarlyStop
         foreach($path in $recreated){
             if(-not (Test-Path -LiteralPath $path -ErrorAction SilentlyContinue -PathType Any)){continue}
@@ -2061,7 +2083,18 @@ function Invoke-UniFinal {
                 }else{Add-UniProtectedArtifact $path}
             }
         }
-        if($reconcileRound -lt 3){Start-Sleep -Milliseconds 250}
+        foreach($provider in $recreatedRegistry){
+            try {
+                if(-not (Test-Path -LiteralPath $provider -ErrorAction Stop)){continue}
+                Remove-UniRegistryKey -ProviderPath $provider
+            } catch {
+                $message='Authorized registry root could not be removed during final reconciliation: '+$provider+': '+$_.Exception.Message
+                if(Test-UniOwnedRegistry $provider){
+                    if(-not $script:UniFailed.Contains($message)){[void]$script:UniFailed.Add($message)}
+                } else {Add-UniProtectedArtifact $message}
+            }
+        }
+        if($reconcileRound -lt 5){Start-Sleep -Milliseconds 250}
     }
 }
 
@@ -2086,6 +2119,16 @@ function Write-UniSummary {
     foreach($path in @(Get-UniGMenuCleanupPaths)){
         if(Test-Path -LiteralPath $path -ErrorAction SilentlyContinue -PathType Any){
             $script:UniFailed.Add('GMenu artifact persisted or was recreated after final cleanup: '+$path)
+        }
+    }
+    foreach($ownedKey in @($script:UniOwnedRegistryRoots | Select-Object -Unique)){
+        $provider='Registry::'+[string]$ownedKey
+        try {
+            if((Test-UniOwnedRegistry $provider) -and (Test-Path -LiteralPath $provider -ErrorAction Stop)){
+                $script:UniFailed.Add('Authorized registry artifact persisted or was recreated after final cleanup: '+$provider)
+            }
+        } catch {
+            $script:UniFailed.Add('Authorized registry artifact could not be verified after final cleanup: '+$provider+': '+$_.Exception.Message)
         }
     }
     if(('UniSweepCollectV8' -as [type]) -and [UniSweepCollectV8]::Errors -gt 0){
@@ -2344,6 +2387,121 @@ function Test-UniOrphanScriptCommand {
     }
     return $false
 }
+function Get-UniNativeProcessRows {
+    param([string[]]$Hosts)
+    $script:UniNativeProcessCommandLineReady=$false
+    $script:UniNativeProcessCommandLineUnresolved=New-Object 'System.Collections.Generic.List[string]'
+    if(-not ('UniNativeProcessCommandLineV1' -as [type])){
+        try {
+            Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class UniNativeProcessCommandLineV1
+{
+    [StructLayout(LayoutKind.Sequential)] private struct UNICODE_STRING
+    {
+        public ushort Length;
+        public ushort MaximumLength;
+        public IntPtr Buffer;
+    }
+    [StructLayout(LayoutKind.Sequential)] private struct PROCESS_BASIC_INFORMATION
+    {
+        public IntPtr Reserved1;
+        public IntPtr PebBaseAddress;
+        public IntPtr Reserved2_0;
+        public IntPtr Reserved2_1;
+        public IntPtr UniqueProcessId;
+        public IntPtr InheritedFromUniqueProcessId;
+    }
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(uint access, bool inherit, int processId);
+    [DllImport("ntdll.dll")] private static extern int NtQueryInformationProcess(IntPtr process, int informationClass, IntPtr buffer, int length, out int returnLength);
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern bool CloseHandle(IntPtr handle);
+    public static string GetCommandLine(int processId)
+    {
+        IntPtr process = OpenProcess(0x1000, false, processId);
+        if (process == IntPtr.Zero) return null;
+        IntPtr buffer = IntPtr.Zero;
+        try
+        {
+            buffer = Marshal.AllocHGlobal(65536);
+            int returned;
+            if (NtQueryInformationProcess(process, 60, buffer, 65536, out returned) != 0) return null;
+            UNICODE_STRING value = (UNICODE_STRING)Marshal.PtrToStructure(buffer, typeof(UNICODE_STRING));
+            if (value.Buffer == IntPtr.Zero || value.Length == 0) return "";
+            return Marshal.PtrToStringUni(value.Buffer, value.Length / 2);
+        }
+        catch { return null; }
+        finally
+        {
+            if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer);
+            CloseHandle(process);
+        }
+    }
+    public static int GetParentProcessId(int processId)
+    {
+        IntPtr process = OpenProcess(0x1000, false, processId);
+        if (process == IntPtr.Zero) return 0;
+        IntPtr buffer = IntPtr.Zero;
+        try
+        {
+            int size = Marshal.SizeOf(typeof(PROCESS_BASIC_INFORMATION));
+            buffer = Marshal.AllocHGlobal(size);
+            int returned;
+            if (NtQueryInformationProcess(process, 0, buffer, size, out returned) != 0) return 0;
+            PROCESS_BASIC_INFORMATION value = (PROCESS_BASIC_INFORMATION)Marshal.PtrToStructure(buffer, typeof(PROCESS_BASIC_INFORMATION));
+            return value.InheritedFromUniqueProcessId.ToInt32();
+        }
+        catch { return 0; }
+        finally
+        {
+            if (buffer != IntPtr.Zero) Marshal.FreeHGlobal(buffer);
+            CloseHandle(process);
+        }
+    }
+}
+'@ -ErrorAction Stop
+        } catch { return @() }
+    }
+    if(-not ('UniNativeProcessCommandLineV1' -as [type])){return @()}
+    $currentPid=[Diagnostics.Process]::GetCurrentProcess().Id
+    $probe=$null
+    try {$probe=[UniNativeProcessCommandLineV1]::GetCommandLine($currentPid)} catch {}
+    if([string]::IsNullOrWhiteSpace([string]$probe)){return @()}
+    $script:UniNativeProcessCommandLineReady=$true
+    $rows=New-Object 'System.Collections.Generic.List[object]'
+    $processes=@()
+    try {$processes=@(Get-Process -ErrorAction Stop)} catch {return @()}
+    foreach($process in $processes){
+        try {
+            $processId=[int]$process.Id
+            $processName=([string]$process.ProcessName).ToLowerInvariant()
+            $hostName=$processName+'.exe'
+            $command=''
+            for($attempt=0;$attempt -lt 3 -and [string]::IsNullOrWhiteSpace($command);$attempt++){
+                try {$command=[string]([UniNativeProcessCommandLineV1]::GetCommandLine($processId))} catch {}
+                if([string]::IsNullOrWhiteSpace($command) -and $attempt -lt 2){Start-Sleep -Milliseconds 50}
+            }
+            if([string]::IsNullOrWhiteSpace($command)){
+                if($Hosts -contains $hostName -and $processId -ne $currentPid){
+                    if(Get-Process -Id $processId -ErrorAction SilentlyContinue){
+                        [void]$script:UniNativeProcessCommandLineUnresolved.Add(('PID {0} {1}' -f $processId,$hostName))
+                    }
+                }
+                continue
+            }
+            $exe=''
+            try {$exe=[string]$process.Path} catch {}
+            if([string]::IsNullOrWhiteSpace($exe)){$exe=$hostName}
+            [void]$rows.Add([pscustomobject]@{
+                ProcessId=$processId
+                ParentProcessId=[int]([UniNativeProcessCommandLineV1]::GetParentProcessId($processId))
+                ExecutablePath=$exe
+                CommandLine=$command
+            })
+        } catch {}
+    }
+    return @($rows.ToArray())
+}
 function Invoke-UniOrphanProcessStop {
     param([string]$Pattern)
     if(-not $script:UniOrphanMode -or [string]::IsNullOrWhiteSpace($Pattern)){return}
@@ -2355,10 +2513,22 @@ function Invoke-UniOrphanProcessStop {
         # query is bounded so a damaged WMI provider cannot make Uni hang.
         $rows=@(Get-CimInstance Win32_Process -Property ProcessId,ParentProcessId,ExecutablePath,CommandLine -OperationTimeoutSec 5 -ErrorAction Stop)
     } catch {
-        $message='Orphan process command-line scan unavailable: '+$_.Exception.Message
-        $script:UniFailed.Add($message)
-        Write-Warning $message
-        return
+        $cimError=$_.Exception.Message
+        $nativeRows=@(Get-UniNativeProcessRows -Hosts $hosts)
+        if($script:UniNativeProcessCommandLineReady){
+            $rows=$nativeRows
+            Write-Warning ('CIM process-command-line scan failed; using native Windows fallback: '+$cimError)
+            if($script:UniNativeProcessCommandLineUnresolved.Count){
+                $message='Native process command-line fallback could not inspect: '+(@($script:UniNativeProcessCommandLineUnresolved) -join ', ')
+                $script:UniFailed.Add($message)
+                Write-Warning $message
+            }
+        } else {
+            $message='Orphan process command-line scan unavailable: '+$cimError
+            $script:UniFailed.Add($message)
+            Write-Warning $message
+            return
+        }
     }
     $stopped=New-Object 'System.Collections.Generic.List[object]'
     $parentMap=@{}

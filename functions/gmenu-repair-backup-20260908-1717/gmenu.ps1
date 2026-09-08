@@ -13,6 +13,7 @@ $ErrorActionPreference='Stop'
 $script:GMenuPayloadSource=[IO.File]::ReadAllText((Join-Path $PSScriptRoot 'GMenuPayload.cs'))
 . (Join-Path $PSScriptRoot 'GMenuRuntime.ps1')
 Initialize-GMenuRuntime
+Start-GMenuHeartbeat 'prepare'
 # The profile dispatcher can hot-reload its module while mmenu is running.
 # Keep a private copy of the runtime resume body so a module refresh cannot
 # make the cleanup path lose the service recovery command.
@@ -25,7 +26,7 @@ $gmenuEnsureResumeServices = {
 }
 & $gmenuEnsureResumeServices
 if($NoRestore -and $VerifyRestore){throw 'Use either -NoRestore or -VerifyRestore, not both.'}
-Write-GMenuProgress 'prepare' 0 1 'resolving application and publisher'
+Write-GMenuProgress 'prepare'
 if(-not $Path) {$Path=Read-Host 'Application folder to back up'}
 if(-not (Test-Path -LiteralPath $Path -PathType Container) -and -not [IO.Path]::IsPathRooted($Path) -and $Path -notmatch '[\\/]') {
     $candidate=Join-Path 'F:\backup\windowsapps\installed' $Path
@@ -55,7 +56,6 @@ if(Test-Path -LiteralPath $receiptPath) {
     $old=Get-Content -LiteralPath $receiptPath -Raw | ConvertFrom-Json
     if($old.Source -ine $source) {throw "$name belongs to a different source folder."}
 }
-Write-GMenuProgress 'prepare' 1 1 'application metadata resolved'
 $links=@()
 $sourceFiles=New-Object 'Collections.Generic.List[IO.FileInfo]'
 $scanClock=[Diagnostics.Stopwatch]::StartNew();$scanCount=0
@@ -109,6 +109,7 @@ $bytes=[long](($files | Measure-Object Length -Sum).Sum)
 $manifest=[ordered]@{Schema=1;Folder=$folder;Launcher=$relativeLauncher;LaunchKind=$launch.Kind;ReadinessUri=$launch.Uri;Arguments=$LaunchArguments;DataRoots=$dataRoots;Links=$links;WindowsKeys=@();DaymarkSyncKey=$null;Source=$source}
 if($Plan) {
     [pscustomobject]@{Function=$name;Source=$source;Repository=$repository;Launcher=$relativeLauncher;LaunchKind=$launch.Kind;ReadinessUri=$launch.Uri;Arguments=$LaunchArguments;Files=$files.Count;Bytes=$bytes;Junctions=$links.Count;ExternalData=$dataRoots;Encrypted=$true;RestoreRequiresDocker=$false;SessionPortability='Windows Electron keys can be rewrapped; arbitrary app/server credentials are not universally portable'}
+    Stop-GMenuHeartbeat
     return
 }
 $mmenu=Get-Command mmenu -CommandType Function -ErrorAction SilentlyContinue
@@ -144,7 +145,8 @@ $wasRunning=@(Get-GMenuOwnedProcess $source).Count -gt 0
 $published=$false;$completed=$false;$payloadCreated=$false
 $appWasStopped=$false;$appWasRestarted=$false
 try {
-    Write-GMenuProgress 'capture' 0 1 'stopping app and capturing portable state'
+    Set-GMenuHeartbeatPhase 'capture'
+    Write-GMenuHeartbeat 'capture' 'stopping app and capturing portable state'
     $manifest.WindowsServices=@(Get-GMenuServiceManifest $source)
     Stop-GMenuApp $source
     $appWasStopped=$true
@@ -177,14 +179,13 @@ try {
         $manifest.DaymarkSyncKey=$session.SyncKey
         Remove-Item -LiteralPath $capture -Force
     }
-    Write-GMenuProgress 'capture' 1 1 'portable state captured'
     $key=[GMenuPayload20260907]::Random(32);$iv=[GMenuPayload20260907]::Random(16);$macKey=[GMenuPayload20260907]::Random(32)
     $publishRoot=Join-Path $work $folder
     [void][IO.Directory]::CreateDirectory($publishRoot)
-    Write-GMenuProgress 'pack' 0 1 'creating encrypted payload with live byte progress'
+    Set-GMenuHeartbeatPhase 'pack'
+    Write-GMenuHeartbeat 'pack' 'creating encrypted payload with live byte progress'
     $progress=[Action[string,long,long]]{param($phase,$done,$total) Write-GMenuProgress $phase $done $total}
     $packed=[GMenuPayload20260907]::PackParts([string[]]$roots,($manifest | ConvertTo-Json -Depth 100 -Compress),$publishRoot,$key,$iv,$macKey,256MB,$progress)
-    Write-GMenuProgress 'pack' 1 1 'encrypted payload complete'
     $tag='gmenu-'+(Get-Date -Format 'yyyyMMddHHmmss')+'-'+$id.Substring(0,8)
     $ticket=[ordered]@{Schema=1;Function=$name;Folder=$folder;Target=$source;Repository=$repository;Tag=$tag;Digest=$null;Files=$packed.Files;Bytes=$packed.Bytes;Key=[Convert]::ToBase64String($key);IV=[Convert]::ToBase64String($iv);MacKey=[Convert]::ToBase64String($macKey);Mac=$packed.Mac;Parts=@($packed.Parts)}
     [IO.File]::WriteAllText($pending,($ticket | ConvertTo-Json -Depth 20),(New-Object Text.UTF8Encoding($false)))
@@ -202,18 +203,20 @@ try {
         # validate against the real installed-app target.  Keep that
         # provenance explicit for every GMenu-generated image.
         $env:HERMES_MMENU_SOURCE_LABEL_PATH_OVERRIDE=$source
-        Write-GMenuProgress 'publish' 0 1 'publishing and verifying remote layers'
+        Set-GMenuHeartbeatPhase 'publish'
+        Write-GMenuHeartbeat 'publish' 'publishing and verifying remote layers'
+        Write-GMenuProgress 'publish'
         $global:LASTEXITCODE=0
         mmenu -Path $publishRoot -TargetLayerMiB 256 | Out-Host
         if($LASTEXITCODE -ne 0) {throw 'mmenu failed; no restore function was registered.'}
     } finally {$env:HERMES_MMENU_REPOSITORY_OVERRIDE=$oldRepo;$env:HERMES_MMENU_TAG_OVERRIDE=$oldTag;$env:HERMES_MMENU_GMENU=$oldProgress;$env:HERMES_MMENU_SOURCE_LABEL_PATH_OVERRIDE=$oldLabelPath}
-    Write-GMenuProgress 'verify-published-manifest' 0 1 'reading remote manifest'
+    Set-GMenuHeartbeatPhase 'verify-published-manifest'
+    Write-GMenuHeartbeat 'verify-published-manifest' 'reading remote manifest'
+    Write-GMenuProgress 'verify-published-manifest'
     $credential=Get-GMenuLocalHubCredential
     $token=Get-GMenuHubToken $repository $credential
     $remote=Get-GMenuManifest $repository $tag $work $token
-    Write-GMenuProgress 'verify-published-manifest' 1 1 'remote manifest digest verified'
     $ticket.Digest=$remote.Digest
-    Write-GMenuProgress 'publish' 1 1 'remote manifest verified'
     $published=$true
     [IO.File]::WriteAllText($pending,($ticket | ConvertTo-Json -Depth 20),(New-Object Text.UTF8Encoding($false)))
     $ticketBase64=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes(($ticket | ConvertTo-Json -Depth 20 -Compress)))
@@ -241,17 +244,14 @@ $ErrorActionPreference='Stop'
         Copy-Item -LiteralPath $commandPath -Destination $historyPath
     }
     Move-Item -LiteralPath ($commandPath+'.tmp') -Destination $commandPath -Force
-    Write-GMenuProgress 'save-function' 0 1 'writing durable restore command'
+    Set-GMenuHeartbeatPhase 'save-function'
+    Write-GMenuHeartbeat 'save-function' 'writing durable restore command'
+    Write-GMenuProgress 'save-function'
     Register-GMenuPortableCommand -Ticket ([pscustomobject]$ticket) -SourceScript $commandPath -UpgradeExisting
     $receipt=[pscustomobject]@{Function=$name;Source=$source;Repository=$repository;Tag=$tag;Digest=$ticket.Digest;Files=$ticket.Files;Bytes=$ticket.Bytes;CreatedAt=(Get-Date).ToString('o');Script=$commandPath;VerifiedRestore=$false}
     $receipt | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath $receiptPath -Encoding UTF8
-    $fallbackRoot=Join-Path $env:USERPROFILE 'Documents\WindowsPowerShell\GMenuFallback'
-    $fallbackCommandRoot=Join-Path $fallbackRoot 'Commands'
-    [void][IO.Directory]::CreateDirectory($fallbackCommandRoot)
-    [IO.File]::WriteAllText((Join-Path $fallbackCommandRoot ($name+'.receipt.json')),($receipt | ConvertTo-Json -Depth 6),(New-Object Text.UTF8Encoding($false)))
     $definition=[scriptblock]::Create(("Invoke-GMenuSavedCommand -Name '{0}' -Arguments `$args" -f $name))
     Set-Item -LiteralPath ('Function:\global:'+$name) -Value $definition -Force
-    Write-GMenuProgress 'save-function' 1 1 'durable restore command registered'
     if($VerifyRestore) {
         $restoreResult=& $commandPath -Credential $credential
         $restoreResult | Out-Host
@@ -261,14 +261,15 @@ $ErrorActionPreference='Stop'
     Remove-Item -LiteralPath $pending -Force
     $completed=$true
 } finally {
-    Write-GMenuProgress 'cleanup' 0 1 'restoring service state and removing temporary files'
+    Set-GMenuHeartbeatPhase 'cleanup'
+    Write-GMenuHeartbeat 'cleanup' 'restoring service state and removing temporary files'
     & $gmenuResumeServicesBody $source
     if($wasRunning -and $appWasStopped -and -not $appWasRestarted -and (Test-Path -LiteralPath $launcherPath)) {
         try {& $gmenuEnsureResumeServices;[void](Start-GMenuApp $source $manifest -NoWait)}catch{Write-Warning 'Original app did not reopen; its files remain available.'}
     }
     if($completed -or -not $payloadCreated) {Remove-GMenuWork $work $workParent}
     else {Write-Warning ('Verified encrypted pending payload retained after publish failure: '+$work+' and '+$pending)}
-    Write-GMenuProgress 'cleanup' 1 1 'cleanup complete'
+    Stop-GMenuHeartbeat
 }
 Write-GMenuProgress 'complete' 1 1
 Write-Host ("GMENU_SAVED function={0} image={1}:{2}" -f $name,$repository,$tag)

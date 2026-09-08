@@ -17,16 +17,6 @@ function Get-GMenuSavedCommandRoot {
     return (Join-Path $env:USERPROFILE '.gmenu\Commands')
 }
 
-function Get-GMenuFallbackRoot {
-    if([string]::IsNullOrWhiteSpace($env:USERPROFILE)) {throw 'GMenu cannot resolve USERPROFILE.'}
-    return (Join-Path $env:USERPROFILE 'Documents\WindowsPowerShell\GMenuFallback')
-}
-
-function Get-GMenuFallbackCommandRoots {
-    $root=Get-GMenuFallbackRoot
-    return @((Join-Path $root 'Commands'),(Join-Path $root 'CommandBackups'))
-}
-
 function Test-GMenuGeneratedCommand([string]$Path) {
     if(-not (Test-Path -LiteralPath $Path -PathType Leaf)) {return $false}
     try {
@@ -48,10 +38,6 @@ function Restore-GMenuSavedCommand([string]$Name,[string]$Destination) {
         foreach($history in Get-ChildItem -LiteralPath $historyRoot -Filter '*.ps1' -File -Force -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending) {
             if(Test-GMenuGeneratedCommand $history.FullName){$candidates.Add($history.FullName)}
         }
-    }
-    foreach($fallbackRoot in Get-GMenuFallbackCommandRoots) {
-        $fallback=Join-Path $fallbackRoot ($Name+'.ps1')
-        if(Test-GMenuGeneratedCommand $fallback){$candidates.Add($fallback)}
     }
     if(-not $candidates.Count){return $false}
     [void][IO.Directory]::CreateDirectory($commandRoot)
@@ -81,23 +67,16 @@ function Invoke-GMenuSavedCommand {
     $valid=Test-GMenuGeneratedCommand $commandPath
     if(-not $valid) {$valid=Restore-GMenuSavedCommand $Name $commandPath}
     if(-not $valid) {
-        $receiptCandidates=@(
-            (Join-Path $commandRoot ($Name+'.receipt.json')),
-            (Join-Path (Get-GMenuFallbackRoot) ('Commands\'+$Name+'.receipt.json'))
-        )
+        $receipt=Join-Path $commandRoot ($Name+'.receipt.json')
         $sourceHint=$null
-        foreach($receipt in $receiptCandidates) {
-            if(Test-Path -LiteralPath $receipt -PathType Leaf) {
-                try {$sourceHint=[string]((Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json).Source)}catch{}
-                if($sourceHint){break}
-            }
+        if(Test-Path -LiteralPath $receipt -PathType Leaf) {
+            try {$sourceHint=[string]((Get-Content -LiteralPath $receipt -Raw | ConvertFrom-Json).Source)}catch{}
         }
-        $fallbackRoot=Get-GMenuFallbackRoot
         $hint=if($sourceHint){" Re-run gmenu for the recorded source '$sourceHint' to recreate the protected command."}else{' Re-run gmenu for the application to recreate the protected command.'}
         if(Test-Path -LiteralPath $commandPath -PathType Leaf) {
-            throw (("GMenu command '{0}' failed its generated-command integrity check and no protected backup is available under '{1}' or '{2}'." -f $Name,$stateRoot,$fallbackRoot)+$hint)
+            throw ("GMenu command '{0}' failed its generated-command integrity check and no protected backup is available under '{1}'.{2}" -f $Name,$stateRoot,$hint)
         }
-        throw (("GMenu command '{0}' is registered but its restore script is missing and no protected backup is available under '{1}' or '{2}'." -f $Name,$stateRoot,$fallbackRoot)+$hint)
+        throw ("GMenu command '{0}' is registered but its restore script is missing and no protected backup is available under '{1}'.{2}" -f $Name,$stateRoot,$hint)
     }
     & $commandPath @Arguments
     $exitCode=$LASTEXITCODE
@@ -117,7 +96,7 @@ $gmenuCommandRoot=Get-GMenuSavedCommandRoot
 # that it stayed gone.  Writers create the state root at the point they publish
 # or restore a command.
 $gmenuStateRoot=Split-Path -Parent $gmenuCommandRoot
-$gmenuCommandRoots=@($gmenuCommandRoot,(Join-Path $gmenuStateRoot 'CommandBackups'))+(Get-GMenuFallbackCommandRoots)
+$gmenuCommandRoots=@($gmenuCommandRoot,(Join-Path $gmenuStateRoot 'CommandBackups'))
 foreach($gmenuRoot in $gmenuCommandRoots) {
     if(-not (Test-Path -LiteralPath $gmenuRoot -PathType Container)){continue}
     foreach($gmenuCommand in Get-ChildItem -LiteralPath $gmenuRoot -Filter 'g*.ps1' -File -Force -ErrorAction SilentlyContinue) {

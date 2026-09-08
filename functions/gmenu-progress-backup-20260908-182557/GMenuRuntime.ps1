@@ -102,10 +102,11 @@ function Invoke-GMenuRobocopy([string]$Robocopy,[string]$Source,[string]$Destina
         $errorTask=$process.StandardError.ReadToEndAsync()
         do {
             if($clock.ElapsedMilliseconds -ge 1000){
+                Write-GMenuHeartbeat $Phase ('elapsed_ms='+$clock.ElapsedMilliseconds)
                 if($TotalBytes -gt 0 -and (Test-Path -LiteralPath $Destination -PathType Container)) {
                     $copied=[long]((Get-ChildItem -LiteralPath $Destination -File -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum)
-                    Write-GMenuProgress $Phase ([Math]::Min($TotalBytes,$copied)) $TotalBytes ('elapsed_ms='+$clock.ElapsedMilliseconds)
-                } else { Write-GMenuProgress $Phase 0 0 ('elapsed_ms='+$clock.ElapsedMilliseconds) }
+                    Write-GMenuProgress $Phase $copied $TotalBytes
+                }
                 $clock.Restart()
             }
         } while(-not $process.WaitForExit(250))
@@ -113,10 +114,7 @@ function Invoke-GMenuRobocopy([string]$Robocopy,[string]$Source,[string]$Destina
         $errors=$errorTask.GetAwaiter().GetResult()
         if($output){$output.TrimEnd() | Out-Host}
         if($errors){$errors.TrimEnd() | Out-Host}
-        if($TotalBytes -gt 0 -and (Test-Path -LiteralPath $Destination -PathType Container)) {
-            $copied=[long]((Get-ChildItem -LiteralPath $Destination -File -Recurse -Force -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum)
-            Write-GMenuProgress $Phase ([Math]::Min($TotalBytes,$copied)) $TotalBytes ('complete exit='+$process.ExitCode)
-        } else { Write-GMenuProgress $Phase 0 0 ('complete exit='+$process.ExitCode) }
+        Write-GMenuHeartbeat $Phase ('complete exit='+$process.ExitCode)
         return [int]$process.ExitCode
     } finally {$process.Dispose()}
 }
@@ -276,18 +274,8 @@ function Get-GMenuManifest([string]$Repository,[string]$Reference,[string]$Work,
 function Get-GMenuOwnedProcess([string]$Root) {
     @(Get-Process -ErrorAction SilentlyContinue | Where-Object { try { $_.Path -and $_.Path.StartsWith($Root+'\',[StringComparison]::OrdinalIgnoreCase) } catch { $false } })
 }
-function Resolve-GMenuOwnedServiceBinary([string]$Root,[string]$PathName) {
-    $prefix=[IO.Path]::GetFullPath($Root).TrimEnd('\')+'\'
-    $path=[Environment]::ExpandEnvironmentVariables([string]$PathName)
-    $binary=$null
-    if($path -match '^\s*"([^"]+\.exe)"'){$binary=$matches[1]}
-    elseif($path -match '^\s*(.+?\.exe)(?:\s|$)'){$binary=$matches[1]}
-    if(-not $binary){return $null}
-    try {$binary=[IO.Path]::GetFullPath($binary)} catch {return $null}
-    if($binary.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)) {return $binary}
-    return $null
-}
 function Get-GMenuOwnedServices([string]$Root) {
+    $prefix=[IO.Path]::GetFullPath($Root).TrimEnd('\')+'\'
     $serviceKeyRoot='HKLM:\SYSTEM\CurrentControlSet\Services'
     # Win32_Service enumeration can block indefinitely when the WMI provider is
     # unhealthy.  ServiceController + the SCM registry is the same authoritative
@@ -298,8 +286,12 @@ function Get-GMenuOwnedServices([string]$Root) {
             $settings=Get-ItemProperty -LiteralPath (Join-Path $serviceKeyRoot $name) -ErrorAction SilentlyContinue
             if(-not $settings){continue}
             $path=[Environment]::ExpandEnvironmentVariables([string]$settings.ImagePath)
-            $binary=Resolve-GMenuOwnedServiceBinary $Root $path
+            $binary=$null
+            if($path -match '^\s*"([^"]+\.exe)"'){$binary=$matches[1]}
+            elseif($path -match '^\s*(.+?\.exe)(?:\s|$)'){$binary=$matches[1]}
             if(-not $binary){continue}
+            try {$binary=[IO.Path]::GetFullPath($binary)} catch {continue}
+            if(-not $binary.StartsWith($prefix,[StringComparison]::OrdinalIgnoreCase)){continue}
             $startMode=switch([int]$settings.Start) {
                 0 {'System';break}
                 1 {'Boot';break}
@@ -671,21 +663,17 @@ function Test-GMenuDaymarkSession($Manifest) {
         return [pscustomobject]@{Status='SessionVerified';Tasks=$tasks;Projects=$projects;Revision=$state.revision}
     } catch { throw 'Saved Daymark workspace pairing did not verify. No logged-in readiness claim was made.' }
 }
-function Write-GMenuProgress([string]$Phase,[long]$Done=0,[long]$Total=0,[string]$Detail='') {
-    if(-not $script:GMenuProgressStartedAt) {$script:GMenuProgressStartedAt=[Diagnostics.Stopwatch]::GetTimestamp()}
-    $elapsed=[int64](([Diagnostics.Stopwatch]::GetTimestamp()-$script:GMenuProgressStartedAt)*1000/[Diagnostics.Stopwatch]::Frequency)
-    $percent=if($Total -gt 0){[Math]::Min(100.0,[Math]::Max(0.0,100.0*[double]$Done/[double]$Total))}else{0.0}
-    $value=$percent.ToString('F4',[Globalization.CultureInfo]::InvariantCulture)
-    $progressDetail=if($Total -gt 0){"$Done/$Total"}else{"count=$Done total=unknown mode=indeterminate"}
-    if($Detail){$progressDetail+=' detail='+$Detail}
-    Write-Host ("GMENU {0} {1}% {2} elapsed_ms={3}" -f $Phase,$value,$progressDetail,$elapsed)
+function Write-GMenuProgress([string]$Phase,[long]$Done=0,[long]$Total=0) {
+    $percent=if($Total -gt 0){[Math]::Min(100.0,[Math]::Max(0.0,100.0*$Done/$Total))}else{0}
+    $value=$percent.ToString('F3',[Globalization.CultureInfo]::InvariantCulture)
+    $detail=if($Total -gt 0){"$Done/$Total"}else{"count=$Done"}
+    Write-Host ("GMENU {0} {1}% {2}" -f $Phase,$value,$detail)
 }
 function Write-GMenuHeartbeat([string]$Phase,[string]$Detail='') {
-    # Kept as a compatibility shim for already-generated restore commands.  The
-    # timer-based generic heartbeat was removed; every line is now a real
-    # progress record with an explicit percentage and elapsed time.
-    $detail=if($Detail){$Detail}else{'stage-start'}
-    Write-GMenuProgress $Phase 0 0 $detail
+    $elapsed=0
+    if($script:GMenuHeartbeatStartedAt){$elapsed=[int64]((Get-Date)-$script:GMenuHeartbeatStartedAt).TotalMilliseconds}
+    $suffix=if($Detail){' '+$Detail}else{''}
+    Write-Host ("GMENU_HEARTBEAT phase={0} elapsed_ms={1}{2}" -f $Phase,$elapsed,$suffix)
 }
 function Get-GMenuFileSystemEntry([string]$Root) {
     # PS5 recursive enumeration is provider-dependent around junctions. Walk
@@ -1024,6 +1012,8 @@ function Start-GMenuScriptOrContent([string]$Root,$Manifest,[string]$Launcher,[s
         # exit makes a successful launch look hung forever while the app is
         # still running.  Verify the handoff briefly, then return the live
         # launcher/child PID so restore can finish and the user can use it.
+        Set-GMenuHeartbeatPhase 'launch-started'
+        Write-GMenuHeartbeat 'launch-started' 'interactive command opened in its own console'
         Start-Sleep -Milliseconds 250
         $process.Refresh()
         if($process.HasExited -and $process.ExitCode -ne 0) {
@@ -1035,6 +1025,8 @@ function Start-GMenuScriptOrContent([string]$Root,$Manifest,[string]$Launcher,[s
         }
         return [int]$process.Id
     }
+    Set-GMenuHeartbeatPhase 'launch-wait'
+    $launchClock=[Diagnostics.Stopwatch]::StartNew()
     $deadline=(Get-Date).AddSeconds(90)
     do {
         $process.Refresh()
@@ -1090,6 +1082,7 @@ function Start-GMenuScriptOrContent([string]$Root,$Manifest,[string]$Launcher,[s
             $script:GMenuLaunchHealth=[pscustomobject]@{Status='NotVerified';Detail='Launcher completed successfully; this script has no application-specific readiness check.'}
             return [int]$process.Id
         }
+        if($launchClock.ElapsedMilliseconds -ge 1000){Write-GMenuHeartbeat 'launch-wait' ('launcher_alive='+(-not $process.HasExited));$launchClock.Restart()}
         Start-Sleep -Milliseconds 250
     }while((Get-Date) -lt $deadline)
     throw 'Application launcher did not complete its recorded readiness check within 90 seconds.'
@@ -1360,15 +1353,15 @@ function Invoke-GMenuRestore {
     $swapped=$false;$ready=$false;$hadPrevious=$false
     $script:GMenuCreatedServices=New-Object 'Collections.Generic.List[string]'
     $external=@()
-    Write-GMenuProgress 'restore-start' 0 1 'initializing restore'
+    Start-GMenuHeartbeat 'restore-start'
     try {
-        Write-GMenuProgress 'restore-auth' 0 1 'requesting registry token'
+        Set-GMenuHeartbeatPhase 'restore-auth'
+        Write-GMenuHeartbeat 'restore-auth' 'requesting registry token'
         if(-not $Credential) {$Credential=Get-GMenuLocalHubCredential}
         $token=Get-GMenuHubToken $Ticket.Repository $Credential
-        Write-GMenuProgress 'restore-auth' 1 1 'registry token acquired'
-        Write-GMenuProgress 'restore-manifest' 0 1 'fetching verified manifest'
+        Set-GMenuHeartbeatPhase 'restore-manifest'
+        Write-GMenuHeartbeat 'restore-manifest' 'fetching verified manifest'
         $remote=Get-GMenuManifest $Ticket.Repository $Ticket.Digest $work $token
-        Write-GMenuProgress 'restore-manifest' 1 1 'verified manifest acquired'
         $tar=Join-Path $env:SystemRoot 'System32\tar.exe'
         if(-not (Test-Path -LiteralPath $tar)) { throw 'Windows tar.exe is required; Docker Desktop and the old PowerShell profile are not required.' }
         $found=@{}
@@ -1378,6 +1371,8 @@ function Invoke-GMenuRestore {
             if((Get-Date) -ge $script:GMenuTokenRefreshAt) {$token=Get-GMenuHubToken $Ticket.Repository $Credential}
             $layerNumber++
             $layerPhase=('restore-layer-{0}/{1}' -f $layerNumber,$remote.Manifest.layers.Count)
+            Set-GMenuHeartbeatPhase $layerPhase
+            Write-GMenuHeartbeat $layerPhase 'downloading and verifying layer'
             Write-Host ('GRESTORE_DOWNLOAD layer='+$layerNumber+'/'+$remote.Manifest.layers.Count)
             $layerFile=Join-Path $work 'layer.tar'
             Receive-GMenuHttp ('https://registry-1.docker.io/v2/'+$Ticket.Repository+'/blobs/'+$layer.digest) $layerFile $token '' $layerPhase
@@ -1400,7 +1395,8 @@ function Invoke-GMenuRestore {
         }
         if($found.Count -ne @($Ticket.Parts).Count) { throw 'Published image is missing backup parts.' }
         $encrypted=Join-Path $work 'payload.enc'
-        Write-GMenuProgress 'assemble-parts' 0 1 'joining verified encrypted parts'
+        Set-GMenuHeartbeatPhase 'assemble-parts'
+        Write-GMenuHeartbeat 'assemble-parts' 'joining verified encrypted parts'
         $stream=[IO.File]::Open($encrypted,[IO.FileMode]::CreateNew)
         try {
             [long]$assembleTotal=0;foreach($part in $Ticket.Parts){$assembleTotal+=[long]$part.Length}
@@ -1420,20 +1416,21 @@ function Invoke-GMenuRestore {
             Write-GMenuProgress 'assemble-parts' $assembleDone $assembleTotal
         } finally {$stream.Dispose()}
         $zip=Join-Path $work 'payload.zip'
-        Write-GMenuProgress 'decrypt' 0 1 'authenticating and decrypting payload'
+        Set-GMenuHeartbeatPhase 'decrypt'
+        Write-GMenuHeartbeat 'decrypt' 'authenticating and decrypting payload'
         [GMenuPayload20260907]::Decrypt($encrypted,$zip,[Convert]::FromBase64String($Ticket.Key),[Convert]::FromBase64String($Ticket.IV),[Convert]::FromBase64String($Ticket.MacKey),$Ticket.Mac)
-        Write-GMenuProgress 'decrypt' 1 1 'decryption complete'
         Remove-Item -LiteralPath $encrypted -Force
         $expanded=Join-Path $work 'expanded'
         [void][IO.Directory]::CreateDirectory($expanded)
-        Write-GMenuProgress 'extract' 0 1 'validating and expanding archive'
+        Set-GMenuHeartbeatPhase 'extract'
+        Write-GMenuHeartbeat 'extract' 'validating and expanding archive'
         [GMenuPayload20260907]::Extract($zip,$expanded,[long]$Ticket.Bytes,[int]$Ticket.Files)
-        Write-GMenuProgress 'extract' 1 1 'archive expanded and verified'
         Remove-Item -LiteralPath $zip -Force
         $manifest=Get-Content -LiteralPath (Join-Path $expanded 'gmenu-manifest.json') -Raw | ConvertFrom-Json
         if($manifest.Schema -ne 1 -or $manifest.Folder -ne $Ticket.Folder) { throw 'Backup metadata mismatch.' }
         $session=Test-GMenuDaymarkSession $manifest
-        Write-GMenuProgress 'session-rewrap' 0 1 'restoring portable Windows session keys'
+        Set-GMenuHeartbeatPhase 'session-rewrap'
+        Write-GMenuHeartbeat 'session-rewrap' 'restoring portable Windows session keys'
         foreach($key in $manifest.WindowsKeys) {
             $file=[IO.Path]::GetFullPath((Join-Path $expanded $key.Path))
             if(-not $file.StartsWith($expanded+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Session key path escaped extraction folder.' }
@@ -1445,9 +1442,8 @@ function Invoke-GMenuRestore {
                 [IO.File]::WriteAllText($file,($state | ConvertTo-Json -Depth 100),(New-Object Text.UTF8Encoding($false)))
             } finally {[Array]::Clear($clear,0,$clear.Length)}
         }
-        Write-GMenuProgress 'session-rewrap' 1 1 'session keys restored'
         $dataIndex=0
-        Write-GMenuProgress 'external-data' 0 1 'restoring external data mappings'
+        Set-GMenuHeartbeatPhase 'external-data'
         foreach($dataRoot in $manifest.DataRoots) {
             if($dataRoot.Environment -notin @('APPDATA','LOCALAPPDATA','ProgramData','USERPROFILE') -or
                [IO.Path]::IsPathRooted($dataRoot.Relative) -or $dataRoot.Relative -match '(^|[\\/])\.\.?($|[\\/])|:') {throw 'Unsafe external-data mapping.'}
@@ -1465,10 +1461,9 @@ function Invoke-GMenuRestore {
             }
             $dataIndex++
         }
-        Write-GMenuProgress 'external-data' 1 1 'external data mappings restored'
-        Write-GMenuProgress 'stage-copy' 0 1 'copying verified application files'
+        Set-GMenuHeartbeatPhase 'stage-copy'
+        Write-GMenuHeartbeat 'stage-copy' 'copying verified application files'
         Copy-GMenuStage (Join-Path $expanded 'app') $stage
-        Write-GMenuProgress 'stage-copy' 1 1 'application files staged'
         Stop-GMenuApp $target
         [void](Assert-GMenuPath $target)
         if(Test-Path -LiteralPath $target) { Move-Item -LiteralPath $target -Destination $previous;$hadPrevious=$true }
@@ -1481,6 +1476,7 @@ function Invoke-GMenuRestore {
             $record.Created=$true
         }
         foreach($link in $manifest.Links) {
+            Set-GMenuHeartbeatPhase 'links'
             $linkRoot=$target
             if($null -ne $link.DataIndex -and $link.DataIndex -ge 0) {
                 if($link.DataIndex -ge @($manifest.DataRoots).Count){throw 'Restored link references an unknown data folder.'}
@@ -1492,13 +1488,14 @@ function Invoke-GMenuRestore {
         }
         Install-GMenuServices $target $manifest
         if($RestoreOnly) {
-            Write-GMenuProgress 'restore-complete' 1 1 'restore-only requested; application not launched'
+            Set-GMenuHeartbeatPhase 'restore-complete'
+            Write-GMenuHeartbeat 'restore-complete' 'restore-only requested; application not launched'
             $ready=$true
             [pscustomobject]@{Status='RESTORED_NOT_LAUNCHED';Path=$target;Image=($Ticket.Repository+'@'+$Ticket.Digest)}
         } else {
-            Write-GMenuProgress 'launch' 0 1 'opening restored application and verifying readiness'
+            Set-GMenuHeartbeatPhase 'launch'
+            Write-GMenuHeartbeat 'launch' 'opening restored application and verifying readiness'
             $appPid=Start-GMenuApp $target $manifest
-            Write-GMenuProgress 'launch' 1 1 'application launched and readiness checked'
             $ready=$true
             [pscustomobject]@{Status=if($script:GMenuLaunchHealth -and $script:GMenuLaunchHealth.Status -ne 'Verified'){'RESTORE_LAUNCHED_NEEDS_ATTENTION'}else{'RESTORE_LAUNCHED'};Path=$target;ProcessId=$appPid;AppHealth=if($script:GMenuLaunchHealth){$script:GMenuLaunchHealth.Status}else{'NotVerified'};Session=if($session){$session.Status}elseif($manifest.Folder -ieq 'tailscale'){'SessionVerified'}else{'NotVerified'};Image=($Ticket.Repository+'@'+$Ticket.Digest)}
         }
@@ -1534,11 +1531,13 @@ function Invoke-GMenuRestore {
         }
         throw
     } finally {
-        Write-GMenuProgress 'cleanup' 0 1 'releasing temporary restore state'
-        Resume-GMenuServices $target
-        foreach($record in $external) {if(Test-Path -LiteralPath $record.Stage){Remove-GMenuWork $record.Stage $record.Parent}}
-        Remove-GMenuWork $work $workParent
-        if(Test-Path -LiteralPath $stage) {Remove-GMenuWork $stage $parent}
-        Write-GMenuProgress 'cleanup' 1 1 'temporary restore state released'
+        Set-GMenuHeartbeatPhase 'cleanup'
+        Write-GMenuHeartbeat 'cleanup' 'releasing temporary restore state'
+        try {
+            Resume-GMenuServices $target
+            foreach($record in $external) {if(Test-Path -LiteralPath $record.Stage){Remove-GMenuWork $record.Stage $record.Parent}}
+            Remove-GMenuWork $work $workParent
+            if(Test-Path -LiteralPath $stage) {Remove-GMenuWork $stage $parent}
+        } finally {Stop-GMenuHeartbeat}
     }
 }

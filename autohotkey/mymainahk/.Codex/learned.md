@@ -95,3 +95,14 @@
 - Root cause: `ddrivers` launched GameSir Connect through a stale `shell:AppsFolder` identifier even though the installed direct executable was available; the requested mute hotstrings were also absent from the live script.
 - Fix: use the verified direct vendor executable list only; add HWND-based app mute/unmute and CoreAudio default-capture mute/unmute with session and `%TEMP%\mic-prev-level.txt` persistence.
 - Verification: AutoHotkey v2 `/validate` exit 0; direct app-mute and six-tool driver probes passed; live `mmute`, `unmute`, `mmmute`, and `uunmute` triggers were consumed and the microphone state/file were restored.
+
+## 2026-09-08 - kkkk native helper launch and warning dialog
+
+- Error: The first helper launch used an undefined `WaitForKkkkProcessTreeExit` name, so AHK `#Warn` paused the helper behind a dialog; the production launcher also needed an explicit `/script` switch for this installed runtime.
+- Fix: call the defined bounded tree wait function and launch the helper with `AutoHotkey64.exe /script`; keep a creation-stamp check, children-first native `TerminateProcess`, bounded wait, and post-kill verification.
+- Verification: source and helper validation exited 0; a disposable process-tree kill passed; the live four-tap `kkkk` route passed and logged helper exit 0. Native injected text did not reach a disposable editor control, so microphone text hotstrings were validated through their exact handler functions instead.
+
+## 2026-09-08 - PowerShell v5 inline if reporting
+
+- Error: An inline `(if (...) { ... } else { ... })` used only for probe reporting was parsed as a command, causing a false nonzero test result after the underlying action had already succeeded.
+- Fix: assign a default result and use a standalone `if` statement; use `Start-Process -Wait -PassThru` when an executable exit code is required.

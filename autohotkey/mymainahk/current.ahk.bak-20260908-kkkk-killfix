@@ -1917,7 +1917,7 @@ LoadFrozenProcesses()
 SetTimer(MaintainPausedProcessState, 250)
 global kkkkTapCount := 0
 global kkkkLastTapTime := 0
-global kkkkTapWindow := 1500        ; 4 distinct k presses must complete under 1.5 seconds
+global kkkkTapWindow := 900         ; 4 k presses must complete under 1 second
 
 ; ============================================================================
 ; HOTKEYS - Keyboard shortcuts
@@ -2787,178 +2787,20 @@ ReleaseCoreAudioInterface(interfacePtr)
     }
 }
 
-; Force-terminate the process tree owning the foreground window.  The old
-; implementation launched taskkill.exe /T asynchronously, which could hang
-; forever on a console or game tree and gave no indication that the target
-; survived.  The helper performs bounded native TerminateProcess calls and
-; returns an exit code that this function verifies against the original PID
-; and creation stamp.
 KillForegroundApp()
 {
     hwnd := DllCall("GetForegroundWindow", "Ptr")
     if (!hwnd) {
-        ShowKkkkKillStatus("kkkk: no foreground application", true)
-        return false
+        return
     }
 
     pid := 0
     DllCall("GetWindowThreadProcessId", "Ptr", hwnd, "UInt*", &pid)
-    currentPid := DllCall("GetCurrentProcessId", "UInt")
-    if (!pid || pid = currentPid) {
-        ShowKkkkKillStatus("kkkk: refused to terminate this shortcut runtime", true)
-        return false
+    if (!pid || pid = DllCall("GetCurrentProcessId", "UInt")) {
+        return
     }
 
-    try {
-        processName := WinGetProcessName("ahk_id " hwnd)
-    } catch {
-        processName := ""
-    }
-    try {
-        windowTitle := WinGetTitle("ahk_id " hwnd)
-    } catch {
-        windowTitle := ""
-    }
-
-    if (IsKkkkProtectedProcessName(processName)) {
-        ShowKkkkKillStatus("kkkk: protected system window was not terminated", true)
-        LogKkkkKill("refused protected process=" processName " pid=" pid)
-        return false
-    }
-
-    if (!ProcessExist(pid)) {
-        ShowKkkkKillStatus("kkkk: foreground application already exited", true)
-        return false
-    }
-
-    creationStamp := GetProcessCreationStamp(pid)
-    targetLabel := processName != "" ? processName : "PID " pid
-    if (windowTitle != "") {
-        targetLabel .= " (" windowTitle ")"
-    }
-    LogKkkkKill("request target=" targetLabel " pid=" pid " created=" creationStamp)
-
-    exitCode := RunKkkkKillHelper(pid, creationStamp, false)
-    if (WaitForKkkkProcessExit(pid, creationStamp, 2000)) {
-        ShowKkkkKillStatus("kkkk: force-killed " targetLabel)
-        LogKkkkKill("success target=" targetLabel " exit=" exitCode)
-        return true
-    }
-
-    ; A non-elevated script cannot terminate a higher-integrity target.  Ask
-    ; Windows for one explicit elevation only after the normal attempt failed.
-    if (!A_IsAdmin) {
-        elevatedExitCode := RunKkkkKillHelper(pid, creationStamp, true)
-        if (WaitForKkkkProcessExit(pid, creationStamp, 2500)) {
-            ShowKkkkKillStatus("kkkk: force-killed " targetLabel " (elevated)")
-            LogKkkkKill("success elevated target=" targetLabel " exit=" elevatedExitCode)
-            return true
-        }
-        exitCode := elevatedExitCode
-    }
-
-    errorText := "kkkk: could not terminate " targetLabel
-    if (!A_IsAdmin) {
-        errorText .= " (approve the elevation prompt or close the protected app)"
-    } else {
-        errorText .= " (Windows denied termination; exit " exitCode ")"
-    }
-    ShowKkkkKillStatus(errorText, true)
-    LogKkkkKill("failure target=" targetLabel " pid=" pid " exit=" exitCode
-        " admin=" A_IsAdmin)
-    return false
-}
-
-RunKkkkKillHelper(pid, creationStamp, elevated := false)
-{
-    helper := A_ScriptDir "\kkkk-kill-helper.ahk"
-    if (!FileExist(helper)) {
-        LogKkkkKill("helper missing: " helper)
-        return -1
-    }
-
-    stampArg := creationStamp != "" ? '"' creationStamp '"' : '""'
-    command := '"' A_AhkPath '" /script "' helper '" "' pid '" ' stampArg
-    if (elevated) {
-        command := "*RunAs " command
-    }
-
-    try {
-        return RunWait(command, , "Hide")
-    } catch as err {
-        LogKkkkKill("helper launch failed elevated=" elevated " error=" err.Message)
-        return -1
-    }
-}
-
-WaitForKkkkProcessExit(pid, expectedCreationStamp := "", timeoutMs := 2000)
-{
-    deadline := A_TickCount + timeoutMs
-    Loop {
-        if (!ProcessExist(pid)) {
-            return true
-        }
-
-        if (expectedCreationStamp != "") {
-            currentCreationStamp := GetProcessCreationStamp(pid)
-            if (currentCreationStamp != "" && currentCreationStamp != expectedCreationStamp) {
-                return true
-            }
-        }
-
-        if (A_TickCount >= deadline) {
-            break
-        }
-        Sleep(25)
-    }
-
-    if (!ProcessExist(pid)) {
-        return true
-    }
-    if (expectedCreationStamp != "") {
-        currentCreationStamp := GetProcessCreationStamp(pid)
-        if (currentCreationStamp != "" && currentCreationStamp != expectedCreationStamp) {
-            return true
-        }
-    }
-    return false
-}
-
-IsKkkkProtectedProcessName(processName)
-{
-    static protected := Map(
-        "autohotkey64.exe", true,
-        "autohotkeyux.exe", true,
-        "csrss.exe", true,
-        "dwm.exe", true,
-        "explorer.exe", true,
-        "lsass.exe", true,
-        "services.exe", true,
-        "sihost.exe", true,
-        "smss.exe", true,
-        "startmenuexperiencehost.exe", true,
-        "shellexperiencehost.exe", true,
-        "system", true,
-        "wininit.exe", true,
-        "winlogon.exe", true)
-    return protected.Has(StrLower(processName))
-}
-
-ShowKkkkKillStatus(message, longDuration := false)
-{
-    ToolTip(message)
-    SetTimer(() => ToolTip(), longDuration ? -4000 : -2200)
-}
-
-LogKkkkKill(message)
-{
-    try {
-        FileAppend(
-            FormatTime(, "yyyy-MM-dd HH:mm:ss") " " message
-                Chr(13) Chr(10),
-            A_Temp "\current-ahk-kkkk.log",
-            "UTF-8")
-    }
+    Run('taskkill.exe /T /F /PID ' pid, , "Hide")
 }
 
 TrackKkkkForceKill()
@@ -2975,9 +2817,8 @@ TrackKkkkForceKill()
 
     if (kkkkTapCount >= 4) {
         kkkkTapCount := 0
-        return KillForegroundApp()
+        KillForegroundApp()
     }
-    return false
 }
 
 OpenRebootlessPerformanceMaximizer()
@@ -3907,12 +3748,7 @@ ForceThreeWaySplit(target) {
 }
 
 ; kkkk - Force kill the foreground application (no mercy)
-~*k::
-{
-    TrackKkkkForceKill()
-    ; Count distinct taps, not autorepeat events from holding K.
-    KeyWait("k")
-}
+~*k::TrackKkkkForceKill()
 
 ; yyyt - Open YouTube account chooser silently (no terminal window)
 :*:yyyt::
